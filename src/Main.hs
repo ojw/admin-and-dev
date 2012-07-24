@@ -6,7 +6,7 @@ module Main where
 
 import Control.Monad.State (get, put)
 import Control.Monad.Reader (ask)
--- import Data.Functor ((<$>))
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.SafeCopy        (SafeCopy, base, deriveSafeCopy)
@@ -41,10 +41,8 @@ import Happstack.Server     ( Happstack, HasRqData, Method(GET, POST), Request(r
                             , mapServerPartT, nullConf, nullDir, ok, simpleHTTP
                             , toResponse
                             )
+import System.FilePath      ((</>))
 
-
-
- 
 newtype UserId = UserId { _unUserId :: Integer }
     deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy)
 
@@ -80,7 +78,7 @@ data UserState = UserState
     { _nextUserId   :: UserId
     , _users        :: IxSet User
     }
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Typeable)
 
 $(makeLens ''UserState)
 $(deriveSafeCopy 0 'base ''UserState)
@@ -102,52 +100,71 @@ addUser email name password = do u@UserState{..} <- get
                                  nextUserId %= succ
 
 
-$(makeAcidic ''UserState ['addUser])
+$(makeAcidic ''UserState ['addUser]) 
+
+
+-- the HasAcidState trick
 
 class HasAcidState m st where
    getAcidState :: m (AcidState st)
-
---Next we redefine query and update so that they use getAcidState to automatically retrieve the the correct acid-state handle from whatever monad they are in:
-{-
-query :: ( Functor m
+query :: forall event m. 
+         ( Functor m
          , MonadIO m
          , QueryEvent event
          , HasAcidState m (EventState event)
-         ) =>
+         ) => 
          event
       -> m (EventResult event)
 query event =
     do as <- getAcidState
        query' (as :: AcidState (EventState event)) event
-
-update :: ( Functor m
+update :: forall event m. 
+          ( Functor m
           , MonadIO m
           , UpdateEvent event
           , HasAcidState m (EventState event)
-          ) =>
-          event
+          ) => 
+          event 
        -> m (EventResult event)
 update event =
     do as <- getAcidState
        update' (as :: AcidState (EventState event)) event
--}
--- | bracket the opening and close of the `AcidState` handle.
 
+-- | bracket the opening and close of the `AcidState` handle. 
 -- automatically creates a checkpoint on close
-withLocalState :: (MonadBaseControl IO m, MonadIO m, IsAcidic st, Typeable st) =>
-                  Maybe FilePath        -- ^ path to state directory
-               -> st                    -- ^ initial state value
-               -> (AcidState st -> m a) -- ^ function which uses the `AcidState` handle
-               -> m a
+withLocalState :: (MonadBaseControl IO m, MonadIO m, IsAcidic st, Typeable st) => 
+                  Maybe FilePath           -- ^ path to state directory
+                 -> st                     -- ^ initial state value
+                 -> (AcidState st -> m a) -- ^ function which uses the `AcidState` handle
+                 -> m a
 withLocalState mPath initialState =
     bracket (liftIO $ (maybe openLocalState openLocalStateFrom mPath) initialState)
             (liftIO . createCheckpointAndClose)
 
--- (These functions will eventually reside in acid-state itself, or some other library).
 
-data Acid = Acid
-    { acidUser :: AcidState UserState } 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+data Acid = Acid { acidUserState    :: AcidState UserState
+                 }
+
+withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
+withAcid mBasePath action =
+    let basePath = fromMaybe "_state" mBasePath
+    in withLocalState (Just $ basePath </> "user")    initialUserState    $ \c ->
+           action (Acid c)
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
     deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
@@ -157,10 +174,5 @@ newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
 
-{-
-instance HasAcidState App CountState where
-    getAcidState = acidCountState    <$> ask
-
-instance HasAcidState App GreetingState where
-    getAcidState = acidGreetingState <$> ask
--}
+instance HasAcidState App UserState where
+    getAcidState = acidUserState    <$> ask 
