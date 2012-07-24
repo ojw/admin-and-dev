@@ -93,15 +93,54 @@ countUsers :: Query UserState Int
 countUsers =  do us <- ask
                  return $ size $ users ^$ us
 
+-- probably definitely doesn't work
 addUser :: Text -> Text -> Text -> Update UserState UserId
 addUser email name password = do u@UserState{..} <- get
-
                                  users != updateIx (nextUserId ^$ u) ( User (nextUserId ^$ u) email name password ) (users ^$ u)
                                  nextUserId %= succ
 
-
 $(makeAcidic ''UserState ['addUser]) 
 
+newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy)
+
+$(makeLens ''RoomId)
+
+data Room = Room
+    { _roomId :: RoomId
+    , _capacity :: Int
+    , _members :: [UserId]
+    , _chat :: [(UserId, Text)]
+    } deriving (Eq, Ord, Data, Typeable)
+
+$(makeLens ''Room)
+$(deriveSafeCopy 0 'base ''Room)
+
+instance Indexable Room where
+    empty = ixSet [ ixFun $ \room -> [ roomId ^$ room ]
+                  , ixFun $ \room -> [ capacity ^$ room ]
+                  , ixFun $ \room -> members ^$ room
+                  ]
+
+data RoomState = RoomState
+    { _nextRoomId   :: RoomId
+    , _rooms        :: IxSet Room
+    }
+    deriving (Eq, Ord, Typeable)
+
+$(makeLens ''RoomState)
+$(deriveSafeCopy 0 'base ''RoomState)
+
+initialRoomState :: RoomState
+initialRoomState = RoomState
+    { _nextRoomId = RoomId 1
+    , _rooms      = empty
+    }
+
+$(makeAcidic ''RoomState [])
+
+data Acid = Acid { acidUserState    :: AcidState UserState
+                 , acidRoomState    :: AcidState RoomState
+                 }
 
 -- the HasAcidState trick
 
@@ -142,29 +181,12 @@ withLocalState mPath initialState =
             (liftIO . createCheckpointAndClose)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-data Acid = Acid { acidUserState    :: AcidState UserState
-                 }
-
 withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
 withAcid mBasePath action =
     let basePath = fromMaybe "_state" mBasePath
-    in withLocalState (Just $ basePath </> "user")    initialUserState    $ \c ->
-           action (Acid c)
+    in withLocalState (Just $ basePath </> "user")    initialUserState    $ \u ->
+       withLocalState (Just $ basePath </> "room")    initialRoomState    $ \r ->
+           action (Acid u r)
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
     deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
@@ -175,4 +197,7 @@ runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
 
 instance HasAcidState App UserState where
-    getAcidState = acidUserState    <$> ask 
+    getAcidState = acidUserState <$> ask 
+
+instance HasAcidState App RoomState where
+    getAcidState = acidRoomState <$> ask
