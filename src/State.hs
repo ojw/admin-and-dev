@@ -2,7 +2,7 @@
   , MultiParamTypeClasses, OverloadedStrings, ScopedTypeVariables, TemplateHaskell
   , TypeFamilies, FlexibleInstances, RecordWildCards #-}
 
-module Main where
+module State where
 
 import Control.Monad.State (get, put)
 import Control.Monad.Reader (ask)
