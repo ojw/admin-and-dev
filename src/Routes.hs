@@ -13,7 +13,7 @@ import Web.Routes              ( PathInfo(..), RouteT, showURL
                                , runRouteT, Site(..), setDefault, mkSitePI
                                , MonadRoute, URL, askRouteFn)
 import Happstack.Server        ( Response, ServerPartT, ok, toResponse, simpleHTTP
-                               , nullConf, seeOther, dir, notFound, seeOther)
+                               , nullConf, seeOther, dir, notFound, seeOther, Method(..), methodM)
 import Web.Routes.Boomerang
 import Text.Boomerang.TH       (derivePrinterParsers)
 import Web.Routes.Happstack    (implSite)
@@ -26,7 +26,8 @@ import Sitemap (Sitemap(..), unUserId, sitemap)
 route :: Sitemap -> RouteT Sitemap (ServerPartT IO) Response
 route url =
     case url of
-      Home              -> hamletTest
+      Home              -> do methodM GET
+                              hamletTest
       (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (unUserId userId)
       (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
 
