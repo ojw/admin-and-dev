@@ -44,7 +44,7 @@ import Happstack.Server     ( Happstack, HasRqData, Method(GET, POST), Request(r
 import System.FilePath      ((</>))
 
 newtype UserId = UserId { _unUserId :: Integer }
-    deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy)
+    deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show) -- might remove read, show later
 
 $(makeLens ''UserId)
 
