@@ -26,8 +26,7 @@ import Sitemap (Sitemap(..), unUserId, sitemap)
 route :: Sitemap -> RouteT Sitemap (ServerPartT IO) Response
 route url =
     case url of
-      Home              -> do methodM GET
-                              hamletTest
+      Home              -> methodM GET >> hamletTest
       (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (unUserId userId)
       (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
 
