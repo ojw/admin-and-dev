@@ -9,8 +9,6 @@ import Web.Routes.TH           (derivePathInfo)
 import Data.Data               (Data, Typeable)
 import Data.Text               (Text)
 import Web.Routes              (PathInfo)
-import Happstack.Server        ( Response, ServerPartT, ok, toResponse, simpleHTTP
-                               , nullConf, seeOther, dir, notFound, seeOther)
 import Web.Routes.Boomerang    ((<>), lit, (</>), anyText, (:-), Router, xmaph, int)
 import Text.Boomerang.TH       (derivePrinterParsers)
 
@@ -32,7 +30,6 @@ sitemap =
     <> rProfile . (lit "profile" </> userId)
     <> rEcho . (lit "message" </> anyText)
     )
-
-userId :: Router () (UserId :- ())
-userId =
-    xmaph UserId (Just . unUserId) int
+    where userId :: Router () (UserId :- ())
+          userId = 
+              xmaph UserId (Just . unUserId) int
