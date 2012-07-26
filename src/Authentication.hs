@@ -2,7 +2,12 @@
   , MultiParamTypeClasses, OverloadedStrings, ScopedTypeVariables, TemplateHaskell
   , TypeFamilies, FlexibleInstances, RecordWildCards #-}
 
-module Authentication where
+module Authentication 
+
+( addUser
+, validateLogin
+, validateSession
+) where
 
 import Data.Functor      ((<$>))
 import System.FilePath      ((</>))
@@ -37,19 +42,14 @@ import Crypto.BCrypt        ( validatePassword, hashPasswordUsingPolicy
 newtype UserId = UserId { _unUserId :: Integer }
     deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show)
 
+-- using newtypes makes the code cumbersome but prevents using Password instead of PasswordHash
+-- and vice versa :/
 type Password = ByteString
-
 type PasswordHash = ByteString
-
-newtype SessionId = SessionId { _unSessionId :: Integer }
-    deriving (Eq, Ord, Data, Typeable, SafeCopy)
-
 type PasswordMap = Map UserId PasswordHash
 
-newtype SessionMap  = SessionMap { _unSessionMap :: Map UserId SessionId }
-    deriving (Eq, Ord, Data, Typeable, SafeCopy)
-
-$(makeLens ''SessionMap)
+type SessionId = Integer
+type SessionMap = Map UserId SessionId
 
 data AuthenticationState = AuthenticationState
     { _passwordMap   :: PasswordMap
@@ -60,18 +60,6 @@ data AuthenticationState = AuthenticationState
 $(makeLens ''AuthenticationState)
 $(deriveSafeCopy 0 'base ''AuthenticationState)
 
--- don't think this is necessary but I wrote it before realizing that
-userExists :: UserId -> Query AuthenticationState Bool
-userExists uid = do (AuthenticationState pm sm) <- ask
-                    case lookup uid pm of
-                         Nothing   -> return False
-                         (Just _)  -> return True
-
-addUser :: UserId -> Password -> Update AuthenticationState PasswordMap
-addUser uid pwd = 
-    do (AuthenticationState pm sm) <- get
-       passwordMap != insert uid pwd pm
-
 -- internal only
 updatePassword' :: UserId -> Password -> Update AuthenticationState PasswordMap
 updatePassword' uid pwd =
@@ -79,31 +67,46 @@ updatePassword' uid pwd =
        passwordMap != adjust (\p -> pwd) uid pm
      
 -- internal only
-updateSession' :: UserId -> SessionId -> Update AuthenticationState SessionMap
+updateSession' :: UserId -> SessionId -> Update AuthenticationState SessionId
 updateSession' uid sid = 
     do (AuthenticationState pm sm) <- get
-       sessionMap != SessionMap (adjust (\s -> sid) uid (_unSessionMap sm))
+       sessionMap != adjust (\s -> sid) uid sm
+       return sid
 
-validateSession :: UserId -> Maybe SessionId -> Update AuthenticationState Bool
-validateSession uid Nothing = return False
-validateSession uid sid = 
-    do (AuthenticationState pm sm) <- get
-       case lookup uid (_unSessionMap sm) of
-            Nothing   -> return False
-            sid       -> return True
-
-validateLogin :: UserId -> Password -> Update AuthenticationState (Maybe SessionId)
-validateLogin uid pwd =
-    do (AuthenticationState pm sm) <- get
-       if validateLogin' uid pwd pm then return (Just (SessionId 1)) else return Nothing
-
+-- internal only
 validateLogin' :: UserId -> Password -> PasswordMap -> Bool
 validateLogin' uid pwd pwdMap =
     case lookup uid pwdMap of
          Nothing        -> False
          (Just pwdHash) -> validatePassword pwdHash pwd
 
-hash :: Password -> IO (Maybe PasswordHash)
-hash pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd
+-- internal only
+addUser' :: UserId -> PasswordHash -> Update AuthenticationState PasswordMap
+addUser' uid pwdh = 
+    do (AuthenticationState pm sm) <- get
+       passwordMap != insert uid pwdh pm
 
-$(makeAcidic ''AuthenticationState ['addUser, 'validateSession, 'validateLogin]) 
+addUser :: UserId -> Password -> IO (Update AuthenticationState PasswordMap)
+addUser uid pwd = do pwdh <- hash pwd
+                     return $ addUser' uid pwdh
+
+validateLogin :: UserId -> Password -> Update AuthenticationState (Maybe SessionId)
+validateLogin uid pwd =
+    do (AuthenticationState pm sm) <- get
+       if validateLogin' uid pwd pm 
+       then (updateSession' uid 1) >>= return . Just
+       else return Nothing
+
+validateSession :: UserId -> Maybe SessionId -> Query AuthenticationState (Maybe UserId)
+validateSession uid Nothing = return Nothing
+validateSession uid sid = 
+    do (AuthenticationState pm sm) <- ask
+       case lookup uid sm of
+            Nothing   -> return Nothing
+            sid       -> return $ Just uid
+
+-- suppressing Maybe is clearly a mistake
+hash :: Password -> IO PasswordHash
+hash pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . fromJust)
+
+$(makeAcidic ''AuthenticationState ['addUser', 'validateSession, 'validateLogin])

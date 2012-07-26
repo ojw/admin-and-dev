@@ -79,10 +79,10 @@ countUsers =  do us <- ask
                  return $ size $ users ^$ us
 
 -- probably definitely doesn't work
-addUser :: Text -> Text -> Text -> Update UserState UserId
-addUser email name password = do u@UserState{..} <- get
-                                 users != updateIx (nextUserId ^$ u) ( User (nextUserId ^$ u) email name password ) (users ^$ u)
-                                 nextUserId %= succ
+addUser :: Text -> Text -> Update UserState UserId
+addUser email name = do u@UserState{..} <- get
+                        users != updateIx (nextUserId ^$ u) ( User (nextUserId ^$ u) email name ) (users ^$ u)
+                        nextUserId %= succ
 
 $(makeAcidic ''UserState ['addUser]) 
 
