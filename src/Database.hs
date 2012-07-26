@@ -38,7 +38,6 @@ data User = User
     { _userId   :: UserId
     , _email    :: Text
     , _name     :: Text
-    , _password :: Text
     }
     deriving (Ord, Eq, Data, Typeable)
 
