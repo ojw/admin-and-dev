@@ -4,15 +4,16 @@
 
 module Database where
 
+import System.FilePath      ((</>))
 import Control.Monad.State (get, put)
 import Control.Monad.Reader (ask)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.SafeCopy        (SafeCopy, base, deriveSafeCopy)
-import Data.Data            (Data, Typeable)
-import Data.Lens            ((%=), (!=), (^$))
-import Data.Lens.Template   (makeLens)
+import Data.SafeCopy        ( SafeCopy, base, deriveSafeCopy )
+import Data.Data            ( Data, Typeable )
+import Data.Lens            ( (%=), (!=), (^$) )
+import Data.Lens.Template   ( makeLens )
 import Data.Acid            ( AcidState(..), EventState(..), EventResult(..)
                             , Query(..), QueryEvent(..), Update(..), UpdateEvent(..)
                             , IsAcidic(..), makeAcidic, openLocalState
@@ -20,28 +21,13 @@ import Data.Acid            ( AcidState(..), EventState(..), EventResult(..)
 import Data.Acid.Local      ( createCheckpointAndClose
                             , openLocalStateFrom
                             )
-import Data.Acid.Advanced   (query', update')
+import Data.Acid.Advanced   ( query', update' )
 import Data.IxSet           ( Indexable(..), IxSet(..), (@=), Proxy(..), getOne
                             , ixFun, ixSet, updateIx, size )
-import Data.Lens.IxSet      (ixLens)
-import qualified Data.IxSet as IxSet
-
-
-import Control.Applicative  (Applicative, Alternative, (<$>))
+-- import Data.Lens.IxSet      (ixLens)
 import Control.Exception.Lifted    (bracket)
 import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad        (MonadPlus, mplus)
-import Control.Monad.Reader (MonadReader, ReaderT(..), ask)
 import Control.Monad.Trans  (MonadIO(..))
-
-import Happstack.Server     ( Happstack, HasRqData, Method(GET, POST), Request(rqMethod)
-                            , Response
-                            , ServerPartT(..), WebMonad, FilterMonad, ServerMonad
-                            , askRq, decodeBody, dir, defaultBodyPolicy, lookText
-                            , mapServerPartT, nullConf, nullDir, ok, simpleHTTP
-                            , toResponse
-                            )
-import System.FilePath      ((</>))
 
 newtype UserId = UserId { _unUserId :: Integer }
     deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show) -- might remove read, show later
@@ -146,6 +132,7 @@ data Acid = Acid { acidUserState    :: AcidState UserState
 
 class HasAcidState m st where
    getAcidState :: m (AcidState st)
+
 query :: forall event m. 
          ( Functor m
          , MonadIO m
@@ -157,6 +144,7 @@ query :: forall event m.
 query event =
     do as <- getAcidState
        query' (as :: AcidState (EventState event)) event
+
 update :: forall event m. 
           ( Functor m
           , MonadIO m
@@ -180,24 +168,9 @@ withLocalState mPath initialState =
     bracket (liftIO $ (maybe openLocalState openLocalStateFrom mPath) initialState)
             (liftIO . createCheckpointAndClose)
 
-
 withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
 withAcid mBasePath action =
     let basePath = fromMaybe "_state" mBasePath
     in withLocalState (Just $ basePath </> "user")    initialUserState    $ \u ->
        withLocalState (Just $ basePath </> "room")    initialRoomState    $ \r ->
            action (Acid u r)
-
-newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
-    deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
-               , HasRqData, ServerMonad ,WebMonad Response, FilterMonad Response
-               , Happstack, MonadReader Acid)
-
-runApp :: Acid -> App a -> ServerPartT IO a
-runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
-
-instance HasAcidState App UserState where
-    getAcidState = acidUserState <$> ask 
-
-instance HasAcidState App RoomState where
-    getAcidState = acidRoomState <$> ask
