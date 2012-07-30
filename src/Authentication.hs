@@ -38,6 +38,7 @@ import Data.Map             (Map, insert, adjust, lookup)
 import Data.ByteString      ( ByteString, pack )
 import Crypto.BCrypt        ( validatePassword, hashPasswordUsingPolicy
                             , slowerBcryptHashingPolicy )
+import System.Random        ( StdGen )
 
 newtype UserId = UserId { _unUserId :: Integer }
     deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show)
@@ -52,8 +53,9 @@ type SessionId = Integer
 type SessionMap = Map UserId SessionId
 
 data AuthenticationState = AuthenticationState
-    { _passwordMap   :: PasswordMap
-    , _sessionMap    :: SessionMap
+    { _passwordMap  :: PasswordMap
+    , _sessionMap   :: SessionMap
+    , _rngString    :: String
     }
     deriving (Eq, Ord, Typeable)
 
@@ -62,16 +64,11 @@ $(deriveSafeCopy 0 'base ''AuthenticationState)
 
 -- internal only
 updatePassword' :: UserId -> Password -> Update AuthenticationState PasswordMap
-updatePassword' uid pwd =
-    do (AuthenticationState pm sm) <- get
-       passwordMap != adjust (\p -> pwd) uid pm
+updatePassword' uid pwd = passwordMap %= adjust (\p -> pwd) uid
      
 -- internal only
-updateSession' :: UserId -> SessionId -> Update AuthenticationState SessionId
-updateSession' uid sid = 
-    do (AuthenticationState pm sm) <- get
-       sessionMap != adjust (\s -> sid) uid sm
-       return sid
+updateSession' :: UserId -> SessionId -> Update AuthenticationState SessionMap
+updateSession' uid sid = sessionMap %= adjust (\s -> sid) uid
 
 -- internal only
 validateLogin' :: UserId -> Password -> PasswordMap -> Bool
@@ -82,9 +79,7 @@ validateLogin' uid pwd pwdMap =
 
 -- internal only
 addUser' :: UserId -> PasswordHash -> Update AuthenticationState PasswordMap
-addUser' uid pwdh = 
-    do (AuthenticationState pm sm) <- get
-       passwordMap != insert uid pwdh pm
+addUser' uid pwdh = passwordMap %= insert uid pwdh
 
 addUser :: UserId -> Password -> IO (Update AuthenticationState PasswordMap)
 addUser uid pwd = do pwdh <- hash pwd
@@ -92,18 +87,19 @@ addUser uid pwd = do pwdh <- hash pwd
 
 validateLogin :: UserId -> Password -> Update AuthenticationState (Maybe SessionId)
 validateLogin uid pwd =
-    do (AuthenticationState pm sm) <- get
+    do (AuthenticationState pm sm _) <- get
        if validateLogin' uid pwd pm 
-       then (updateSession' uid 1) >>= return . Just
+       then (updateSession' uid 1) >> (return $ Just 1)
        else return Nothing
 
-validateSession :: UserId -> Maybe SessionId -> Query AuthenticationState (Maybe UserId)
-validateSession uid Nothing = return Nothing
-validateSession uid sid = 
-    do (AuthenticationState pm sm) <- ask
+validateSession :: Maybe UserId -> Maybe SessionId -> Query AuthenticationState (Maybe UserId)
+validateSession _ Nothing = return Nothing
+validateSession Nothing _ = return Nothing
+validateSession (Just uid) (Just sid) = 
+    do (AuthenticationState pm sm _) <- ask
        case lookup uid sm of
-            Nothing   -> return Nothing
-            sid       -> return $ Just uid
+            Nothing     -> return Nothing
+            (Just sid)  -> return $ Just uid
 
 -- suppressing Maybe is clearly a mistake
 hash :: Password -> IO PasswordHash
