@@ -30,14 +30,17 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Trans  (MonadIO(..))
 
 newtype UserId = UserId { _unUserId :: Integer }
-    deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show) -- might remove read, show later
+    deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show)
 
+newtype RoomId = RoomId { _unRoomId :: Integer } 
+    deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy)
 $(makeLens ''UserId)
 
 data User = User
     { _userId   :: UserId
     , _email    :: Text
     , _name     :: Text
+    , _room     :: Maybe RoomId
     }
     deriving (Ord, Eq, Data, Typeable)
 
@@ -52,6 +55,7 @@ instance Indexable User where
     empty = ixSet [ ixFun $ \user -> [ userId  ^$ user ]
                   , ixFun $ \user -> [ Email  $ email ^$ user  ]
                   , ixFun $ \user -> [ Name $ name ^$ user ]
+                  , ixFun $ \user -> [ room ^$ user ]
                   ]
 
 setEmail :: Text -> Update User Text
@@ -81,12 +85,11 @@ countUsers =  do us <- ask
 -- probably definitely doesn't work
 addUser :: Text -> Text -> Update UserState UserId
 addUser email name = do u@UserState{..} <- get
-                        users != updateIx (nextUserId ^$ u) ( User (nextUserId ^$ u) email name ) (users ^$ u)
+                        users != updateIx (nextUserId ^$ u) ( User (nextUserId ^$ u) email name Nothing ) (users ^$ u)
                         nextUserId %= succ
 
 $(makeAcidic ''UserState ['addUser]) 
 
-newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy)
 
 $(makeLens ''RoomId)
 
