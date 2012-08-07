@@ -74,8 +74,8 @@ $(makeLens ''MessageState)
 
 sendMessage :: Message -> Update MessageState MessageId
 sendMessage message = 
-    do ms <- get
-       messages %= updateIx (nextMessageId ^$ ms) message
+    do messageState <- get
+       messages %= updateIx (nextMessageId ^$ messageState) message
        nextMessageId %= succ
 
 receiveMessages :: User -> Query MessageState [Message]
@@ -93,4 +93,4 @@ initialMessageState = MessageState
     , _messages         = empty
     }
 
-$(makeAcidic ''MessageState []) 
+$(makeAcidic ''MessageState ['sendMessage, 'receiveMessages]) 
