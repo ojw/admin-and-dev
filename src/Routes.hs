@@ -19,6 +19,8 @@ import Web.Routes.Happstack    ( implSite )
 import Views (hamletTest)
 import Sitemap (Sitemap(..), unUserId, sitemap) -- soon just Sitemap() and sitemap
 
+import Control.Monad.Trans
+
 -- from Tazjin's blog
 convRender :: (url -> [(Text, Maybe Text)] -> Text)
            -> (url -> [(Text, Text)]-> Text)
@@ -34,7 +36,8 @@ renderFunction = liftM convRender $ askRouteFn
 route :: Sitemap -> RouteT Sitemap (ServerPartT IO) Response
 route url =
     case url of
-      Home              -> methodM GET >> renderFunction >>= (ok . toResponse . hamletTest)
+      Home              -> do liftIO $ putStrLn "FOO"
+                              methodM GET >> renderFunction >>= (ok . toResponse . hamletTest)
       (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (unUserId userId)
       (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
 

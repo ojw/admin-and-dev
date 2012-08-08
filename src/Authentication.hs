@@ -4,10 +4,7 @@
 
 module Authentication 
 
-( addUser
-, validateLogin
-, validateSession
-) where
+where
 
 import Data.Functor      ((<$>))
 import System.FilePath      ((</>))
@@ -33,35 +30,72 @@ import Control.Exception.Lifted    (bracket)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Trans  (MonadIO(..))
 
-import Prelude  hiding      (lookup)
+import Data.IxSet           ( Indexable(..), IxSet(..), (@=), Proxy(..), getOne
+                            , ixFun, ixSet, updateIx, size, null )
+
+import Prelude  hiding      (null)
 import Data.Map             (Map, insert, adjust, lookup)
 import Data.ByteString      ( ByteString, pack )
 import Crypto.BCrypt        ( validatePassword, hashPasswordUsingPolicy
                             , slowerBcryptHashingPolicy )
 import System.Random        ( StdGen )
 
-newtype UserId = UserId { _unUserId :: Integer }
-    deriving (Eq, Ord, Data, Enum, Typeable, SafeCopy, Read, Show)
 
--- using newtypes makes the code cumbersome but prevents using Password instead of PasswordHash
--- and vice versa :/
-type Password = ByteString
-type PasswordHash = ByteString
-type PasswordMap = Map UserId PasswordHash
+data User = User
+    { _userId       :: UserId
+    , _email        :: Email
+    , _name         :: Name
+    , _password     :: Password
+    , _sessionId    :: Maybe SessionId
+    } deriving (Eq, Ord, Typeable)
 
-type SessionId = Integer
-type SessionMap = Map UserId SessionId
+newtype UserId = UserId Integer deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy)
+newtype SessionId = SessionId Integer deriving (Eq, Ord, Data, Typeable, SafeCopy)
+newtype Email = Email Text deriving (Eq, Ord, Data, Typeable, SafeCopy)
+newtype Name = Name Text deriving (Eq, Ord, Data, Typeable, SafeCopy)
+newtype Password = Password ByteString deriving (Eq, Ord, Data, Typeable, SafeCopy)
+
+$(makeLens ''User)
+$(deriveSafeCopy 0 'base ''User)
+
+instance Indexable User where
+    empty = ixSet [ ixFun $ \user -> [ userId  ^$ user ]
+                  , ixFun $ \user -> [ email ^$ user  ]
+                  , ixFun $ \user -> [ name ^$ user ]
+                  ]
 
 data AuthenticationState = AuthenticationState
-    { _passwordMap  :: PasswordMap
-    , _sessionMap   :: SessionMap
-    , _rngString    :: String
-    }
-    deriving (Eq, Ord, Typeable)
+    { _users            :: IxSet User
+    , _nextUserId       :: UserId
+    , _nextSessionId    :: SessionId
+    } deriving (Eq, Ord, Typeable)
 
 $(makeLens ''AuthenticationState)
 $(deriveSafeCopy 0 'base ''AuthenticationState)
+$(makeAcidic ''AuthenticationState [])
 
+checkEmailAvailability :: Text -> Query AuthenticationState Bool
+checkEmailAvailability newEmail = 
+    do authState <- ask
+       return $ null $ (users ^$ authState) @= (Email newEmail)
+
+checkNameAvailability :: Text -> Query AuthenticationState Bool
+checkNameAvailability newName =
+    do authState <- ask
+       return $ null $ (users ^$ authState) @= (Name newName)
+
+addUser :: Email -> Name -> Password -> Update AuthenticationState UserId
+addUser e n p = do  AuthenticationState{..} <- get
+                    users %= updateIx _nextUserId (User _nextUserId e n p Nothing)
+                    nextUserId %= succ
+
+hashPassword :: ByteString -> IO Password
+hashPassword pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . Password . fromJust)
+
+
+
+
+{-
 -- internal only
 updatePassword' :: UserId -> Password -> Update AuthenticationState PasswordMap
 updatePassword' uid pwd = passwordMap %= adjust (\p -> pwd) uid
@@ -106,3 +140,5 @@ hash :: Password -> IO PasswordHash
 hash pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . fromJust)
 
 $(makeAcidic ''AuthenticationState ['addUser', 'validateSession, 'validateLogin])
+
+-}
