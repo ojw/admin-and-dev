@@ -136,24 +136,16 @@ addUser e n p =
 
 $(makeAcidic ''AuthenticationState ['getUser])
 
-getCredentials :: RqData (Text, Text)
+getCredentials :: ServerPart (Text, Text)
 getCredentials =
     do  nameOrEmail <- look "nameOrEmail"
         password    <- look "password"
         return (Text.pack nameOrEmail, Text.pack password)
 
--- horribly wrong, just a test
-tryTest :: AcidState AuthenticationState -> ServerPart String
-tryTest acid =
-    do foo <- look "foo"
-       stuff <- query' acid (GetUser (Text.pack foo))
-       return "ASDF"
-{-
-tryLogIn :: AcidState AuthenticationState -> ServerPart Response
+tryLogIn :: AcidState AuthenticationState -> ServerPart Bool
 tryLogIn acid =
     do  (nameOrEmail, password) <- getCredentials
         maybeUser <- query' acid (GetUser nameOrEmail)
         case maybeUser of
-             Nothing    -> ok $ "FOO"
-             Just usr   -> ok $ show $ validateLogin usr password
--}
+             Nothing    -> return False
+             Just usr   -> return $ validateLogin usr password
