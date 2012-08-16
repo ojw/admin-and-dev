@@ -9,14 +9,15 @@ where
 import Data.Functor      ((<$>))
 import System.FilePath      ((</>))
 import Control.Monad        ( msum, liftM )
+import Control.Monad.Trans  ( lift )
 import Control.Monad.State (get, put, gets)
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (ask, ReaderT)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.SafeCopy        ( SafeCopy, base, deriveSafeCopy )
 import Data.Data            ( Data, Typeable )
-import Data.Lens            ( (%=), (!=), (^$), (^=) )
+import Data.Lens            ( (%=), (!=), (^$), (^=), Lens )
 import Data.Lens.Template   ( makeLens )
 import Data.Acid            ( AcidState(..), EventState(..), EventResult(..)
                             , Query(..), QueryEvent(..), Update(..), UpdateEvent(..)
@@ -44,7 +45,11 @@ import System.Random        ( StdGen )
 import Data.Text.Encoding   ( encodeUtf8 )
 import Control.Category     ( (.) )
 
+import Data.Lens.IxSet      ( ixLens )
+
 import Happstack.Server
+import Happstack.Server.RqData
+import Control.Applicative  ( (<$>), (<*>) )
 
 import qualified Text.Blaze.Html4.Strict as H
 
@@ -103,19 +108,13 @@ getUser t =
          in
             return $ msum [byName, byEmail]
 
-{-
-validateLogin :: Text -> Text -> Query AuthenticationState (Either Text UserId)
-validateLogin nameOrEmail pw =
-    do maybeUser <- getUser nameOrEmail
-       case maybeUser of
-            Nothing     -> return $ Left "Invalid username / email address."
-            Just usr    -> case validatePassword (unPassword (password ^$ usr)) (encodeUtf8 pw) of
-                                True    -> return $ Right (userId ^$ usr)
-                                False   -> return $ Left "Invalid password."
--}
-
 validateLogin :: User -> Text -> Bool
 validateLogin usr pw = validatePassword (unPassword (password ^$ usr)) (encodeUtf8 pw)
+
+validateSession :: User -> SessionId -> Bool
+validateSession usr sn = case sessionId ^$ usr of
+                              Nothing       -> False
+                              (Just sid)    -> sid == sn
 
 createSession :: UserId -> Update AuthenticationState SessionId
 createSession uid = 
@@ -125,7 +124,6 @@ createSession uid =
        users %= updateIx uid usr'
        nextSessionId %= succ
        
-
 hashPassword :: ByteString -> IO Password
 hashPassword pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . Password . fromJust)
 
@@ -134,18 +132,55 @@ addUser e n p =
     do passwordHash <- liftIO $ hashPassword $ encodeUtf8 p
        return $ addUser_ (Email e) (Name n) passwordHash 
 
-$(makeAcidic ''AuthenticationState ['getUser])
+getUserById :: UserId -> Query AuthenticationState (Maybe User)
+getUserById uid =
+    do  authState <- ask
+        return $ getOne $ (users ^$ authState) @= uid
+               
 
-getCredentials :: ServerPart (Text, Text)
-getCredentials =
-    do  nameOrEmail <- look "nameOrEmail"
-        password    <- look "password"
-        return (Text.pack nameOrEmail, Text.pack password)
+$(makeAcidic ''AuthenticationState ['getUser, 'getUserById])
+
+getLoginCredentials :: ServerPart (Text, Text)
+getLoginCredentials =
+    do  nameOrEmail <- lookRead "nameOrEmail"
+        password    <- lookRead "password"
+        return (nameOrEmail, password)
+
+getSessionCookie :: ServerPart (UserId, SessionId)
+getSessionCookie =
+    do  (uid :: Integer) <- readCookieValue "userId"
+        (sid :: Integer) <- readCookieValue "sessionId"
+        return (UserId uid, SessionId sid)
 
 tryLogIn :: AcidState AuthenticationState -> ServerPart Bool
 tryLogIn acid =
-    do  (nameOrEmail, password) <- getCredentials
+    do  (nameOrEmail, password) <- getLoginCredentials
         maybeUser <- query' acid (GetUser nameOrEmail)
         case maybeUser of
              Nothing    -> return False
-             Just usr   -> return $ validateLogin usr password
+             Just usr   -> return $ validateLogin usr password 
+
+loggedInUser :: AcidState AuthenticationState -> ServerPart (Maybe UserId)
+loggedInUser acid =
+    do  (uid, sid)  <- getSessionCookie
+        maybeUser   <- query' acid (GetUserById uid)
+        case maybeUser of
+             Nothing    -> return Nothing
+             Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
+
+loggedInUser' :: App (Maybe UserId)
+loggedInUser' =
+    do acid <- ask
+       return $ Just (UserId 1)
+
+type App a = ServerPartT (ReaderT (AcidState AuthenticationState) IO) a
+
+withLoggedInUser :: AcidState AuthenticationState -> a -> (UserId -> a) -> ServerPart a
+withLoggedInUser acid failure success = 
+    do  maybeUserId <- loggedInUser acid
+        return $ maybe failure success maybeUserId
+
+withLoggedInUser' :: a -> (UserId -> a) -> App a
+withLoggedInUser' failure success =
+    do maybeUserId <- loggedInUser'
+       return $ maybe failure success maybeUserId
