@@ -45,8 +45,11 @@ import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , seeOther, dir, notFound, seeOther
                                     , Method(..), methodM)
 import Prelude  hiding              ( null, (.) )
+import Text.Boomerang.TH            ( derivePrinterParsers )
 import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault
                                     , MonadRoute, askRouteFn, URL, PathInfo )
+import Web.Routes.Boomerang         ( (<>), lit, (</>), anyText, (:-), Router
+                                    , xmaph, int, boomerangSite, integer )
 import Web.Routes.Happstack         ( implSite )
 import Web.Routes.TH                ( derivePathInfo )
 
@@ -184,6 +187,46 @@ withLoggedInUser' failure success =
        return $ maybe failure success maybeUserId
 
 ------------------------------------------------------------
+
+data Sitemap
+    = Home
+    | Profile UserId
+    | Echo Text
+      deriving (Eq, Ord, Read, Show, Data, Typeable)
+
+$(derivePrinterParsers ''Sitemap)
+
+sitemap :: Router () (Sitemap :- ())
+sitemap =
+    (  rHome
+    <> rProfile . (lit "profile" </> userId)
+    <> rEcho . (lit "message" </> anyText)
+    )
+    where userId :: Router () (UserId :- ())
+          userId = 
+              xmaph UserId (Just . _unUserId) integer
+
+
+------------------------------------------------------------
+
+
+route :: Sitemap -> RouteT Sitemap (ServerPartT IO) Response
+route url =
+    case url of
+      Home              -> ok $ toResponse $ ("bla" :: Text)
+      (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (_unUserId userId)
+      (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
+
+site :: Site Sitemap (ServerPartT IO Response)
+site =
+       setDefault Home $ boomerangSite (runRouteT route) sitemap
+
+main :: IO ()
+main = simpleHTTP nullConf $
+       msum [ dir "favicon.ico" $ notFound (toResponse ())
+            , implSite "http://localhost:8000" "/route" site
+            , seeOther ("/route/" :: String) (toResponse ())
+            ] 
 
 -- Room
 
