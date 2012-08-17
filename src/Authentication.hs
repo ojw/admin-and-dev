@@ -3,18 +3,16 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Single 
+module Authentication 
 
 where
 
 import Control.Applicative          ( (<$>), (<*>), Applicative, Alternative )
 import Control.Category             ( (.) )
-import Control.Exception.Lifted     ( bracket)
 import Control.Monad                ( msum, liftM, MonadPlus )
 import Control.Monad.Reader         ( ask, ReaderT(..), MonadReader )
 import Control.Monad.State          ( get, put, gets )
 import Control.Monad.Trans          ( lift, MonadIO(..) )
-import Control.Monad.Trans.Control  ( MonadBaseControl )
 import Crypto.BCrypt                ( validatePassword, hashPasswordUsingPolicy
                                     , slowerBcryptHashingPolicy )
 import Data.Maybe                   ( fromMaybe, fromJust )
@@ -61,6 +59,8 @@ import Text.Blaze.Html5 hiding      ( base )
 import Text.Blaze.Html5.Attributes hiding ( dir )
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+
+import HasAcidState
 
 data User = User
     { _userId       :: UserId
@@ -183,59 +183,22 @@ loggedInUser acid =
         case maybeUser of
              Nothing    -> return Nothing
              Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
-{-
-loggedInUser' :: App (Maybe UserId)
+
+loggedInUser' :: (HasAcidState m AuthenticationState, Monad m) => m (Maybe UserId)
 loggedInUser' =
-    do acid <- ask
-       return $ Just (UserId 1)
--}
+    do return $ Just (UserId 1)
 
 withLoggedInUser :: AcidState AuthenticationState -> a -> (UserId -> a) -> ServerPart a
 withLoggedInUser acid failure success = 
     do  maybeUserId <- loggedInUser acid
         return $ maybe failure success maybeUserId
-{-
-withLoggedInUser' :: a -> (UserId -> a) -> App a
+
+withLoggedInUser' :: (HasAcidState m AuthenticationState, Monad m) => a -> (UserId -> a) -> m a
 withLoggedInUser' failure success =
     do maybeUserId <- loggedInUser'
        return $ maybe failure success maybeUserId
--}
-------------------------------------------------------------
-
-data Sitemap
-    = Home
-    | Login
-    | Register
-    | Profile UserId
-    | Echo Text
-      deriving (Eq, Ord, Read, Show, Data, Typeable)
-
-$(derivePrinterParsers ''Sitemap)
-
-sitemap :: Router () (Sitemap :- ())
-sitemap =
-    (  rHome
-    <> rLogin . (lit "login")
-    <> rRegister . (lit "register")
-    <> rProfile . (lit "profile" </> userId)
-    <> rEcho . (lit "message" </> anyText)
-    )
-    where userId :: Router () (UserId :- ())
-          userId = 
-              xmaph UserId (Just . _unUserId) integer
-
 
 ------------------------------------------------------------
-
-template :: String -> [H.Html] -> H.Html -> H.Html
-template title headers body =
-    H.docTypeHtml $ do
-      H.head $ do
-        H.title (H.toHtml title)
-      H.body $ do
-        H.h1 $ H.toHtml ("Admin and Dev" :: String)
-        H.p  $ H.toHtml ("A division of Jolly Crouton Media?  Maybe?  Idk." :: String)
-        body
 
 loginBox :: H.Html
 loginBox = H.form ! action "login" ! method "post" $ do
@@ -256,89 +219,32 @@ registrationBox =
       H.br >> H.toHtml ("again" :: String) >> H.input ! type_ "text"
       H.br >> H.toHtml ("password" :: String) >> H.input ! type_ "password"
       H.br >> H.toHtml ("pw again" :: String) >> H.input ! type_ "password"
-      
+
 ------------------------------------------------------------
 
-route :: Sitemap -> RouteT Sitemap App Response -- (ServerPartT IO) Response
-route url =
+data AuthSiteMap
+    = Login
+    | Registration
+    | Register
+      deriving (Eq, Ord, Read, Show, Data, Typeable)
+
+$(derivePrinterParsers ''AuthSiteMap)
+
+authSiteMap :: Router () (AuthSiteMap :- ())
+authSiteMap =
+    (  rLogin . (lit "login")
+    <> rRegistration . (lit "registration")
+    <> rRegister . (lit "register")
+    )
+
+authRoute :: (HasAcidState m AuthenticationState, FilterMonad Response m) 
+          => (String -> [H.Html] -> H.Html -> H.Html) -> AuthSiteMap -> RouteT AuthSiteMap m Response
+authRoute template url =
     case url of
-      Home              -> ok $ toResponse $ template "Title" [] loginBox
       Login             -> ok $ toResponse $ template "Login" [] $ H.toHtml ("Login attempted" :: String)
-      Register          -> ok $ toResponse $ template "Register" [] registrationBox
-      (Profile userId)  -> ok $ toResponse $ template "Profile" [] $ H.toHtml $ "Profile: " ++ show (_unUserId userId)
-      (Echo message)    -> ok $ toResponse $ template "Message" [] $ H.toHtml $ "Message: " ++ unpack message
+      Registration       -> ok $ toResponse $ template "Registration" [] registrationBox
+      Register          -> ok $ toResponse $ template "Register" [] $ H.toHtml ("Registration succeeded or failed here." :: String)
 
-site :: Site Sitemap (App Response) -- (ServerPartT IO Response)
-site =
-       setDefault Home $ boomerangSite (runRouteT route) sitemap
-
-main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid serverPart
-
-serverPart:: App Response -- ServerPartT IO Response
-serverPart = msum [ dir "favicon.ico" $ notFound (toResponse ())
-                  , implSite "http://localhost:8000" "/route" site
-                  , seeOther ("/route/" :: String) (toResponse ())
-                  ]
-
-------------------------------------------------------------
-
-class HasAcidState m st where
-   getAcidState :: m (AcidState st)
-
-query :: forall event m.
-         ( Functor m
-         , MonadIO m
-         , QueryEvent event
-         , HasAcidState m (EventState event)
-         ) =>
-         event
-      -> m (EventResult event)
-query event =
-    do as <- getAcidState
-       query' (as :: AcidState (EventState event)) event
-
-update :: forall event m.
-          ( Functor m
-          , MonadIO m
-          , UpdateEvent event
-          , HasAcidState m (EventState event)
-          ) =>
-          event
-       -> m (EventResult event)
-update event =
-    do as <- getAcidState
-       update' (as :: AcidState (EventState event)) event
-
--- | bracket the opening and close of the `AcidState` handle.
-
--- automatically creates a checkpoint on close
-withLocalState :: (MonadBaseControl IO m, MonadIO m, IsAcidic st, Typeable st) =>
-                  Maybe FilePath        -- ^ path to state directory
-               -> st                    -- ^ initial state value
-               -> (AcidState st -> m a) -- ^ function which uses the `AcidState` handle
-               -> m a
-withLocalState mPath initialState =
-    bracket (liftIO $ (maybe openLocalState openLocalStateFrom mPath) initialState)
-            (liftIO . createCheckpointAndClose) 
-
-data Acid = Acid { acidAuthState    :: AcidState AuthenticationState
-                 }
-
-withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
-withAcid mBasePath action =
-    let basePath = fromMaybe "_state" mBasePath
-    in withLocalState (Just $ basePath FP.</> "auth") initialAuthenticationState $ \c ->
-           action (Acid c) 
-
-newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
-    deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
-               , HasRqData, ServerMonad ,WebMonad Response, FilterMonad Response
-               , Happstack, MonadReader Acid)
-
-runApp :: Acid -> App a -> ServerPartT IO a
-runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
-
-
-instance HasAcidState App AuthenticationState where
-    getAcidState = acidAuthState    <$> ask 
+authSite :: (HasAcidState m AuthenticationState, FilterMonad Response m) 
+         => (String -> [H.Html] -> H.Html -> H.Html) -> Site AuthSiteMap (m Response)
+authSite template = boomerangSite (runRouteT (authRoute template)) authSiteMap
