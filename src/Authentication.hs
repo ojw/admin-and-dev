@@ -184,7 +184,8 @@ loggedInUser acid =
              Nothing    -> return Nothing
              Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
 
-loggedInUser' :: (HasAcidState m AuthenticationState, Monad m) => m (Maybe UserId)
+loggedInUser' :: (HasAcidState m AuthenticationState, Monad m) 
+              => m (Maybe UserId)
 loggedInUser' =
     do return $ Just (UserId 1)
 
@@ -193,7 +194,8 @@ withLoggedInUser acid failure success =
     do  maybeUserId <- loggedInUser acid
         return $ maybe failure success maybeUserId
 
-withLoggedInUser' :: (HasAcidState m AuthenticationState, Monad m) => a -> (UserId -> a) -> m a
+withLoggedInUser' :: (HasAcidState m AuthenticationState, Monad m) 
+                  => a -> (UserId -> a) -> m a
 withLoggedInUser' failure success =
     do maybeUserId <- loggedInUser'
        return $ maybe failure success maybeUserId

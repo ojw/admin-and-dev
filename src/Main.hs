@@ -63,6 +63,9 @@ import qualified Text.Blaze.Html5.Attributes as A
 import HasAcidState
 import Authentication
 
+-- this example is not really necessary since I've taken most wisdom
+-- from it and put it in the Authenticaion module
+
 data Sitemap
     = Home
     | Profile UserId
@@ -104,6 +107,15 @@ site =
 
 ----------------------------------------------------------------------
 
+-- gatherers the acid types from each plugin
+data Acid = Acid { acidAuthState    :: AcidState AuthenticationState }
+
+newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
+    deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
+               , HasRqData, ServerMonad ,WebMonad Response, FilterMonad Response
+               , Happstack, MonadReader Acid)
+
+-- assigns directories to each acid type
 withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
 withAcid mBasePath action =
     let basePath = fromMaybe "_state" mBasePath
@@ -113,20 +125,14 @@ withAcid mBasePath action =
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
 
-data Acid = Acid { acidAuthState    :: AcidState AuthenticationState }
-
-newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
-    deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
-               , HasRqData, ServerMonad ,WebMonad Response, FilterMonad Response
-               , Happstack, MonadReader Acid)
-
+-- need instance for each acid type
 instance HasAcidState App AuthenticationState where
     getAcidState = acidAuthState    <$> ask 
 
 main :: IO ()
 main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid serverPart
 
-
+-- puts each plugin on its own subdirectory
 serverPart:: App Response -- ServerPartT IO Response
 serverPart = msum [ dir "favicon.ico" $ notFound (toResponse ())
                   , implSite "http://localhost:8000" "/route" site
