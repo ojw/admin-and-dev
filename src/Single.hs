@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, GeneralizedNewtypeDeriving
-  , MultiParamTypeClasses, OverloadedStrings, ScopedTypeVariables, TemplateHaskell
-  , TypeFamilies, FlexibleInstances, RecordWildCards, TypeOperators #-}
+  , MultiParamTypeClasses, OverloadedStrings, ScopedTypeVariables
+  , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
+  , TypeOperators #-}
 
 module Single 
 
