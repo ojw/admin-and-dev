@@ -189,7 +189,6 @@ loggedInUser' =
     do acid <- ask
        return $ Just (UserId 1)
 -}
---type App a = ServerPartT (ReaderT (AcidState AuthenticationState) IO) a
 
 withLoggedInUser :: AcidState AuthenticationState -> a -> (UserId -> a) -> ServerPart a
 withLoggedInUser acid failure success = 
@@ -234,6 +233,8 @@ template title headers body =
       H.head $ do
         H.title (H.toHtml title)
       H.body $ do
+        H.h1 $ H.toHtml ("Admin and Dev" :: String)
+        H.p  $ H.toHtml ("A division of Jolly Crouton Media?  Maybe?  Idk." :: String)
         body
 
 loginBox :: H.Html
@@ -262,10 +263,10 @@ route :: Sitemap -> RouteT Sitemap App Response -- (ServerPartT IO) Response
 route url =
     case url of
       Home              -> ok $ toResponse $ template "Title" [] loginBox
-      Login             -> ok $ toResponse $ ("Login attempted" :: String)
+      Login             -> ok $ toResponse $ template "Login" [] $ H.toHtml ("Login attempted" :: String)
       Register          -> ok $ toResponse $ template "Register" [] registrationBox
-      (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (_unUserId userId)
-      (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
+      (Profile userId)  -> ok $ toResponse $ template "Profile" [] $ H.toHtml $ "Profile: " ++ show (_unUserId userId)
+      (Echo message)    -> ok $ toResponse $ template "Message" [] $ H.toHtml $ "Message: " ++ unpack message
 
 site :: Site Sitemap (App Response) -- (ServerPartT IO Response)
 site =
@@ -340,11 +341,4 @@ runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
 
 
 instance HasAcidState App AuthenticationState where
-    getAcidState = acidAuthState    <$> ask
-
-{-
-main' :: IO ()
-main' =
-    withAcid Nothing $ \acid ->
-        simpleHTTP nullConf $ runApp acid serverPart
--}
+    getAcidState = acidAuthState    <$> ask 
