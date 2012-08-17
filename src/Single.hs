@@ -7,11 +7,11 @@ module Single
 
 where
 
-import Control.Applicative          ( (<$>), (<*>) )
+import Control.Applicative          ( (<$>), (<*>), Applicative, Alternative )
 import Control.Category             ( (.) )
 import Control.Exception.Lifted     ( bracket)
-import Control.Monad                ( msum, liftM )
-import Control.Monad.Reader         ( ask, ReaderT )
+import Control.Monad                ( msum, liftM, MonadPlus )
+import Control.Monad.Reader         ( ask, ReaderT(..), MonadReader )
 import Control.Monad.State          ( get, put, gets )
 import Control.Monad.Trans          ( lift, MonadIO(..) )
 import Control.Monad.Trans.Control  ( MonadBaseControl )
@@ -44,8 +44,11 @@ import Happstack.Server.RqData
 import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , toResponse, simpleHTTP, nullConf
                                     , seeOther, dir, notFound, seeOther
-                                    , Method(..), methodM)
+                                    , Method(..), methodM, FilterMonad
+                                    , WebMonad, ServerMonad, Happstack
+                                    , mapServerPartT )
 import Prelude  hiding              ( null, (.) )
+import qualified System.FilePath as FP
 import Text.Boomerang.TH            ( derivePrinterParsers )
 import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault
                                     , MonadRoute, askRouteFn, URL, PathInfo )
@@ -54,6 +57,10 @@ import Web.Routes.Boomerang         ( (<>), lit, (</>), anyText, (:-), Router
 import Web.Routes.Happstack         ( implSite )
 import Web.Routes.TH                ( derivePathInfo )
 
+import Text.Blaze.Html5 hiding      ( base )
+import Text.Blaze.Html5.Attributes hiding ( dir )
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 
 data User = User
     { _userId       :: UserId
@@ -83,6 +90,13 @@ data AuthenticationState = AuthenticationState
     , _nextUserId       :: UserId
     , _nextSessionId    :: SessionId
     } deriving (Eq, Ord, Typeable)
+
+initialAuthenticationState :: AuthenticationState
+initialAuthenticationState = AuthenticationState
+    { _users = empty
+    , _nextUserId = UserId 1
+    , _nextSessionId = SessionId 1
+    }
 
 $(makeLens ''AuthenticationState)
 $(deriveSafeCopy 0 'base ''AuthenticationState)
@@ -169,28 +183,30 @@ loggedInUser acid =
         case maybeUser of
              Nothing    -> return Nothing
              Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
-
+{-
 loggedInUser' :: App (Maybe UserId)
 loggedInUser' =
     do acid <- ask
        return $ Just (UserId 1)
-
-type App a = ServerPartT (ReaderT (AcidState AuthenticationState) IO) a
+-}
+--type App a = ServerPartT (ReaderT (AcidState AuthenticationState) IO) a
 
 withLoggedInUser :: AcidState AuthenticationState -> a -> (UserId -> a) -> ServerPart a
 withLoggedInUser acid failure success = 
     do  maybeUserId <- loggedInUser acid
         return $ maybe failure success maybeUserId
-
+{-
 withLoggedInUser' :: a -> (UserId -> a) -> App a
 withLoggedInUser' failure success =
     do maybeUserId <- loggedInUser'
        return $ maybe failure success maybeUserId
-
+-}
 ------------------------------------------------------------
 
 data Sitemap
     = Home
+    | Login
+    | Register
     | Profile UserId
     | Echo Text
       deriving (Eq, Ord, Read, Show, Data, Typeable)
@@ -200,6 +216,8 @@ $(derivePrinterParsers ''Sitemap)
 sitemap :: Router () (Sitemap :- ())
 sitemap =
     (  rHome
+    <> rLogin . (lit "login")
+    <> rRegister . (lit "register")
     <> rProfile . (lit "profile" </> userId)
     <> rEcho . (lit "message" </> anyText)
     )
@@ -210,60 +228,123 @@ sitemap =
 
 ------------------------------------------------------------
 
+template :: String -> [H.Html] -> H.Html -> H.Html
+template title headers body =
+    H.docTypeHtml $ do
+      H.head $ do
+        H.title (H.toHtml title)
+      H.body $ do
+        body
 
-route :: Sitemap -> RouteT Sitemap (ServerPartT IO) Response
+loginBox :: H.Html
+loginBox = H.form ! action "login" ! method "post" $ do
+             H.toHtml ("name or email" :: String) 
+             H.input ! type_ "text"
+             H.br
+             H.toHtml ("password" :: String)
+             H.input ! type_ "password"
+             H.br
+             H.button ! type_ "submit" $ H.toHtml ("Log in." :: String)
+
+registrationBox :: H.Html
+registrationBox = 
+    H.form ! action "register" ! method "post" $ do
+      H.toHtml ("register" :: String)
+      H.br >> H.toHtml ("user name" :: String) >> H.input ! type_ "text"
+      H.br >> H.toHtml ("email" :: String) >> H.input ! type_ "text"
+      H.br >> H.toHtml ("again" :: String) >> H.input ! type_ "text"
+      H.br >> H.toHtml ("password" :: String) >> H.input ! type_ "password"
+      H.br >> H.toHtml ("pw again" :: String) >> H.input ! type_ "password"
+      
+------------------------------------------------------------
+
+route :: Sitemap -> RouteT Sitemap App Response -- (ServerPartT IO) Response
 route url =
     case url of
-      Home              -> ok $ toResponse $ ("bla" :: Text)
+      Home              -> ok $ toResponse $ template "Title" [] loginBox
+      Login             -> ok $ toResponse $ ("Login attempted" :: String)
+      Register          -> ok $ toResponse $ template "Register" [] registrationBox
       (Profile userId)  -> ok $ toResponse $ "Profile" ++ show (_unUserId userId)
       (Echo message)    -> ok $ toResponse $ "Message" ++ unpack message
 
-site :: Site Sitemap (ServerPartT IO Response)
+site :: Site Sitemap (App Response) -- (ServerPartT IO Response)
 site =
        setDefault Home $ boomerangSite (runRouteT route) sitemap
 
 main :: IO ()
-main = simpleHTTP nullConf $
-       msum [ dir "favicon.ico" $ notFound (toResponse ())
-            , implSite "http://localhost:8000" "/route" site
-            , seeOther ("/route/" :: String) (toResponse ())
-            ] 
+main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid serverPart
 
--- Room
-
-newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy, Read, Show)
-
-$(makeLens ''RoomId)
-
-data Room = Room
-    { _roomId :: RoomId
-    , _capacity :: Int
-    , _members :: [UserId]
-    , _chat :: [(UserId, Text)]
-    } deriving (Eq, Ord, Data, Typeable)
-
-$(makeLens ''Room)
-$(deriveSafeCopy 0 'base ''Room)
-
-instance Indexable Room where
-    empty = ixSet [ ixFun $ \room -> [ roomId ^$ room ]
-                  , ixFun $ \room -> [ capacity ^$ room ]
-                  , ixFun $ \room -> members ^$ room
+serverPart:: App Response -- ServerPartT IO Response
+serverPart = msum [ dir "favicon.ico" $ notFound (toResponse ())
+                  , implSite "http://localhost:8000" "/route" site
+                  , seeOther ("/route/" :: String) (toResponse ())
                   ]
 
-data RoomState = RoomState
-    { _nextRoomId   :: RoomId
-    , _rooms        :: IxSet Room
-    }
-    deriving (Eq, Ord, Typeable)
+------------------------------------------------------------
 
-$(makeLens ''RoomState)
-$(deriveSafeCopy 0 'base ''RoomState)
+class HasAcidState m st where
+   getAcidState :: m (AcidState st)
 
-initialRoomState :: RoomState
-initialRoomState = RoomState
-    { _nextRoomId = RoomId 1
-    , _rooms      = empty
-    }
+query :: forall event m.
+         ( Functor m
+         , MonadIO m
+         , QueryEvent event
+         , HasAcidState m (EventState event)
+         ) =>
+         event
+      -> m (EventResult event)
+query event =
+    do as <- getAcidState
+       query' (as :: AcidState (EventState event)) event
 
-$(makeAcidic ''RoomState []) 
+update :: forall event m.
+          ( Functor m
+          , MonadIO m
+          , UpdateEvent event
+          , HasAcidState m (EventState event)
+          ) =>
+          event
+       -> m (EventResult event)
+update event =
+    do as <- getAcidState
+       update' (as :: AcidState (EventState event)) event
+
+-- | bracket the opening and close of the `AcidState` handle.
+
+-- automatically creates a checkpoint on close
+withLocalState :: (MonadBaseControl IO m, MonadIO m, IsAcidic st, Typeable st) =>
+                  Maybe FilePath        -- ^ path to state directory
+               -> st                    -- ^ initial state value
+               -> (AcidState st -> m a) -- ^ function which uses the `AcidState` handle
+               -> m a
+withLocalState mPath initialState =
+    bracket (liftIO $ (maybe openLocalState openLocalStateFrom mPath) initialState)
+            (liftIO . createCheckpointAndClose) 
+
+data Acid = Acid { acidAuthState    :: AcidState AuthenticationState
+                 }
+
+withAcid :: Maybe FilePath -> (Acid -> IO a) -> IO a
+withAcid mBasePath action =
+    let basePath = fromMaybe "_state" mBasePath
+    in withLocalState (Just $ basePath FP.</> "auth") initialAuthenticationState $ \c ->
+           action (Acid c) 
+
+newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
+    deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
+               , HasRqData, ServerMonad ,WebMonad Response, FilterMonad Response
+               , Happstack, MonadReader Acid)
+
+runApp :: Acid -> App a -> ServerPartT IO a
+runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
+
+
+instance HasAcidState App AuthenticationState where
+    getAcidState = acidAuthState    <$> ask
+
+{-
+main' :: IO ()
+main' =
+    withAcid Nothing $ \acid ->
+        simpleHTTP nullConf $ runApp acid serverPart
+-}
