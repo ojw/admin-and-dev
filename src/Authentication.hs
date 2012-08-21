@@ -9,7 +9,7 @@ where
 
 import Control.Applicative          ( (<$>), (<*>), Applicative, Alternative )
 import Control.Category             ( (.) )
-import Control.Monad                ( msum, liftM, MonadPlus )
+import Control.Monad                ( msum, liftM, MonadPlus, mplus )
 import Control.Monad.Reader         ( ask, ReaderT(..), MonadReader )
 import Control.Monad.State          ( get, put, gets )
 import Control.Monad.Trans          ( lift, MonadIO(..) )
@@ -45,6 +45,7 @@ import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , Method(..), methodM, FilterMonad
                                     , WebMonad, ServerMonad, Happstack
                                     , mapServerPartT )
+import Happstack.Server.Cookie      ( mkCookie, addCookie, CookieLife(..) )
 import Prelude  hiding              ( null, (.) )
 import qualified System.FilePath as FP
 import Text.Boomerang.TH            ( derivePrinterParsers )
@@ -142,10 +143,12 @@ getUserByNameOrEmail t =
 createSession :: UserId -> Update AuthenticationState SessionId
 createSession uid = 
     do authState <- get
-       let usr = fromJust $ getOne $ (users ^$ authState) @= uid
-           usr' = (sessionId ^= Just (nextSessionId ^$ authState)) usr
+       let next = nextSessionId ^$ authState
+           usr = fromJust $ getOne $ (users ^$ authState) @= uid
+           usr' = (sessionId ^= Just next) usr
        users %= updateIx uid usr'
        nextSessionId %= succ
+       return next
        
 addUser :: (MonadIO m) => Text -> Text -> Text -> m (Update AuthenticationState UserId)
 addUser e n p =
@@ -176,28 +179,52 @@ getSessionCookie =
         return (UserId uid, SessionId sid)
 
 tryLogIn :: (Functor m, Monad m, HasRqData m, MonadIO m, HasAcidState m AuthenticationState) 
-         => m Bool
+         => m (Maybe (UserId, SessionId))
 tryLogIn =
     do  (nameOrEmail, password) <- getLoginCredentials
         maybeUser <- query (GetUserByNameOrEmail nameOrEmail)
         case maybeUser of
-             Nothing    -> return False
-             Just usr   -> return $ validateLogin usr password 
+             Nothing    -> return Nothing
+             Just usr   -> do sid <- update (CreateSession (userId ^$ usr))
+                              return $ Just ( (userId ^$ usr) , sid )
+
+tryLogin' :: (Functor m, Monad m, HasRqData m, FilterMonad Response m, MonadIO m, HasAcidState m AuthenticationState)
+          => m ()
+tryLogin' =
+    do loginAttempt <- tryLogIn
+       case loginAttempt of 
+            Nothing         -> return ()
+            Just (UserId uid, SessionId sid) -> 
+                do let userCookie       = mkCookie "userId" $ show uid
+                       sessionCookie    = mkCookie "sessionId" $ show sid
+                   addCookie Session userCookie
+                   addCookie Session sessionCookie    
+
+addSessionCookies :: (FilterMonad Response m, MonadIO m) => UserId -> SessionId -> m ()
+addSessionCookies (UserId uid) (SessionId sid) =
+    do let userCookie       = mkCookie "userId" $ show uid
+           sessionCookie    = mkCookie "sessionId" $ show sid
+       addCookie Session userCookie
+       addCookie Session sessionCookie    
 
 loggedInUser :: (HasAcidState m AuthenticationState, Functor m, HasRqData m, Monad m, MonadIO m) 
-             => m (Maybe UserId)
+             => m (Maybe (UserId, SessionId))
 loggedInUser =
     do  (uid, sid)  <- getSessionCookie
         maybeUser   <- query (GetUserById uid)
         case maybeUser of
              Nothing    -> return Nothing
-             Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
+             Just usr   -> if validateSession usr sid then return (Just (uid, sid)) else return Nothing
 
-withLoggedInUser :: (HasAcidState m AuthenticationState, Monad m, MonadIO m, Functor m, HasRqData m) 
-                 => a -> (UserId -> a) -> m a
+-- checks possible session and login credentials, adds cookies as needed
+withLoggedInUser :: (Functor m, Monad m, HasRqData m, FilterMonad Response m, MonadIO m, HasAcidState m AuthenticationState)
+                  => a -> (UserId -> a) -> m a
 withLoggedInUser failure success =
-    do maybeUserId <- loggedInUser
-       return $ maybe failure success maybeUserId
+    do previouslyLoggedIn <- loggedInUser
+       loggingInNow       <- tryLogIn
+       case previouslyLoggedIn `mplus` loggingInNow of
+            Nothing         -> return failure
+            Just (uid, sid) -> addSessionCookies uid sid >> return (success uid)
 
 -- currently does no validation beyond availability, will later
 registerUser :: (Functor m, Monad m, HasRqData m, MonadIO m, HasAcidState m AuthenticationState)
