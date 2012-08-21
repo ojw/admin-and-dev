@@ -144,11 +144,26 @@ createSession :: UserId -> Update AuthenticationState SessionId
 createSession uid = 
     do authState <- get
        let next = nextSessionId ^$ authState
-           usr = fromJust $ getOne $ (users ^$ authState) @= uid
-           usr' = (sessionId ^= Just next) usr
-       users %= updateIx uid usr'
+       updateSession uid next
        nextSessionId %= succ
        return next
+
+updateEmail :: UserId -> Email -> Update AuthenticationState User
+updateEmail uid eml = modUser uid (email ^= eml)
+
+updateSession :: UserId -> SessionId -> Update AuthenticationState User
+updateSession uid sid = modUser uid (sessionId ^= Just sid)
+
+updatePassword :: UserId -> Password -> Update AuthenticationState User
+updatePassword uid pwd = modUser uid (password ^= pwd)
+
+modUser :: UserId -> (User -> User) -> Update AuthenticationState User
+modUser uid fn =
+    do  authState <- get
+        let usr  = fromJust $ getOne $ (users ^$ authState) @= uid
+            usr' = fn usr
+        users %= updateIx uid usr'
+        return usr'
        
 addUser :: (MonadIO m) => Text -> Text -> Text -> m (Update AuthenticationState UserId)
 addUser e n p =
@@ -159,10 +174,12 @@ getUserById :: UserId -> Query AuthenticationState (Maybe User)
 getUserById uid =
     do  authState <- ask
         return $ getOne $ (users ^$ authState) @= uid
-               
 
 $(makeAcidic ''AuthenticationState [ 'checkEmailAvailability, 'checkNameAvailability
-                                   , 'getUserByNameOrEmail, 'getUserById, 'createSession, 'addUser_])
+                                   , 'getUserByNameOrEmail, 'getUserById, 'createSession
+                                   , 'updateEmail, 'updateSession, 'updatePassword, 'addUser_
+                                   ])
+
 
 -- Monadic functions
 
@@ -235,6 +252,7 @@ registerUser email name password badEmail badName badPassword success =
        if not emailGood then return badEmail    else
            if not nameGood  then return badName     else
                return (success (UserId 1))
+
 
 ------------------------------------------------------------
 
