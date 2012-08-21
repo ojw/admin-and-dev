@@ -101,28 +101,10 @@ initialAuthenticationState = AuthenticationState
 $(makeLens ''AuthenticationState)
 $(deriveSafeCopy 0 'base ''AuthenticationState)
 
-checkEmailAvailability :: Text -> Query AuthenticationState Bool
-checkEmailAvailability newEmail = 
-    do authState <- ask
-       return $ null $ (users ^$ authState) @= (Email newEmail)
+-- Pre-acidic helpers
 
-checkNameAvailability :: Text -> Query AuthenticationState Bool
-checkNameAvailability newName =
-    do authState <- ask
-       return $ null $ (users ^$ authState) @= (Name newName)
-
-addUser_ :: Email -> Name -> Password -> Update AuthenticationState UserId
-addUser_ e n p = do  AuthenticationState{..} <- get
-                     users %= updateIx _nextUserId (User _nextUserId e n p Nothing)
-                     nextUserId %= succ
-
-getUser :: Text -> Query AuthenticationState (Maybe User)
-getUser t =
-    do  authState <- ask
-        let byName  = getOne $ (users ^$ authState) @= (Name t)
-            byEmail = getOne $ (users ^$ authState) @= (Email t)
-         in
-            return $ msum [byName, byEmail]
+hashPassword :: ByteString -> IO Password
+hashPassword pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . Password . fromJust)
 
 validateLogin :: User -> Text -> Bool
 validateLogin usr pw = validatePassword (unPassword (password ^$ usr)) (encodeUtf8 pw)
@@ -132,6 +114,31 @@ validateSession usr sn = case sessionId ^$ usr of
                               Nothing       -> False
                               (Just sid)    -> sid == sn
 
+-- Acid functions
+
+checkEmailAvailability :: Email -> Query AuthenticationState Bool
+checkEmailAvailability (Email newEmail) = 
+    do authState <- ask
+       return $ null $ (users ^$ authState) @= (Email newEmail)
+
+checkNameAvailability :: Name -> Query AuthenticationState Bool
+checkNameAvailability (Name newName) =
+    do authState <- ask
+       return $ null $ (users ^$ authState) @= (Name newName)
+
+addUser_ :: Email -> Name -> Password -> Update AuthenticationState UserId
+addUser_ e n p = do  AuthenticationState{..} <- get
+                     users %= updateIx _nextUserId (User _nextUserId e n p Nothing)
+                     nextUserId %= succ
+
+getUserByNameOrEmail :: Text -> Query AuthenticationState (Maybe User)
+getUserByNameOrEmail t =
+    do  authState <- ask
+        let byName  = getOne $ (users ^$ authState) @= (Name t)
+            byEmail = getOne $ (users ^$ authState) @= (Email t)
+         in
+            return $ msum [byName, byEmail]
+
 createSession :: UserId -> Update AuthenticationState SessionId
 createSession uid = 
     do authState <- get
@@ -140,9 +147,6 @@ createSession uid =
        users %= updateIx uid usr'
        nextSessionId %= succ
        
-hashPassword :: ByteString -> IO Password
-hashPassword pwd = hashPasswordUsingPolicy slowerBcryptHashingPolicy pwd >>= (return . Password . fromJust)
-
 addUser :: (MonadIO m) => Text -> Text -> Text -> m (Update AuthenticationState UserId)
 addUser e n p =
     do passwordHash <- liftIO $ hashPassword $ encodeUtf8 p
@@ -154,51 +158,56 @@ getUserById uid =
         return $ getOne $ (users ^$ authState) @= uid
                
 
-$(makeAcidic ''AuthenticationState ['getUser, 'getUserById])
+$(makeAcidic ''AuthenticationState [ 'checkEmailAvailability, 'checkNameAvailability
+                                   , 'getUserByNameOrEmail, 'getUserById, 'createSession, 'addUser_])
 
-getLoginCredentials :: ServerPart (Text, Text)
+-- Monadic functions
+
+getLoginCredentials :: (Functor m, Monad m, HasRqData m) => m (Text, Text)
 getLoginCredentials =
     do  nameOrEmail <- lookRead "nameOrEmail"
         password    <- lookRead "password"
         return (nameOrEmail, password)
 
-getSessionCookie :: ServerPart (UserId, SessionId)
+getSessionCookie :: (Functor m, Monad m, HasRqData m) => m (UserId, SessionId)
 getSessionCookie =
     do  (uid :: Integer) <- readCookieValue "userId"
         (sid :: Integer) <- readCookieValue "sessionId"
         return (UserId uid, SessionId sid)
 
-tryLogIn :: AcidState AuthenticationState -> ServerPart Bool
-tryLogIn acid =
+tryLogIn :: (Functor m, Monad m, HasRqData m, MonadIO m, HasAcidState m AuthenticationState) 
+         => m Bool
+tryLogIn =
     do  (nameOrEmail, password) <- getLoginCredentials
-        maybeUser <- query' acid (GetUser nameOrEmail)
+        maybeUser <- query (GetUserByNameOrEmail nameOrEmail)
         case maybeUser of
              Nothing    -> return False
              Just usr   -> return $ validateLogin usr password 
 
-loggedInUser :: AcidState AuthenticationState -> ServerPart (Maybe UserId)
-loggedInUser acid =
+loggedInUser :: (HasAcidState m AuthenticationState, Functor m, HasRqData m, Monad m, MonadIO m) 
+             => m (Maybe UserId)
+loggedInUser =
     do  (uid, sid)  <- getSessionCookie
-        maybeUser   <- query' acid (GetUserById uid)
+        maybeUser   <- query (GetUserById uid)
         case maybeUser of
              Nothing    -> return Nothing
              Just usr   -> if validateSession usr sid then return (Just uid) else return Nothing
 
-loggedInUser' :: (HasAcidState m AuthenticationState, Monad m) 
-              => m (Maybe UserId)
-loggedInUser' =
-    do return $ Just (UserId 1)
-
-withLoggedInUser :: AcidState AuthenticationState -> a -> (UserId -> a) -> ServerPart a
-withLoggedInUser acid failure success = 
-    do  maybeUserId <- loggedInUser acid
-        return $ maybe failure success maybeUserId
-
-withLoggedInUser' :: (HasAcidState m AuthenticationState, Monad m) 
-                  => a -> (UserId -> a) -> m a
-withLoggedInUser' failure success =
-    do maybeUserId <- loggedInUser'
+withLoggedInUser :: (HasAcidState m AuthenticationState, Monad m, MonadIO m, Functor m, HasRqData m) 
+                 => a -> (UserId -> a) -> m a
+withLoggedInUser failure success =
+    do maybeUserId <- loggedInUser
        return $ maybe failure success maybeUserId
+
+-- currently does no validation beyond availability, will later
+registerUser :: (Functor m, Monad m, HasRqData m, MonadIO m, HasAcidState m AuthenticationState)
+             => Email -> Name -> Password -> a -> a -> a -> (UserId -> a) -> m a
+registerUser email name password badEmail badName badPassword success =
+    do emailGood <- query (CheckEmailAvailability email)
+       nameGood  <- query (CheckNameAvailability name)
+       if not emailGood then return badEmail    else
+           if not nameGood  then return badName     else
+               return (success (UserId 1))
 
 ------------------------------------------------------------
 
