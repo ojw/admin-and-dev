@@ -211,12 +211,9 @@ tryLogin' =
     do loginAttempt <- tryLogIn
        case loginAttempt of 
             Nothing         -> return ()
-            Just (UserId uid, SessionId sid) -> 
-                do let userCookie       = mkCookie "userId" $ show uid
-                       sessionCookie    = mkCookie "sessionId" $ show sid
-                   addCookie Session userCookie
-                   addCookie Session sessionCookie    
+            Just (uid, sid) -> addSessionCookies uid sid
 
+-- should have constant defined somewhere or take argument rather than have magical value
 addSessionCookies :: (FilterMonad Response m, MonadIO m) => UserId -> SessionId -> m ()
 addSessionCookies (UserId uid) (SessionId sid) =
     do let userCookie       = mkCookie "userId" $ show uid
@@ -293,14 +290,15 @@ authSiteMap =
     <> rRegister . (lit "register")
     )
 
-authRoute :: (HasAcidState m AuthenticationState, FilterMonad Response m) 
+authRoute :: (HasAcidState m AuthenticationState, FilterMonad Response m, HasRqData m, Functor m, Monad m, MonadIO m) 
           => (String -> [H.Html] -> H.Html -> H.Html) -> AuthSiteMap -> RouteT AuthSiteMap m Response
 authRoute template url =
     case url of
       Login             -> ok $ toResponse $ template "Login" [] $ H.toHtml ("Login attempted" :: String)
       Registration       -> ok $ toResponse $ template "Registration" [] registrationBox
-      Register          -> ok $ toResponse $ template "Register" [] $ H.toHtml ("Registration succeeded or failed here." :: String)
+      Register          -> do foo <- look "foo"
+                              ok $ toResponse $ template "Register" [] $ H.toHtml ("Registration succeeded or failed here." :: String)
 
-authSite :: (HasAcidState m AuthenticationState, FilterMonad Response m) 
+authSite :: (HasAcidState m AuthenticationState, FilterMonad Response m, HasRqData m, Functor m, Monad m, MonadIO m) 
          => (String -> [H.Html] -> H.Html -> H.Html) -> Site AuthSiteMap (m Response)
 authSite template = boomerangSite (runRouteT (authRoute template)) authSiteMap
