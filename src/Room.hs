@@ -12,7 +12,7 @@ import Control.Category             ( (.) )
 import Control.Exception.Lifted     ( bracket)
 import Control.Monad                ( msum, liftM )
 import Control.Monad.Reader         ( ask, ReaderT )
-import Control.Monad.State          ( get, put, gets )
+import Control.Monad.State          ( get, put, gets, MonadState )
 import Control.Monad.Trans          ( lift, MonadIO(..) )
 import Control.Monad.Trans.Control  ( MonadBaseControl )
 import Crypto.BCrypt                ( validatePassword, hashPasswordUsingPolicy
@@ -33,8 +33,8 @@ import Data.Data                    ( Data, Typeable )
 import Data.Functor                 ( (<$>) )
 import Data.IxSet                   ( Indexable(..), IxSet(..), (@=), Proxy(..)
                                     , getOne, ixFun, updateIx, size, null
-                                    , ixSet )
-import Data.Lens                    ( (%=), (!=), (^$), (^=), Lens )
+                                    , ixSet, toList )
+import Data.Lens                    ( (%=), (!=), (^$), (^=), Lens, (^%=) )
 import Data.Lens.IxSet              ( ixLens )
 import Data.Map                     ( Map, insert, adjust, lookup )
 import Data.Text                    ( Text, unpack, reverse, toUpper )
@@ -55,18 +55,20 @@ import Web.Routes.Happstack         ( implSite )
 import Web.Routes.TH                ( derivePathInfo )
 
 
-import Single                       ( UserId )
+import Authentication               ( UserId )
 
 
 newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy, Read, Show)
 
 $(makeLens ''RoomId)
 
+type Chat = (UserId, Text)
+
 data Room = Room
     { _roomId :: RoomId
     , _capacity :: Int
     , _members :: [UserId]
-    , _chat :: [(UserId, Text)]
+    , _chat :: [Chat]
     } deriving (Eq, Ord, Data, Typeable)
 
 $(makeLens ''Room)
@@ -93,4 +95,53 @@ initialRoomState = RoomState
     , _rooms      = empty
     }
 
-$(makeAcidic ''RoomState []) 
+room :: (Typeable key) => key -> Lens (IxSet Room) (Maybe Room)
+room = ixLens          
+
+removeUserFromRoom :: UserId -> Room -> Room
+removeUserFromRoom uid rm = (members ^%= (filter (/= uid))) rm
+
+addUserToRoom :: UserId -> Room -> Room
+addUserToRoom uid rm = (members ^%= (uid:)) rm
+
+modRoom :: RoomId -> (Room -> Room) -> Update RoomState (IxSet Room)
+modRoom rid fn = rooms %= (room rid ^%= fmap fn)
+
+addChat :: UserId -> Text -> Room -> Room
+addChat uid msg rm = (chat ^%= ((uid, msg):)) rm
+
+createRoom :: UserId -> Int -> Update RoomState RoomId
+createRoom uid cap = 
+    do  roomState <- get
+        let next = nextRoomId ^$ roomState
+        rooms %= updateIx next (Room next cap [uid] [])
+        return next
+
+getUserRoomsIx :: UserId -> IxSet Room -> [Room]
+getUserRoomsIx uid rms = toList $ rms @= uid
+
+leaveRoom :: UserId -> Update RoomState (Maybe Room)
+leaveRoom uid = (room uid) . rooms %= fmap (removeUserFromRoom uid)
+
+joinRoom :: UserId -> RoomId -> Update RoomState (IxSet Room)
+joinRoom uid rid =
+    do  roomState <- get
+        case getOne $ (rooms ^$ roomState) @= rid of
+             Nothing    -> return (rooms ^$ roomState)
+             Just rm    -> leaveRoom uid >> modRoom rid (addUserToRoom uid)
+
+speak :: UserId -> Text -> Update RoomState (IxSet Room)
+speak uid msg =
+    do  roomState <- get
+        case getOne $ (rooms ^$ roomState) @= uid of
+             Nothing    -> return (rooms ^$ roomState)
+             Just rm    -> modRoom (roomId ^$ rm) (addChat uid msg)
+
+listen :: UserId -> Query RoomState [Chat]
+listen uid =
+    do  roomState <- ask
+        case getOne $ (rooms ^$ roomState) @= uid of
+             Nothing    -> return []
+             Just rm    -> return $ chat ^$ rm
+
+$(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom]) 

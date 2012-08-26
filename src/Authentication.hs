@@ -50,7 +50,8 @@ import Prelude  hiding              ( null, (.) )
 import qualified System.FilePath as FP
 import Text.Boomerang.TH            ( derivePrinterParsers )
 import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault
-                                    , MonadRoute, askRouteFn, URL, PathInfo )
+                                    , MonadRoute, askRouteFn, URL, PathInfo
+                                    , showURL )
 import Web.Routes.Boomerang         ( (<>), lit, (</>), anyText, (:-), Router
                                     , xmaph, int, boomerangSite, integer )
 import Web.Routes.Happstack         ( implSite )
@@ -148,6 +149,14 @@ createSession uid =
        nextSessionId %= succ
        return next
 
+modUser :: UserId -> (User -> User) -> Update AuthenticationState User
+modUser uid fn =
+    do  authState <- get
+        let usr  = fromJust $ getOne $ (users ^$ authState) @= uid
+            usr' = fn usr
+        users %= updateIx uid usr'
+        return usr'
+       
 updateEmail :: UserId -> Email -> Update AuthenticationState User
 updateEmail uid eml = modUser uid (email ^= eml)
 
@@ -157,14 +166,6 @@ updateSession uid sid = modUser uid (sessionId ^= Just sid)
 updatePassword :: UserId -> Password -> Update AuthenticationState User
 updatePassword uid pwd = modUser uid (password ^= pwd)
 
-modUser :: UserId -> (User -> User) -> Update AuthenticationState User
-modUser uid fn =
-    do  authState <- get
-        let usr  = fromJust $ getOne $ (users ^$ authState) @= uid
-            usr' = fn usr
-        users %= updateIx uid usr'
-        return usr'
-       
 addUser :: (MonadIO m) => Text -> Text -> Text -> m (Update AuthenticationState UserId)
 addUser e n p =
     do passwordHash <- liftIO $ hashPassword $ encodeUtf8 p
@@ -179,7 +180,6 @@ $(makeAcidic ''AuthenticationState [ 'checkEmailAvailability, 'checkNameAvailabi
                                    , 'getUserByNameOrEmail, 'getUserById, 'createSession
                                    , 'updateEmail, 'updateSession, 'updatePassword, 'addUser_
                                    ])
-
 
 -- Monadic functions
 
@@ -205,6 +205,7 @@ tryLogIn =
              Just usr   -> do sid <- update (CreateSession (userId ^$ usr))
                               return $ Just ( (userId ^$ usr) , sid )
 
+{-
 tryLogin' :: (Functor m, Monad m, HasRqData m, FilterMonad Response m, MonadIO m, HasAcidState m AuthenticationState)
           => m ()
 tryLogin' =
@@ -212,14 +213,14 @@ tryLogin' =
        case loginAttempt of 
             Nothing         -> return ()
             Just (uid, sid) -> addSessionCookies uid sid
+-}
 
--- should have constant defined somewhere or take argument rather than have magical value
-addSessionCookies :: (FilterMonad Response m, MonadIO m) => UserId -> SessionId -> m ()
-addSessionCookies (UserId uid) (SessionId sid) =
+addSessionCookies :: (FilterMonad Response m, MonadIO m) => CookieLife -> UserId -> SessionId -> m ()
+addSessionCookies life (UserId uid) (SessionId sid) =
     do let userCookie       = mkCookie "userId" $ show uid
            sessionCookie    = mkCookie "sessionId" $ show sid
-       addCookie Session userCookie
-       addCookie Session sessionCookie    
+       addCookie life userCookie
+       addCookie life sessionCookie    
 
 loggedInUser :: (HasAcidState m AuthenticationState, Functor m, HasRqData m, Monad m, MonadIO m) 
              => m (Maybe (UserId, SessionId))
@@ -238,7 +239,7 @@ withLoggedInUser failure success =
        loggingInNow       <- tryLogIn
        case previouslyLoggedIn `mplus` loggingInNow of
             Nothing         -> return failure
-            Just (uid, sid) -> addSessionCookies uid sid >> return (success uid)
+            Just (uid, sid) -> addSessionCookies Session uid sid >> return (success uid)
 
 -- currently does no validation beyond availability, will later
 registerUser :: (Functor m, Monad m, HasRqData m, MonadIO m, HasAcidState m AuthenticationState)
@@ -297,6 +298,7 @@ authRoute template url =
       Login             -> ok $ toResponse $ template "Login" [] $ H.toHtml ("Login attempted" :: String)
       Registration       -> ok $ toResponse $ template "Registration" [] registrationBox
       Register          -> do foo <- look "foo"
+                              login <- showURL Login
                               ok $ toResponse $ template "Register" [] $ H.toHtml ("Registration succeeded or failed here." :: String)
 
 authSite :: (HasAcidState m AuthenticationState, FilterMonad Response m, HasRqData m, Functor m, Monad m, MonadIO m) 
