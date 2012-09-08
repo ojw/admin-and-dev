@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Main 
+module Sitemap 
 
 where
 
@@ -86,27 +86,18 @@ import qualified System.FilePath as F        ((</>))
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
-import Sitemap
 import Auth
 import Acid
-import Pages
 
-route :: Sitemap -> RouteT Sitemap App Response
-route url =
-    case url of
-      Home   -> homePage
-      Create -> createPage
+data Sitemap
+    = Home
+    | Create
+      deriving (Eq, Ord, Read, Show, Data, Typeable)
 
-site :: Site Sitemap (App Response)
-site = setDefault Home $ boomerangSite (runRouteT route) sitemap
+$(derivePrinterParsers ''Sitemap)
 
-app:: App Response
-app =  
-    do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
-        msum [ Happstack.Server.dir "favicon.ico" $ notFound (toResponse ())
-             , implSite "http://localhost:8000" "" site
-             , seeOther ("" :: String) (toResponse ())
-             ]
-
-main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid app
+sitemap :: Router () (Sitemap :- ())
+sitemap =
+    (  rHome
+    <> rCreate . (lit "create")
+    ) 

@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Main 
+module Pages 
 
 where
 
@@ -86,27 +86,61 @@ import qualified System.FilePath as F        ((</>))
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
-import Sitemap
 import Auth
 import Acid
-import Pages
+import Sitemap
 
-route :: Sitemap -> RouteT Sitemap App Response
-route url =
-    case url of
-      Home   -> homePage
-      Create -> createPage
+template :: String -> H.Html -> H.Html -> H.Html
+template title headers body =
+    H.docTypeHtml $ do
+      H.head $ do
+        H.title (H.toHtml title)
+      H.body $ do
+        H.h1 $ H.toHtml ("Admin and Dev" :: String)
+        H.p  $ H.toHtml ("A division of Jolly Crouton Media?  Maybe?  Idk." :: String)
+        body
 
-site :: Site Sitemap (App Response)
-site = setDefault Home $ boomerangSite (runRouteT route) sitemap
+appTemplate :: (Happstack m) => String -> Html -> Html -> m Response
+appTemplate title headers body =
+    ok $ toResponse $ template title headers body
 
-app:: App Response
-app =  
-    do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
-        msum [ Happstack.Server.dir "favicon.ico" $ notFound (toResponse ())
-             , implSite "http://localhost:8000" "" site
-             , seeOther ("" :: String) (toResponse ())
-             ]
+homePage :: RouteT Sitemap App Response
+homePage =
+        do (authStateH :: AcidState AuthState) <- lift getAcidState
+           (profileState :: AcidState ProfileState) <- lift getAcidState
+           createURL <- showURL Create -- fix later
+           actionURL <- showURL Home -- same
+           onAuthURL <- showURL Home -- ugh
+           e <- happstackEitherForm (R.form actionURL) "lf" (loginForm authStateH createURL)
+           case e of
+             (Left errorForm) ->
+                 do r <- appTemplate "Login" mempty $
+                     H.div ! A.id "happstack-authenticate" $
+                      do h1 "Login"
+                         errorForm
+                    ok r
+             (Right userPassId) ->
+                 do authId <- do authIds <- query' authStateH (UserPassIdAuthIds userPassId)
+                                 case Set.size authIds of
+                                      1 -> return (Just $ Prelude.head $ Set.toList $ authIds)
+                                      n -> return Nothing
+                    addAuthCookie authStateH authId (AuthUserPassId userPassId)
+                    seeOther (Text.unpack onAuthURL) (toResponse ())
 
-main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid app
+createPage :: RouteT Sitemap App Response
+createPage =
+        do (authStateH :: AcidState AuthState) <- lift getAcidState
+           actionURL <- showURL Create
+           onAuthURL <- showURL Home
+           e <- happstackEitherForm (R.form actionURL) "naf" (newAccountForm authStateH)
+           case e of
+             (Left formHtml) ->
+                 do r <- appTemplate "Create New Account" mempty $
+                     H.div ! A.id "happstack-authenticate" $
+                      do h1 "Create an account"
+                         formHtml
+                    ok r
+
+             (Right (authId, userPassId)) ->
+                do addAuthCookie authStateH (Just authId) (AuthUserPassId userPassId)
+                   seeOther (Text.unpack onAuthURL) (toResponse ()) 
