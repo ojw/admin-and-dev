@@ -69,7 +69,7 @@ withAcid :: Maybe FilePath -- ^ state directory
          -> (Acid -> IO a) -- ^ action
          -> IO a
 withAcid mBasePath f =
-    let basePath = fromMaybe "_state" mBasePath in
+    let basePath = fromMaybe ".state" mBasePath in
     bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        (createCheckpointAndClose) $ \auth ->
     bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
 --     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
