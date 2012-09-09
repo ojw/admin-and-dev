@@ -157,7 +157,7 @@ createPage =
            (profileStateH :: AcidState ProfileState) <- lift getAcidState
            actionURL <- showURL Create
            onAuthURL <- showURL Home
-           e <- happstackEitherForm (R.form actionURL) "naf" (Pages.newAccountForm authStateH profileStateH)
+           e <- happstackEitherForm (R.form actionURL) "naf" (Auth.newAccountForm authStateH profileStateH)
            case e of
              (Left formHtml) ->
                  do r <- appTemplate "Create New Account" mempty $
@@ -171,58 +171,3 @@ createPage =
                    seeOther onAuthURL (toResponse ()) 
 
 
-newAccountForm :: (Functor v, MonadIO v) => AcidState AuthState -> AcidState ProfileState -> AuthForm v (AuthId, UserPassId)
-newAccountForm authStateH profileStateH =
-    (R.fieldset
-     (errorList ++>
-      (R.ol $ (((,) <$> username <*> password <* submitButton)))
-                    `transformEitherM`
-                    createAccount))
-    where
-      submitButton = R.li $ (mapView (\html -> html ! A.class_  "submit") $ inputSubmit "Create Account")
-      username  = R.li $ errorList ++> ((label ("username: " :: String)       ++> inputText mempty) `transformEither` (minLength 1))
-      password1 = R.li $ label ("password: " :: String)         ++> inputPassword
-      password2 = R.li $ label ("confirm password: " :: String) ++> inputPassword
-
-      password = errorList ++> (((,) <$> password1 <*> password2) `transformEither` samePassword) `transformEither` minLength 6
-
-      samePassword (p1, p2) =
-              if p1 /= p2
-               then (Left $ PasswordMismatch)
-               else (Right p1)
-
-      createAccount (username, password) =
-              do passHash <- liftIO $ mkHashedPass password
-                 liftIO $ putStrLn "FOOOOO"
-                 r <- update' authStateH $ CreateUserPass (UserName username) passHash
-                 case r of
-                    (Left e) -> return (Left $ UPE e)
-                    (Right userPass) ->
-                        do authId <- update' authStateH (NewAuthMethod (AuthUserPassId (upId userPass)))
-                           userId <- update' profileStateH GenUserId
-                           update' profileStateH $ SetAuthIdUserId authId userId
-                           return (Right (authId, upId userPass))
-
-minLength :: Int -> Text -> Either AuthTemplateError Text
-minLength n s =
-          if Text.length s >= n
-          then (Right s)
-          else (Left $ MinLength n)
-
-data AuthTemplateError
-    = ATECommon (CommonFormError [Input])
-    | UPE UserPassError
-    | MinLength Int
-    | PasswordMismatch
-
-instance FormError AuthTemplateError where
-    type ErrorInputType AuthTemplateError = [Input]
-    commonFormError = ATECommon
-
-instance ToMarkup AuthTemplateError where
-    toMarkup (ATECommon e)    = toHtml $ e
-    toMarkup (UPE e)          = toHtml $ userPassErrorString e
-    toMarkup (MinLength n)    = toHtml $ "mimimum length: " ++ show n
-    toMarkup PasswordMismatch = "Passwords do not match."
-
-type AuthForm m a = Form m [Input] AuthTemplateError Html () a

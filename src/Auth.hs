@@ -6,7 +6,8 @@
 module Auth 
 
 ( loginForm
-, newAccountForm
+, Auth.newAccountForm
+, UserId(..)
 )
 
 where
@@ -22,7 +23,7 @@ import Data.Acid                    ( AcidState(..), EventState(..)
 import Data.Acid.Advanced           ( query', update' )
 import Data.Acid.Local              ( createCheckpointAndClose 
                                     , openLocalStateFrom)
-import Data.Text                    ( Text, unpack, reverse, toUpper )
+import Data.Text as Text            ( Text, unpack, reverse, toUpper, length )
 import Data.Text.Encoding           ( encodeUtf8 )
 import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , toResponse, simpleHTTP, nullConf
@@ -34,7 +35,6 @@ import Happstack.Server             ( Input, internalServerError, toResponse, un
 import System.FilePath as FP
 import Text.Boomerang.TH            ( derivePrinterParsers )
 
-import Text.Blaze.Html5 hiding      ( base )
 import Text.Blaze.Html5.Attributes as A hiding (label)
 import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html5           as H hiding (fieldset, ol, li, label, head)
@@ -103,3 +103,41 @@ loginForm authStateH createURL =
                   case r of
                     (Left e) -> return (Left $ UPE e)
                     (Right userPassId) -> return (Right userPassId) 
+
+
+newAccountForm :: (Functor v, MonadIO v) => AcidState AuthState -> AcidState ProfileState -> AuthForm v (AuthId, UserPassId)
+newAccountForm authStateH profileStateH =
+    (R.fieldset
+     (errorList ++>
+      (R.ol $ (((,) <$> username <*> password <* submitButton)))
+                    `transformEitherM`
+                    createAccount))
+    where
+      submitButton = R.li $ (mapView (\html -> html ! A.class_  "submit") $ inputSubmit "Create Account")
+      username  = R.li $ errorList ++> ((label ("username: " :: String)       ++> inputText mempty) `transformEither` (minLength 1))
+      password1 = R.li $ label ("password: " :: String)         ++> inputPassword
+      password2 = R.li $ label ("confirm password: " :: String) ++> inputPassword
+
+      password = errorList ++> (((,) <$> password1 <*> password2) `transformEither` samePassword) `transformEither` minLength 6
+
+      samePassword (p1, p2) =
+              if p1 /= p2
+               then (Left $ PasswordMismatch)
+               else (Right p1)
+
+      createAccount (username, password) =
+              do passHash <- liftIO $ mkHashedPass password
+                 r <- update' authStateH $ CreateUserPass (UserName username) passHash
+                 case r of
+                    (Left e) -> return (Left $ UPE e)
+                    (Right userPass) ->
+                        do authId <- update' authStateH (NewAuthMethod (AuthUserPassId (upId userPass)))
+                           userId <- update' profileStateH GenUserId
+                           update' profileStateH $ SetAuthIdUserId authId userId
+                           return (Right (authId, upId userPass))
+
+minLength :: Int -> Text -> Either AuthTemplateError Text
+minLength n s =
+          if Text.length s >= n
+          then (Right s)
+          else (Left $ MinLength n)

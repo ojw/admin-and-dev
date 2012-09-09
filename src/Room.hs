@@ -15,8 +15,6 @@ import Control.Monad.Reader         ( ask, ReaderT )
 import Control.Monad.State          ( get, put, gets, MonadState )
 import Control.Monad.Trans          ( lift, MonadIO(..) )
 import Control.Monad.Trans.Control  ( MonadBaseControl )
-import Crypto.BCrypt                ( validatePassword, hashPasswordUsingPolicy
-                                    , slowerBcryptHashingPolicy )
 import Data.Maybe                   ( fromMaybe, fromJust )
 import Data.SafeCopy                ( SafeCopy, base, deriveSafeCopy )
 import Data.Lens.Template           ( makeLens )
@@ -28,7 +26,6 @@ import Data.Acid                    ( AcidState(..), EventState(..)
 import Data.Acid.Advanced           ( query', update' )
 import Data.Acid.Local              ( createCheckpointAndClose 
                                     , openLocalStateFrom)
-import Data.ByteString              ( ByteString, pack )
 import Data.Data                    ( Data, Typeable )
 import Data.Functor                 ( (<$>) )
 import Data.IxSet                   ( Indexable(..), IxSet(..), (@=), Proxy(..)
@@ -47,15 +44,11 @@ import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , Method(..), methodM)
 import Prelude  hiding              ( null, (.) )
 import Text.Boomerang.TH            ( derivePrinterParsers )
-import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault
-                                    , MonadRoute, askRouteFn, URL, PathInfo )
-import Web.Routes.Boomerang         ( (<>), lit, (</>), anyText, (:-), Router
-                                    , xmaph, int, boomerangSite, integer )
-import Web.Routes.Happstack         ( implSite )
-import Web.Routes.TH                ( derivePathInfo )
 
+import Data.Aeson
 
-import Authentication               ( UserId )
+import Auth                         ( UserId )
+import HasAcidState
 
 
 newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy, Read, Show)
@@ -123,25 +116,62 @@ getUserRoomsIx uid rms = toList $ rms @= uid
 leaveRoom :: UserId -> Update RoomState (Maybe Room)
 leaveRoom uid = (room uid) . rooms %= fmap (removeUserFromRoom uid)
 
+-- if single user ever joins multiple rooms it will be a problem
+-- this should be impossible, but one never knows
 joinRoom :: UserId -> RoomId -> Update RoomState (IxSet Room)
 joinRoom uid rid =
     do  roomState <- get
         case getOne $ (rooms ^$ roomState) @= rid of
-             Nothing    -> return (rooms ^$ roomState)
+             Nothing    -> modRoom rid (addUserToRoom uid) -- return (rooms ^$ roomState)
              Just rm    -> leaveRoom uid >> modRoom rid (addUserToRoom uid)
 
-speak :: UserId -> Text -> Update RoomState (IxSet Room)
-speak uid msg =
+send :: UserId -> Text -> Update RoomState (IxSet Room)
+send uid msg =
     do  roomState <- get
         case getOne $ (rooms ^$ roomState) @= uid of
              Nothing    -> return (rooms ^$ roomState)
              Just rm    -> modRoom (roomId ^$ rm) (addChat uid msg)
 
-listen :: UserId -> Query RoomState [Chat]
-listen uid =
+receive :: UserId -> Query RoomState [Chat]
+receive uid =
     do  roomState <- ask
         case getOne $ (rooms ^$ roomState) @= uid of
              Nothing    -> return []
              Just rm    -> return $ chat ^$ rm
 
-$(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom]) 
+$(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom, 'send, 'receive])
+
+data RoomRequest
+    = R_Create Int
+    | R_Join RoomId
+    | R_Leave
+    | R_Send Text
+    | R_Receive
+    deriving (Ord, Eq, Data, Typeable, Read, Show) -- all necessary?
+
+instance FromJSON RoomRequest where
+    parseJSON (Object o) =
+        do
+            (rqType :: Text) <- o .: "type"
+            case rqType of
+                "create"    -> o .: "capacity" >>= \cap -> return $ R_Create (read cap :: Int)
+                "join"      -> o .: "roomId" >>= \rid -> return $ R_Join (RoomId rid)
+                "leave"     -> return R_Leave
+                "send"      -> o .: "message" >>= \msg -> return $ R_Send msg
+                "receive"   -> return R_Receive
+
+processRoomRequest :: (HasAcidState m RoomState, MonadIO m) => UserId -> RoomRequest -> m Text
+processRoomRequest uid request =
+    do
+        (roomState :: AcidState RoomState) <- getAcidState
+        case request of
+            R_Create cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid cap)
+                                  return $ Text.pack $ show rid
+            R_Join rid      -> do update' roomState (JoinRoom uid rid)
+                                  return "Success" -- this is the wrong behavior
+            R_Leave         -> do update' roomState (LeaveRoom uid)
+                                  return "Success" -- wrong again
+            R_Send msg      -> do update' roomState (Send uid msg)
+                                  return "Success" -- so dumb
+            R_Receive       -> do chat <- query'  roomState (Receive uid)
+                                  return "bla" -- not even trying
