@@ -57,7 +57,6 @@ import Web.Routes.Boomerang         ( (<>), lit, (</>), anyText, (:-), Router
 import Web.Routes.Happstack         ( implSite )
 import Web.Routes.TH                ( derivePathInfo )
 
-import Text.Blaze.Html5 hiding      ( base )
 import Text.Blaze.Html5.Attributes as A hiding (label)
 import qualified Text.Blaze.Html5 as H
 import Text.Blaze.Html5           as H hiding (fieldset, ol, li, label, head)
@@ -106,11 +105,28 @@ appTemplate title headers body =
 
 homePage :: RouteT Sitemap App Response
 homePage =
+        do (authState :: AcidState AuthState) <- lift getAcidState
+           (profileState :: AcidState ProfileState) <- lift getAcidState
+           mUserId <- getUserId authState profileState
+           case mUserId of
+            Nothing -> 
+                do  loginURL <- showURL Login
+                    appTemplate "Home" mempty $ H.a ! A.href (toValue loginURL) $ "Log in."
+            Just u  -> 
+                do  
+                    --something <- query' profileState GetProfileState
+                    logoutURL <- showURL Logout
+                    appTemplate "Home" mempty $
+                        do H.p $ H.toHtml $ show u
+                           H.p $ H.a ! A.href (toValue logoutURL) $ "Log out."
+
+loginPage :: RouteT Sitemap App Response
+loginPage =
         do (authStateH :: AcidState AuthState) <- lift getAcidState
            (profileState :: AcidState ProfileState) <- lift getAcidState
-           createURL <- showURL Create -- fix later
-           actionURL <- showURL Home -- same
-           onAuthURL <- showURL Home -- ugh
+           createURL <- showURL Create
+           actionURL <- showURL Login
+           onAuthURL <- showURL Home
            e <- happstackEitherForm (R.form actionURL) "lf" (loginForm authStateH createURL)
            case e of
              (Left errorForm) ->
@@ -125,14 +141,23 @@ homePage =
                                       1 -> return (Just $ Prelude.head $ Set.toList $ authIds)
                                       n -> return Nothing
                     addAuthCookie authStateH authId (AuthUserPassId userPassId)
-                    seeOther (Text.unpack onAuthURL) (toResponse ())
+                    seeOther onAuthURL (toResponse ())
+
+logoutPage :: RouteT Sitemap App Response
+logoutPage =
+    do  
+        homeURL <- showURL Home
+        authState :: AcidState AuthState <- lift getAcidState
+        deleteAuthCookie authState
+        seeOther homeURL (toResponse ())
 
 createPage :: RouteT Sitemap App Response
 createPage =
         do (authStateH :: AcidState AuthState) <- lift getAcidState
+           (profileStateH :: AcidState ProfileState) <- lift getAcidState
            actionURL <- showURL Create
            onAuthURL <- showURL Home
-           e <- happstackEitherForm (R.form actionURL) "naf" (newAccountForm authStateH)
+           e <- happstackEitherForm (R.form actionURL) "naf" (Pages.newAccountForm authStateH profileStateH)
            case e of
              (Left formHtml) ->
                  do r <- appTemplate "Create New Account" mempty $
@@ -143,4 +168,61 @@ createPage =
 
              (Right (authId, userPassId)) ->
                 do addAuthCookie authStateH (Just authId) (AuthUserPassId userPassId)
-                   seeOther (Text.unpack onAuthURL) (toResponse ()) 
+                   seeOther onAuthURL (toResponse ()) 
+
+
+newAccountForm :: (Functor v, MonadIO v) => AcidState AuthState -> AcidState ProfileState -> AuthForm v (AuthId, UserPassId)
+newAccountForm authStateH profileStateH =
+    (R.fieldset
+     (errorList ++>
+      (R.ol $ (((,) <$> username <*> password <* submitButton)))
+                    `transformEitherM`
+                    createAccount))
+    where
+      submitButton = R.li $ (mapView (\html -> html ! A.class_  "submit") $ inputSubmit "Create Account")
+      username  = R.li $ errorList ++> ((label ("username: " :: String)       ++> inputText mempty) `transformEither` (minLength 1))
+      password1 = R.li $ label ("password: " :: String)         ++> inputPassword
+      password2 = R.li $ label ("confirm password: " :: String) ++> inputPassword
+
+      password = errorList ++> (((,) <$> password1 <*> password2) `transformEither` samePassword) `transformEither` minLength 6
+
+      samePassword (p1, p2) =
+              if p1 /= p2
+               then (Left $ PasswordMismatch)
+               else (Right p1)
+
+      createAccount (username, password) =
+              do passHash <- liftIO $ mkHashedPass password
+                 liftIO $ putStrLn "FOOOOO"
+                 r <- update' authStateH $ CreateUserPass (UserName username) passHash
+                 case r of
+                    (Left e) -> return (Left $ UPE e)
+                    (Right userPass) ->
+                        do authId <- update' authStateH (NewAuthMethod (AuthUserPassId (upId userPass)))
+                           userId <- update' profileStateH GenUserId
+                           update' profileStateH $ SetAuthIdUserId authId userId
+                           return (Right (authId, upId userPass))
+
+minLength :: Int -> Text -> Either AuthTemplateError Text
+minLength n s =
+          if Text.length s >= n
+          then (Right s)
+          else (Left $ MinLength n)
+
+data AuthTemplateError
+    = ATECommon (CommonFormError [Input])
+    | UPE UserPassError
+    | MinLength Int
+    | PasswordMismatch
+
+instance FormError AuthTemplateError where
+    type ErrorInputType AuthTemplateError = [Input]
+    commonFormError = ATECommon
+
+instance ToMarkup AuthTemplateError where
+    toMarkup (ATECommon e)    = toHtml $ e
+    toMarkup (UPE e)          = toHtml $ userPassErrorString e
+    toMarkup (MinLength n)    = toHtml $ "mimimum length: " ++ show n
+    toMarkup PasswordMismatch = "Passwords do not match."
+
+type AuthForm m a = Form m [Input] AuthTemplateError Html () a

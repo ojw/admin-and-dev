@@ -67,24 +67,6 @@ import Text.Reform.Happstack      as R
 
 import HasAcidState
 
-import Text.Reform hiding ( (<>) )
-
-import Happstack.Auth.Blaze.Templates
-
-import Happstack.Auth.Core.Auth
-import Happstack.Auth.Core.AuthParts
-import Happstack.Auth.Core.AuthURL
-import Happstack.Auth.Core.ProfileURL
-import Happstack.Auth.Core.Profile
-import Happstack.Auth.Core.ProfileParts
-import Happstack.Auth.Core.AuthProfileURL (AuthProfileURL(..))
- 
-import Control.Exception           (bracket)
-
-import qualified System.FilePath as F        ((</>))
-
-import           Data.Set         (Set)
-import qualified Data.Set         as Set
 
 import Sitemap
 import Auth
@@ -94,8 +76,10 @@ import Pages
 route :: Sitemap -> RouteT Sitemap App Response
 route url =
     case url of
-      Home   -> homePage
-      Create -> createPage
+        Home   -> homePage
+        Login   -> loginPage
+        Logout   -> logoutPage
+        Create -> createPage
 
 site :: Site Sitemap (App Response)
 site = setDefault Home $ boomerangSite (runRouteT route) sitemap

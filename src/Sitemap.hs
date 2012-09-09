@@ -91,6 +91,8 @@ import Acid
 
 data Sitemap
     = Home
+    | Login
+    | Logout
     | Create
       deriving (Eq, Ord, Read, Show, Data, Typeable)
 
@@ -100,4 +102,6 @@ sitemap :: Router () (Sitemap :- ())
 sitemap =
     (  rHome
     <> rCreate . (lit "create")
+    <> rLogin  . (lit "login")
+    <> rLogout  . (lit "logout")
     ) 
