@@ -87,6 +87,7 @@ import qualified Data.Set         as Set
 import Util.HasAcidState
 import Plugins.Auth
 import Acid
+import App
 import Site.Sitemap
 
 template :: String -> H.Html -> H.Html -> H.Html
