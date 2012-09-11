@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Main 
+module Site.Routes 
 
 where
 
@@ -82,15 +82,4 @@ route url =
         Create -> createPage
 
 site :: Site Sitemap (App Response)
-site = setDefault Home $ boomerangSite (runRouteT route) sitemap
-
-app:: App Response
-app =  
-    do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
-        msum [ Happstack.Server.dir "favicon.ico" $ notFound (toResponse ())
-             , implSite "http://localhost:8000" "" site
-             , seeOther ("" :: String) (toResponse ())
-             ]
-
-main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid app
+site = setDefault Home $ boomerangSite (runRouteT route) sitemap 

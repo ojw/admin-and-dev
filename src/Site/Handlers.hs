@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Pages 
+module Site.Handlers 
 
 where
 
@@ -87,7 +87,7 @@ import qualified Data.Set         as Set
 import Util.HasAcidState
 import Plugins.Auth
 import Acid
-import Sitemap
+import Site.Sitemap
 
 template :: String -> H.Html -> H.Html -> H.Html
 template title headers body =
