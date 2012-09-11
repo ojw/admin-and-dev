@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Room 
+module Plugins.Room 
 
 where
 
@@ -47,7 +47,7 @@ import Text.Boomerang.TH            ( derivePrinterParsers )
 
 import Data.Aeson
 
-import Auth                         ( UserId )
+import Plugins.Auth                         ( UserId )
 import HasAcidState
 
 
@@ -140,38 +140,3 @@ receive uid =
              Just rm    -> return $ chat ^$ rm
 
 $(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom, 'send, 'receive])
-
-data RoomRequest
-    = R_Create Int
-    | R_Join RoomId
-    | R_Leave
-    | R_Send Text
-    | R_Receive
-    deriving (Ord, Eq, Data, Typeable, Read, Show) -- all necessary?
-
-instance FromJSON RoomRequest where
-    parseJSON (Object o) =
-        do
-            (rqType :: Text) <- o .: "type"
-            case rqType of
-                "create"    -> o .: "capacity" >>= \cap -> return $ R_Create (read cap :: Int)
-                "join"      -> o .: "roomId" >>= \rid -> return $ R_Join (RoomId rid)
-                "leave"     -> return R_Leave
-                "send"      -> o .: "message" >>= \msg -> return $ R_Send msg
-                "receive"   -> return R_Receive
-
-processRoomRequest :: (HasAcidState m RoomState, MonadIO m) => UserId -> RoomRequest -> m Text
-processRoomRequest uid request =
-    do
-        (roomState :: AcidState RoomState) <- getAcidState
-        case request of
-            R_Create cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid cap)
-                                  return $ Text.pack $ show rid
-            R_Join rid      -> do update' roomState (JoinRoom uid rid)
-                                  return "Success" -- this is the wrong behavior
-            R_Leave         -> do update' roomState (LeaveRoom uid)
-                                  return "Success" -- wrong again
-            R_Send msg      -> do update' roomState (Send uid msg)
-                                  return "Success" -- so dumb
-            R_Receive       -> do chat <- query'  roomState (Receive uid)
-                                  return "bla" -- not even trying

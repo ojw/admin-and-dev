@@ -64,7 +64,6 @@ import qualified Text.Blaze.Html5.Attributes as A
 import Text.Reform.Blaze.Text     as R
 import Text.Reform.Happstack      as R
 
-import HasAcidState
 
 import Text.Reform hiding ( (<>) )
 
@@ -85,7 +84,8 @@ import qualified System.FilePath as F        ((</>))
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
-import Auth
+import Util.HasAcidState
+import Plugins.Auth
 import Acid
 import Sitemap
 
@@ -157,7 +157,7 @@ createPage =
            (profileStateH :: AcidState ProfileState) <- lift getAcidState
            actionURL <- showURL Create
            onAuthURL <- showURL Home
-           e <- happstackEitherForm (R.form actionURL) "naf" (Auth.newAccountForm authStateH profileStateH)
+           e <- happstackEitherForm (R.form actionURL) "naf" (Plugins.Auth.newAccountForm authStateH profileStateH)
            case e of
              (Left formHtml) ->
                  do r <- appTemplate "Create New Account" mempty $

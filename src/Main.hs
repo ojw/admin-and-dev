@@ -65,11 +65,11 @@ import qualified Text.Blaze.Html5.Attributes as A
 import Text.Reform.Blaze.Text     as R
 import Text.Reform.Happstack      as R
 
-import HasAcidState
+import Util.HasAcidState
 
 
 import Sitemap
-import Auth
+import Plugins.Auth
 import Acid
 import Pages
 

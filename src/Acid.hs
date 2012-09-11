@@ -42,7 +42,7 @@ import Control.Exception           (bracket)
 import Happstack.Auth.Core.Auth
 import Happstack.Auth.Core.Profile
 
-import HasAcidState
+import Util.HasAcidState
 
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp

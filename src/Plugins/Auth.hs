@@ -3,10 +3,10 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Auth 
+module Plugins.Auth 
 
 ( loginForm
-, Auth.newAccountForm
+, Plugins.Auth.newAccountForm
 , UserId(..)
 )
 
@@ -143,24 +143,3 @@ minLength n s =
           if Text.length s >= n
           then (Right s)
           else (Left $ MinLength n)
-
-
-data AuthRequest
-    = R_Login Text Text
-    | R_Logout
-    | R_Create Text Text
-
-instance FromJSON AuthRequest where
-    parseJSON (Object o) =
-        do
-            (rqType :: Text) <- o .: "type"
-            case rqType of
-                "login"     -> do
-                                name <- o .: "name"
-                                passwd <- o .: "password"
-                                return $ R_Login name passwd 
-                "logout"    -> return R_Logout
-                "create"    -> do
-                                name <- o .: "name"
-                                passwd <- o .: "password"
-                                return $ R_Create name passwd 
