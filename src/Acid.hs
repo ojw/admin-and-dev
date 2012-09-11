@@ -44,14 +44,16 @@ import Happstack.Auth.Core.Profile
 
 import Util.HasAcidState
 
+import Plugins.Room                 ( RoomState, initialRoomState )
+
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
 
 data Acid = Acid
-     { acidAuth        :: AcidState AuthState
-     , acidProfile     :: AcidState ProfileState
---     , acidProfileData :: AcidState ProfileDataState
-     }
+    { acidAuth      :: AcidState AuthState
+    , acidProfile   :: AcidState ProfileState
+    , acidRoom      :: AcidState RoomState  
+    }
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
     deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
@@ -60,17 +62,20 @@ newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
 
 -- need instance for each acid type
 instance HasAcidState App AuthState where
-    getAcidState = acidAuth    <$> ask 
+    getAcidState = acidAuth <$> ask 
 
 instance HasAcidState App ProfileState where
-    getAcidState = acidProfile    <$> ask 
+    getAcidState = acidProfile <$> ask 
+
+instance HasAcidState App RoomState where
+    getAcidState = acidRoom <$> ask
 
 withAcid :: Maybe FilePath -- ^ state directory
          -> (Acid -> IO a) -- ^ action
          -> IO a
 withAcid mBasePath f =
     let basePath = fromMaybe ".state" mBasePath in
-    bracket (openLocalStateFrom (basePath </> "auth")        initialAuthState)        (createCheckpointAndClose) $ \auth ->
-    bracket (openLocalStateFrom (basePath </> "profile")     initialProfileState)     (createCheckpointAndClose) $ \profile ->
---     bracket (openLocalStateFrom (basePath </> "profileData") initialProfileDataState) (createCheckpointAndClose) $ \profileData ->
-        f (Acid auth profile) --profileData) 
+    bracket (openLocalStateFrom (basePath </> "auth")       initialAuthState)       (createCheckpointAndClose) $ \auth ->
+    bracket (openLocalStateFrom (basePath </> "profile")    initialProfileState)    (createCheckpointAndClose) $ \profile ->
+    bracket (openLocalStateFrom (basePath </> "room")       initialRoomState)       (createCheckpointAndClose) $ \room ->
+        f (Acid auth profile room)

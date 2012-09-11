@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module API.AuthAPI where
+module Plugins.Auth.API where
 
 import Happstack.Server.RqData
 import Happstack.Server             ( Response, ServerPart, ServerPartT, ok

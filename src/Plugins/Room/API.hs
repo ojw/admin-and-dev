@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module API.RoomAPI where
+module Plugins.Room.API where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
@@ -25,7 +25,6 @@ import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
 import Happstack.Auth
-import Acid
 import Plugins.Auth
 import Util.HasAcidState
 import Util.GetBody
