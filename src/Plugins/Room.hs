@@ -48,7 +48,7 @@ import Text.Boomerang.TH            ( derivePrinterParsers )
 import Data.Aeson
 
 import Plugins.Auth                         ( UserId )
-import HasAcidState
+import Util.HasAcidState
 
 
 newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy, Read, Show)

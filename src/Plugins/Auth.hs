@@ -8,6 +8,8 @@ module Plugins.Auth
 ( loginForm
 , Plugins.Auth.newAccountForm
 , UserId(..)
+, getUserId
+, getUserId'
 )
 
 where
@@ -60,7 +62,17 @@ import Control.Exception           (bracket)
 import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
+import Util.HasAcidState
 import Data.Aeson
+
+getUserId' :: (HasAcidState m AuthState, HasAcidState m ProfileState, Monad m, Happstack m) => m (Maybe UserId)
+getUserId' =
+    do
+        authState :: AcidState AuthState <- getAcidState
+        profileState :: AcidState ProfileState <- getAcidState
+        getUserId authState profileState
+
+----------------------------------------------------------------------
 
 data AuthTemplateError
     = ATECommon (CommonFormError [Input])
