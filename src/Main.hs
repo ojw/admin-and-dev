@@ -27,7 +27,7 @@ import API
 import Site.Handlers
 
 import Plugins.Room.API
-import Routes
+import Site.Routes
 
 main :: IO ()
 main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://localhost:8000" "/api")
