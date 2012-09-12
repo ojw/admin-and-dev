@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main 
+module Routes 
 
 where
 
@@ -27,7 +27,24 @@ import API
 import Site.Handlers
 
 import Plugins.Room.API
-import Routes
 
-main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://localhost:8000" "/api")
+route :: Sitemap -> RouteT Sitemap App Response
+route url =
+    case url of
+        Home   -> homePage
+        Login   -> loginPage
+        Logout   -> logoutPage
+        Create -> createPage
+
+site :: Site Sitemap (App Response)
+site = setDefault Home $ boomerangSite (runRouteT route) sitemap
+
+app :: Text -> Text -> App Response
+app baseURL apiDir =  
+    do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
+        msum [ dir "favicon.ico" $ notFound (toResponse ())
+             , implSite baseURL "" site
+             , apiSite  baseURL apiDir
+             , dir "static" $ serveFile (asContentType "text/javascript") "Plugins/Room/room.js"
+             , seeOther ("" :: String) (toResponse ())
+             ] 

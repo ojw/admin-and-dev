@@ -14,8 +14,8 @@ import Control.Monad.Trans          ( MonadIO(..) )
 import Happstack.Server.RqData      ( HasRqData )
 import Happstack.Server             ( Response, ServerPartT, FilterMonad
                                     , WebMonad, ServerMonad, Happstack
-                                    , mapServerPartT )
-
+                                    , mapServerPartT 
+                                    ) 
 import Happstack.Auth.Core.Auth
 import Happstack.Auth.Core.Profile
 import Plugins.Room                 ( RoomState, initialRoomState )

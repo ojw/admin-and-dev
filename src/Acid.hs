@@ -7,43 +7,18 @@ module Acid
 
 where
 
-import Control.Applicative          ( (<$>), (<*>), Applicative, Alternative )
-import Control.Monad                ( MonadPlus )
-import Control.Monad.Reader         ( ask, ReaderT(..), MonadReader )
-import Control.Monad.Trans          ( MonadIO(..) )
 import Data.Maybe                   ( fromMaybe )
-import Data.SafeCopy                ( SafeCopy, base, deriveSafeCopy )
-import Data.Acid                    ( AcidState(..), EventState(..)
-                                    , EventResult(..) , Query(..)
-                                    , QueryEvent(..), Update(..)
-                                    , UpdateEvent(..), IsAcidic(..), makeAcidic
-                                    , openLocalState)
-import Data.Acid.Advanced           ( query', update' )
+import Data.Acid                    ( AcidState )
 import Data.Acid.Local              ( createCheckpointAndClose 
                                     , openLocalStateFrom)
-import Data.Data                    ( Data, Typeable )
-import Data.IxSet                   ( Indexable(..), IxSet(..), (@=), Proxy(..)
-                                    , getOne, ixFun, updateIx, size, null
-                                    , ixSet )
-import Happstack.Server.RqData
-import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
-                                    , toResponse, simpleHTTP, nullConf
-                                    , seeOther, dir, notFound, seeOther
-                                    , Method(..), methodM, FilterMonad
-                                    , WebMonad, ServerMonad, Happstack
-                                    , mapServerPartT )
-import Happstack.Server            (Input, internalServerError, toResponse, unauthorized)
-import Prelude  hiding              ( null )
 import System.FilePath              ( (</>) )
 
 
-import Control.Exception           (bracket)
-
-import Happstack.Auth.Core.Auth
-import Happstack.Auth.Core.Profile
+import Control.Exception            ( bracket )
 
 import Util.HasAcidState
-
+import Happstack.Auth.Core.Auth
+import Happstack.Auth.Core.Profile
 import Plugins.Room                 ( RoomState, initialRoomState )
 
 data Acid = Acid
