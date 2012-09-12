@@ -49,8 +49,8 @@ instance FromJSON AuthAPI where
                                 password <- o .: "password"
                                 return $ AuthAPI_Register name password
 
-processAuthRequest :: AuthAPI -> Text
-processAuthRequest authAPI =
+runAuthRequest :: AuthAPI -> Text
+runAuthRequest authAPI =
     case authAPI of
         AuthAPI_Login name password     -> "asdf"
         AuthAPI_Logout                  -> "asdf"
