@@ -61,9 +61,9 @@ processRoomURL url =
         body <- lift $ getBody
         mUserId <- lift $ getUserId'
         case mUserId of
-            Nothing     -> ok $ toResponse () -- should probably give error, prompt login
+            Nothing     -> ok $ toResponse $ ("You aren't logged in!" :: String) -- improve, obv
             Just uid    -> case decode body :: Maybe RoomAPIRequest of
-                                    Nothing         -> ok $ toResponse () -- should give meaningful response or some kind
+                                    Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
                                     Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t
 
@@ -73,7 +73,7 @@ temp url = ok $ toResponse ("FOOOOOOOOOOOOOO" :: String)
 
 roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
             => Site RoomAPI_URL (m Response)
-roomAPISite = boomerangSite (runRouteT temp) roomAPIBoomerang --processRoomURL) roomAPIBoomerang
+roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang --processRoomURL) roomAPIBoomerang
 
 ------------------------------------------------------------------
 

@@ -1,0 +1,1 @@
+document.onLoad( alert("FOO!"); );
