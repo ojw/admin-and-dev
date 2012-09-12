@@ -7,15 +7,9 @@ module Plugins.Room.Acid
 
 where
 
-import Control.Applicative          ( (<$>), (<*>) )
 import Control.Category             ( (.) )
-import Control.Exception.Lifted     ( bracket)
-import Control.Monad                ( msum, liftM )
-import Control.Monad.Reader         ( ask, ReaderT )
-import Control.Monad.State          ( get, put, gets, MonadState )
-import Control.Monad.Trans          ( lift, MonadIO(..) )
-import Control.Monad.Trans.Control  ( MonadBaseControl )
-import Data.Maybe                   ( fromMaybe, fromJust )
+import Control.Monad.Reader         ( ask )
+import Control.Monad.State          ( get, put )
 import Data.SafeCopy                ( SafeCopy, base, deriveSafeCopy )
 import Data.Lens.Template           ( makeLens )
 import Data.Acid                    ( AcidState(..), EventState(..)
@@ -23,31 +17,17 @@ import Data.Acid                    ( AcidState(..), EventState(..)
                                     , QueryEvent(..), Update(..)
                                     , UpdateEvent(..), IsAcidic(..), makeAcidic
                                     , openLocalState)
-import Data.Acid.Advanced           ( query', update' )
-import Data.Acid.Local              ( createCheckpointAndClose 
-                                    , openLocalStateFrom)
 import Data.Data                    ( Data, Typeable )
-import Data.Functor                 ( (<$>) )
 import Data.IxSet                   ( Indexable(..), IxSet(..), (@=), Proxy(..)
                                     , getOne, ixFun, updateIx, size, null
                                     , ixSet, toList )
 import Data.Lens                    ( (%=), (!=), (^$), (^=), Lens, (^%=) )
 import Data.Lens.IxSet              ( ixLens )
-import Data.Map                     ( Map, insert, adjust, lookup )
-import Data.Text                    ( Text, unpack, reverse, toUpper )
-import qualified Data.Text as Text
-import Data.Text.Encoding           ( encodeUtf8 )
-import Happstack.Server.RqData
-import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
-                                    , toResponse, simpleHTTP, nullConf
-                                    , seeOther, dir, notFound, seeOther
-                                    , Method(..), methodM)
+import Data.Text                    ( Text )
 import Prelude  hiding              ( null, (.) )
-import Text.Boomerang.TH            ( derivePrinterParsers )
 
-import Data.Aeson
+import Plugins.Auth                 ( UserId )
 
-import Plugins.Auth                         ( UserId )
 import Util.HasAcidState
 
 
@@ -139,4 +119,9 @@ receive uid =
              Nothing    -> return []
              Just rm    -> return $ chat ^$ rm
 
-$(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom, 'send, 'receive])
+lookRooms :: Query RoomState [RoomId]
+lookRooms =
+    do  roomState <- ask
+        return $ map _roomId $ toList $ rooms ^$ roomState
+
+$(makeAcidic ''RoomState ['createRoom, 'joinRoom, 'leaveRoom, 'send, 'receive, 'lookRooms])

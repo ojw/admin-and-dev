@@ -38,6 +38,7 @@ data RoomAPI_URL
     | RoomAPI_Leave
     | RoomAPI_Send
     | RoomAPI_Receive
+    | RoomAPI_Look
 
 $(derivePrinterParsers ''RoomAPI_URL)
 
@@ -48,11 +49,13 @@ roomAPIBoomerang =
     <> rRoomAPI_Leave . (lit "leave")
     <> rRoomAPI_Send . (lit "send")
     <> rRoomAPI_Receive . (lit "receive")
+    <> rRoomAPI_Look . (lit "look")
     )
 
 -- maps a URL in the Room API to a response
 -- need function to get json Value from request body
-processRoomURL :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) => RoomAPI_URL -> RouteT RoomAPI_URL m Response
+processRoomURL :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
+               => RoomAPI_URL -> RouteT RoomAPI_URL m Response
 processRoomURL url =
     do
         body <- lift $ getBody
@@ -61,10 +64,11 @@ processRoomURL url =
             Nothing     -> ok $ toResponse () -- should probably give error, prompt login
             Just uid    -> case decode body :: Maybe RoomAPIRequest of
                                     Nothing         -> ok $ toResponse () -- should give meaningful response or some kind
-                                    Just request    -> do t <- lift $ processRoomAPI uid request
+                                    Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t
 
-roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) => Site RoomAPI_URL (m Response)
+roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
+            => Site RoomAPI_URL (m Response)
 roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
 
 ------------------------------------------------------------------
@@ -82,6 +86,7 @@ data RoomAPIRequest
     | RequestLeave
     | RequestSend Text
     | RequestReceive
+    | RequestLook
     deriving (Ord, Eq, Data, Typeable, Read, Show) -- all necessary?
 
 instance FromJSON RoomAPIRequest where
@@ -94,13 +99,15 @@ instance FromJSON RoomAPIRequest where
                 "leave"     -> return RequestLeave
                 "send"      -> o .: "message" >>= \msg -> return $ RequestSend msg
                 "receive"   -> return RequestReceive
+                "look"      -> return RequestLook
     parseJSON _ = mzero
 
 -- probably needs some error handling which will have to come from eventual Room.Acid
-processRoomAPI :: (HasAcidState m RoomState, MonadIO m) => UserId -> RoomAPIRequest -> m Text
-processRoomAPI uid request =
+runRoomAPI :: (HasAcidState m RoomState, MonadIO m) 
+           => UserId -> RoomAPIRequest -> m Text
+runRoomAPI uid request =
     do
-        (roomState :: AcidState RoomState) <- getAcidState
+        roomState :: AcidState RoomState <- getAcidState
         case request of
             RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid cap)
                                        return $ Text.pack $ show rid
@@ -112,3 +119,5 @@ processRoomAPI uid request =
                                        return "Success" -- so dumb
             RequestReceive       -> do chat <- query'  roomState (Receive uid)
                                        return "bla" -- not even trying 
+            RequestLook          -> do rooms <- query'  roomState (LookRooms)
+                                       return $ Text.pack $ Prelude.concat $ Prelude.map (show . _unRoomId) rooms
