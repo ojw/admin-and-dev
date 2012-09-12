@@ -67,9 +67,13 @@ processRoomURL url =
                                     Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t
 
+temp :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
+     => RoomAPI_URL -> RouteT RoomAPI_URL m Response
+temp url = ok $ toResponse ("FOOOOOOOOOOOOOO" :: String)
+
 roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
             => Site RoomAPI_URL (m Response)
-roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
+roomAPISite = boomerangSite (runRouteT temp) roomAPIBoomerang --processRoomURL) roomAPIBoomerang
 
 ------------------------------------------------------------------
 

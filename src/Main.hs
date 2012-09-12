@@ -4,22 +4,29 @@ module Main
 
 where
 
+import Control.Monad.Trans          ( liftIO )
+import Control.Monad                ( mzero )
 import Control.Monad                ( msum )
 import Happstack.Server.RqData      ( decodeBody, defaultBodyPolicy )
 import Happstack.Server             ( Response, toResponse, simpleHTTP, nullConf
-                                    , seeOther, dir, notFound, seeOther
-                                    )
-import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault
-                                    )
+                                    , seeOther, dir, notFound, seeOther, serveDirectory
+                                    , serveFile, guessContentTypeM, asContentType )
+import Happstack.Server
+import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault )
+
+import Data.Text                    ( Text )
 import Web.Routes.Boomerang         ( boomerangSite )
-import Web.Routes.Happstack         ( implSite )
+import Web.Routes.Happstack         ( implSite, implSite_ )
 
 import Util.HasAcidState
 import Site.Sitemap
 import Plugins.Auth
 import Acid
 import App
+import API
 import Site.Handlers
+
+import Plugins.Room.API
 
 route :: Sitemap -> RouteT Sitemap App Response
 route url =
@@ -32,13 +39,15 @@ route url =
 site :: Site Sitemap (App Response)
 site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
-app:: App Response
-app =  
+app :: Text -> App Response
+app baseURL =  
     do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
         msum [ Happstack.Server.dir "favicon.ico" $ notFound (toResponse ())
-             , implSite "http://localhost:8000" "" site
+             , implSite baseURL "" site
+             , apiSite baseURL
+             , dir "static" $ serveFile (asContentType "text/javascript") "Plugins/Room/room.js"
              , seeOther ("" :: String) (toResponse ())
              ]
 
 main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid app
+main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://localhost:8000")

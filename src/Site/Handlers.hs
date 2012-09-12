@@ -60,29 +60,27 @@ appTemplate :: (Happstack m) => String -> Html -> Html -> m Response
 appTemplate title headers body =
     ok $ toResponse $ template title headers body
 
-welcomeBox :: RouteT Sitemap App Html
-welcomeBox =
+welcomeBox :: Maybe UserId -> RouteT Sitemap App Html
+welcomeBox Nothing = 
+        do  loginURL <- showURL Login
+            createURL <- showURL Create
+            return $ H.a ! A.href (toValue loginURL) $ "Log in."
+welcomeBox (Just u)  = 
+        do  
+            --something <- query' profileState GetProfileState
+            logoutURL <- showURL Logout
+            return $ do H.p $ H.toHtml $ show u
+                        H.p $ H.a ! A.href (toValue logoutURL) $ "Log out."
 
 homePage :: RouteT Sitemap App Response
 homePage =
         do  (authState :: AcidState AuthState) <- lift getAcidState
             (profileState :: AcidState ProfileState) <- lift getAcidState
             mUserId <- getUserId authState profileState
-            userBla <-
-                case mUserId of
-                    Nothing -> 
-                        do  loginURL <- showURL Login
-                            createURL <- showURL Create
-                            return $ H.a ! A.href (toValue loginURL) $ "Log in."
-                    Just u  -> 
-                        do  
-                            --something <- query' profileState GetProfileState
-                            logoutURL <- showURL Logout
-                            return $ do H.p $ H.toHtml $ show u
-                                        H.p $ H.a ! A.href (toValue logoutURL) $ "Log out."
+            welcome <- welcomeBox mUserId
             rooms <- lift $ roomBox'
             appTemplate "Home" mempty $ do
-                userBla
+                welcome
                 rooms
                 chatBox
 

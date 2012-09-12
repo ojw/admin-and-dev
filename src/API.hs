@@ -8,4 +8,4 @@ import Web.Routes.Happstack ( implSite )
 
 import Plugins.Room         ( roomAPISite )
 
-apiRoute baseURL = msum [ implSite baseURL "/room" roomAPISite ]
+apiSite baseURL = msum [ implSite baseURL "/room" roomAPISite ]
