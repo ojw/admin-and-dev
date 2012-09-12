@@ -5,6 +5,10 @@
 
 module App 
 
+( App(..)
+, runApp
+)
+
 where
 
 import Control.Applicative          ( (<$>), Applicative, Alternative )
@@ -21,8 +25,6 @@ import Happstack.Auth.Core.Profile
 import Plugins.Room                 ( RoomState, initialRoomState )
 import Util.HasAcidState
 import Acid
-
-
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
     deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO

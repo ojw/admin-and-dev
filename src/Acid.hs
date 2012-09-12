@@ -5,6 +5,10 @@
 
 module Acid 
 
+( Acid(..)
+, withAcid
+)
+
 where
 
 import Data.Maybe                   ( fromMaybe )

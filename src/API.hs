@@ -1,7 +1,12 @@
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, TemplateHaskell, 
    TypeOperators, OverloadedStrings #-}
 
-module API where
+module API
+
+( apiSite
+)
+
+where
 
 import Control.Monad        ( msum )
 import Web.Routes.Happstack ( implSite )
