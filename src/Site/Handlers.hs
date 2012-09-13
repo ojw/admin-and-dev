@@ -46,14 +46,20 @@ import Acid
 import App
 import Site.Sitemap
 
+jQueryUI = "//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"
+jQuery = "//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"
+
 template :: String -> H.Html -> H.Html -> H.Html
 template title headers body =
     H.docTypeHtml $ do
       H.head $ do
         H.title (H.toHtml title)
+        H.script ! A.src jQuery $ "For real."
+        H.script ! A.src jQueryUI $ "Srsly."
+        H.script ! A.src "static" $ "This site really needs javascript."
       H.body $ do
-        H.h1 $ H.toHtml ("Admin and Dev" :: String)
-        H.p  $ H.toHtml ("A division of Jolly Crouton Media?  Maybe?  Idk." :: String)
+        H.h1 $ "Admin and Dev"
+        H.p  $ "A division of Jolly Crouton Media?  Maybe?  Idk."
         body
 
 appTemplate :: (Happstack m) => String -> Html -> Html -> m Response

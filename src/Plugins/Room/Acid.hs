@@ -88,6 +88,7 @@ createRoom uid cap =
     do  roomState <- get
         let next = nextRoomId ^$ roomState
         rooms %= updateIx next (Room next cap [uid] [])
+        nextRoomId %= succ
         return next
 
 getUserRoomsIx :: UserId -> IxSet Room -> [Room]

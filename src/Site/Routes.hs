@@ -41,10 +41,10 @@ site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
 app :: Text -> Text -> App Response
 app baseURL apiDir =  
-    do  decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
+    do  --decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
         msum [ dir "favicon.ico" $ notFound (toResponse ())
-             , implSite baseURL "" site
              , apiSite  baseURL apiDir
              , dir "static" $ serveFile (asContentType "text/javascript") "Plugins/Room/room.js"
+             , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())
              ] 

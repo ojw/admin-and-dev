@@ -62,7 +62,9 @@ processRoomURL url =
         mUserId <- lift $ getUserId'
         case mUserId of
             Nothing     -> ok $ toResponse $ ("You aren't logged in!" :: String) -- improve, obv
-            Just uid    -> case decode body :: Maybe RoomAPIRequest of
+            Just uid    -> do   
+
+                                case decode body :: Maybe RoomAPIRequest of
                                     Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
                                     Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t

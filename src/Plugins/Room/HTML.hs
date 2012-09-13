@@ -45,7 +45,7 @@ chatBox =
 createRoomButton :: Html
 createRoomButton =
     div ! class_ "create_room" $
-        do  input ! class_ "reate_room_input" ! type_ "button" ! value "Create Room"
+        do  input ! class_ "create_room_button" ! type_ "button" ! value "Create Room"
 
 roomList :: [RoomId] -> Html
 roomList rooms =
