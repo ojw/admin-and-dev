@@ -33,7 +33,8 @@ import Plugins.Room.Acid
 -- URL routing for the Room API
 
 data RoomAPI_URL
-    = RoomAPI_Create
+    = RoomAPI_Default -- probably won't actually use routing beyond this
+    | RoomAPI_Create
     | RoomAPI_Join
     | RoomAPI_Leave
     | RoomAPI_Send
@@ -44,7 +45,8 @@ $(derivePrinterParsers ''RoomAPI_URL)
 
 roomAPIBoomerang :: Router () (RoomAPI_URL :- ())
 roomAPIBoomerang =
-    (  rRoomAPI_Create . (lit "create")
+    (  rRoomAPI_Default
+    <> rRoomAPI_Create . (lit "create")
     <> rRoomAPI_Join . (lit "join")
     <> rRoomAPI_Leave . (lit "leave")
     <> rRoomAPI_Send . (lit "send")
@@ -75,7 +77,7 @@ temp url = ok $ toResponse ("FOOOOOOOOOOOOOO" :: String)
 
 roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
             => Site RoomAPI_URL (m Response)
-roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang --processRoomURL) roomAPIBoomerang
+roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
 
 ------------------------------------------------------------------
 
