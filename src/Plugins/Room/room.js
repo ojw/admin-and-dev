@@ -7,6 +7,7 @@ AdminAndDev.Room = (function() {
     var leave;
     var sent;
     var receive;
+
     var url = "http://localhost:8000/api/room/";
 
     look = function() {
@@ -47,7 +48,7 @@ AdminAndDev.Room = (function() {
     };
     receive = function() {
         $.post( url
-              , JSON.stringify( { type: "send" } )
+              , JSON.stringify( { type: "receive" } )
               , function(data){}
               )
     };

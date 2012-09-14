@@ -35,7 +35,7 @@ newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, 
 
 $(makeLens ''RoomId)
 
-type Chat = (UserId, Text)
+newtype Chat = Chat (UserId, Text) deriving (Eq, Ord, Data, Typeable, SafeCopy, Read, Show) 
 
 data Room = Room
     { _roomId :: RoomId
@@ -81,7 +81,7 @@ modRoom :: RoomId -> (Room -> Room) -> Update RoomState (IxSet Room)
 modRoom rid fn = rooms %= (room rid ^%= fmap fn)
 
 addChat :: UserId -> Text -> Room -> Room
-addChat uid msg rm = (chat ^%= ((uid, msg):)) rm
+addChat uid msg rm = (chat ^%= (Chat (uid, msg) : )) rm
 
 createRoom :: UserId -> Int -> Update RoomState RoomId
 createRoom uid cap = 
