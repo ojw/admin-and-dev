@@ -16,14 +16,11 @@ import Data.Acid                    ( AcidState )
 import Data.Acid.Local              ( createCheckpointAndClose 
                                     , openLocalStateFrom)
 import System.FilePath              ( (</>) )
-
-
 import Control.Exception            ( bracket )
 
 import Util.HasAcidState
-import Happstack.Auth.Core.Auth
-import Happstack.Auth.Core.Profile
-import Plugins.Room                 ( RoomState, initialRoomState )
+import Plugins.Auth.Acid
+import Plugins.Room.Acid            ( RoomState, initialRoomState )
 
 data Acid = Acid
     { acidAuth      :: AcidState AuthState

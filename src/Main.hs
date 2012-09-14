@@ -18,15 +18,10 @@ import Data.Text                    ( Text )
 import Web.Routes.Boomerang         ( boomerangSite )
 import Web.Routes.Happstack         ( implSite, implSite_ )
 
-import Util.HasAcidState
-import Site.Sitemap
-import Plugins.Auth
 import Acid
 import App
 import API
-import Site.Handlers
 
-import Plugins.Room.API
 import Site.Routes
 
 main :: IO ()

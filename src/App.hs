@@ -20,9 +20,8 @@ import Happstack.Server             ( Response, ServerPartT, FilterMonad
                                     , WebMonad, ServerMonad, Happstack
                                     , mapServerPartT 
                                     ) 
-import Happstack.Auth.Core.Auth
-import Happstack.Auth.Core.Profile
-import Plugins.Room                 ( RoomState, initialRoomState )
+import Plugins.Auth.Acid            ( AuthState, ProfileState )
+import Plugins.Room.Acid            ( RoomState )
 import Util.HasAcidState
 import Acid
 
