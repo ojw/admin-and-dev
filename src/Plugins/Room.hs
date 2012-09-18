@@ -13,4 +13,4 @@ module Plugins.Room
 where
 
 import Plugins.Room.Acid
-import Plugins.Room.API
+import Plugins.Room.Api

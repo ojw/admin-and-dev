@@ -15,5 +15,5 @@ module Plugins.Auth
 where
 
 import Plugins.Auth.Acid
-import Plugins.Auth.API
-import Plugins.Auth.HTML
+import Plugins.Auth.Api
+import Plugins.Auth.Html

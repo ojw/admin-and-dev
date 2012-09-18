@@ -23,10 +23,10 @@ import Site.Sitemap
 import Plugins.Auth
 import Acid
 import App
-import API
+import Api
 import Site.Handlers
 
-import Plugins.Room.API
+import Plugins.Room.Api
 
 route :: Sitemap -> RouteT Sitemap App Response
 route url =

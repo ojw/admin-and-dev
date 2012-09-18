@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
-module Plugins.Room.HTML where
+module Plugins.Room.Html where
 
 
 import Prelude hiding               ( div )
@@ -28,7 +28,7 @@ import Util.HasAcidState
 --import Plugins.Auth
 --}
 
-import Plugins.Room.Acid--            ( RoomId(..), RoomState )
+import Plugins.Room.Acid.Core --            ( RoomId(..), RoomState )
 
 chatInput :: Html
 chatInput =
@@ -63,4 +63,4 @@ roomBox rooms =
 roomBox' :: (Functor m, MonadIO m, HasAcidState m RoomState) => m Html
 roomBox' =
     do  rooms <- query LookRooms
-        return $ roomBox rooms 
+        return $ roomBox $ fmap _roomId rooms 

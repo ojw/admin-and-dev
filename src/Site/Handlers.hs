@@ -41,7 +41,7 @@ import qualified Data.Set         as Set
 
 import Util.HasAcidState
 import Plugins.Auth
-import Plugins.Room.HTML
+import Plugins.Room.Html
 import Acid
 import App
 import Site.Sitemap

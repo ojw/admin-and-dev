@@ -20,7 +20,7 @@ import Web.Routes.Happstack         ( implSite, implSite_ )
 
 import Acid
 import App
-import API
+import Api
 
 import Site.Routes
 

@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, TemplateHaskell, 
    TypeOperators, OverloadedStrings #-}
 
-module API
+module Api
 
 ( apiSite
 )

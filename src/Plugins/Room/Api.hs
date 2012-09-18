@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Room.API where
+module Plugins.Room.Api where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
@@ -13,6 +13,7 @@ import Data.Acid
 import Data.Acid.Advanced
 import Data.Aeson
 import Data.Text as Text
+import Data.Text.Encoding   ( decodeUtf8 )
 
 import Happstack.Server -- ( Happstack, Response )
 import Web.Routes.Happstack
@@ -28,7 +29,8 @@ import Happstack.Auth
 import Plugins.Auth
 import Util.HasAcidState
 import Util.GetBody
-import Plugins.Room.Acid
+import Plugins.Room.Acid.Core
+import Plugins.Room.Acid.Json
 
 -- URL routing for the Room API
 
@@ -111,21 +113,21 @@ instance FromJSON RoomAPIRequest where
     parseJSON _ = mzero
 
 -- probably needs some error handling which will have to come from eventual Room.Acid
-runRoomAPI :: (HasAcidState m RoomState, MonadIO m) 
-           => UserId -> RoomAPIRequest -> m Text
+runRoomAPI :: (HasAcidState m RoomState, MonadIO m, Happstack m) 
+           => UserId -> RoomAPIRequest -> m Response -- Text
 runRoomAPI uid request =
     do
         roomState :: AcidState RoomState <- getAcidState
         case request of
             RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid cap)
-                                       return $ Text.pack $ show rid
+                                       ok $ toResponse $ show rid               -- good for now
             RequestJoin rid      -> do update' roomState (JoinRoom uid rid)
-                                       return "Success" -- this is the wrong behavior
+                                       ok $ toResponse $ ("Success" :: Text)    -- this is the wrong behavior
             RequestLeave         -> do update' roomState (LeaveRoom uid)
-                                       return "Success" -- wrong again
+                                       ok $ toResponse $ ("Success" :: Text)    -- wrong again
             RequestSend msg      -> do update' roomState (Send uid msg)
-                                       return "Success" -- so dumb
+                                       ok $ toResponse $ ("Success" :: Text)    -- so dumb
             RequestReceive       -> do chat <- query'  roomState (Receive uid)
-                                       return "bla" -- not even trying 
+                                       ok $ toResponse $ encode chat            -- good for now
             RequestLook          -> do rooms <- query'  roomState (LookRooms)
-                                       return $ Text.pack $ Prelude.concat $ Prelude.map (show . _unRoomId) rooms
+                                       ok $ toResponse $ encode rooms           -- good for now

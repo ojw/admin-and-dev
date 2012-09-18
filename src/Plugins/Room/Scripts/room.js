@@ -16,6 +16,7 @@ AdminAndDev.Room = (function() {
               , function(data){}
               )
     };
+
     create = function(capacity) {
         $.post( url
               , JSON.stringify( { type: "create"
@@ -24,6 +25,7 @@ AdminAndDev.Room = (function() {
               , function(data){}
               )
     };
+
     join = function(roomId) {
         $.post( url
               , JSON.stringify( { type: "join"
@@ -32,12 +34,14 @@ AdminAndDev.Room = (function() {
               , function(data){}
               )
     };
+
     leave = function() {
         $.post( url
               , JSON.stringify( { type: "leave" } )
               , function(data){}
               )
     };
+
     send = function(message) {
         $.post( url
               , JSON.stringify( { type: "send"
@@ -46,12 +50,26 @@ AdminAndDev.Room = (function() {
               , function(data){}
               )
     };
+
     receive = function() {
         $.post( url
               , JSON.stringify( { type: "receive" } )
               , function(data){}
               )
     };
+
+    displayChat = function(chat) {
+        return chat.sender + ": " + chat.message
+    }
+    displayChatList = function(chatList) {
+        var rtn = "";
+        var length=chatList.length()
+        for(var i=0; i<length; i++){
+            rtn = rtn + displayChat(chatList[i]);
+        }
+        return rtn;
+    }
+
     return  { look: look
             , create: create
             , join: join
@@ -59,6 +77,7 @@ AdminAndDev.Room = (function() {
             , send: send
             , receive: receive
             };
+
 })();
         
 var Room = AdminAndDev.Room
