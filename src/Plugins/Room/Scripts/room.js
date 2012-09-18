@@ -5,8 +5,11 @@ AdminAndDev.Room = (function() {
     var create;
     var join;
     var leave;
-    var sent;
+    var send;
     var receive;
+
+    var initSendButton;
+    var initChatWindow;
 
     var url = "http://localhost:8000/api/room/";
 
@@ -59,8 +62,9 @@ AdminAndDev.Room = (function() {
     };
 
     displayChat = function(chat) {
-        return chat.sender + ": " + chat.message
-    }
+        return chat.sender + ": " + chat.message + "\n"
+    };
+
     displayChatList = function(chatList) {
         var rtn = "";
         var length=chatList.length()
@@ -68,6 +72,14 @@ AdminAndDev.Room = (function() {
             rtn = rtn + displayChat(chatList[i]);
         }
         return rtn;
+    };
+
+    initSendButton = function(str) {
+        $(str).click( function(){ Room.create("1")} );
+    }
+
+    initChatWindow = function(str) {
+        //setInterval( "alert('Hello')", 500 );
     }
 
     return  { look: look
@@ -76,6 +88,8 @@ AdminAndDev.Room = (function() {
             , leave: leave
             , send: send
             , receive: receive
+            , initSendButton: initSendButton
+            , initChatWindow: initChatWindow
             };
 
 })();
@@ -83,5 +97,7 @@ AdminAndDev.Room = (function() {
 var Room = AdminAndDev.Room
 
 $(document).ready( function() {  
-        $(".create_room_button").click( function(){ Room.create("1") } );
+        Room.initSendButton(".create_room_button");
+        Room.initChatWindow("foo");
+        
 });

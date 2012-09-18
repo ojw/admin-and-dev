@@ -44,7 +44,7 @@ app baseURL apiDir =
     do  --decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
         msum [ dir "favicon.ico" $ notFound (toResponse ())
              , apiSite  baseURL apiDir
-             , dir "static" $ serveFile (asContentType "text/javascript") "Plugins/Room/room.js"
+             , dir "static" $ serveFile (asContentType "text/javascript") "Plugins/Room/Scripts/room.js"
              , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())
              ] 
