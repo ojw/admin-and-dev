@@ -10,14 +10,26 @@ AdminAndDev.Room = (function() {
 
     var initSendButton;
     var initChatWindow;
+    var initRoomWindow;
 
     var url = "http://localhost:8000/api/room/";
 
-    look = function() {
-        $.post( url
-              , JSON.stringify({type: "look"})
-              , function(data){}
-              )
+    var getJson;
+
+    getJson = function(input, fn){
+        $.ajax( { type: 'POST'
+                , url: url
+                , data: input
+                , success: function(data){fn(data)}
+                , dataType: 'json'
+                });
+    };
+        
+
+    look = function(fn) {
+        getJson( JSON.stringify({type: "look"})
+               , function(data){fn(data)}
+               );
     };
 
     create = function(capacity) {
@@ -54,10 +66,11 @@ AdminAndDev.Room = (function() {
               )
     };
 
-    receive = function() {
+    receive = function(fn) {
         $.post( url
               , JSON.stringify( { type: "receive" } )
-              , function(data){}
+              //, function(data){alert(JSON.stringify(JSON.parse(data)))} //fn
+//              , function(data){alert("FOO")} //fn
               )
     };
 
@@ -78,8 +91,21 @@ AdminAndDev.Room = (function() {
         $(str).click( function(){ Room.create("1")} );
     }
 
+    initRoomWindow = function(str) {
+        var roomWindow = $(str)
+        setInterval( function(){ 
+                        Room.look( 
+                            function(data){
+                                alert(JSON.stringify(data))
+                                roomWindow.html(JSON.stringify(data))
+                            } 
+                        ) 
+                     }
+                   , 2000
+        )
+    }
+
     initChatWindow = function(str) {
-        //setInterval( "alert('Hello')", 500 );
     }
 
     return  { look: look
@@ -90,6 +116,7 @@ AdminAndDev.Room = (function() {
             , receive: receive
             , initSendButton: initSendButton
             , initChatWindow: initChatWindow
+            , initRoomWindow: initRoomWindow
             };
 
 })();
@@ -98,6 +125,7 @@ var Room = AdminAndDev.Room
 
 $(document).ready( function() {  
         Room.initSendButton(".create_room_button");
-        Room.initChatWindow("foo");
+//        Room.initChatWindow("foo");
+        Room.initRoomWindow("foo");
         
 });

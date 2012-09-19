@@ -42,7 +42,7 @@ data Room = Room
     , _capacity :: Int
     , _members :: [UserId]
     , _chat :: [Chat]
-    } deriving (Eq, Ord, Data, Typeable)
+    } deriving (Eq, Ord, Data, Typeable, Read, Show)
 
 $(makeLens ''Room)
 $(deriveSafeCopy 0 'base ''Room)

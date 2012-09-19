@@ -30,7 +30,7 @@ import Plugins.Auth
 import Util.HasAcidState
 import Util.GetBody
 import Plugins.Room.Acid.Core
-import Plugins.Room.Acid.Json
+import Plugins.Room.Acid.Json as Json
 
 -- URL routing for the Room API
 
@@ -130,4 +130,4 @@ runRoomAPI uid request =
             RequestReceive       -> do chat <- query'  roomState (Receive uid)
                                        ok $ toResponse $ encode chat            -- good for now
             RequestLook          -> do rooms <- query'  roomState (LookRooms)
-                                       ok $ toResponse $ encode rooms           -- good for now
+                                       ok $ toResponse $ encode rooms -- Json.encode $ [(1 :: Int),(2 :: Int),(3 :: Int)]           -- good for now
