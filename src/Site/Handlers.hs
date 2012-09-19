@@ -54,13 +54,14 @@ template title headers body =
     H.docTypeHtml $ do
       H.head $ do
         H.title (H.toHtml title)
+        H.link ! A.href "css" ! type_ "text/css" ! rel "stylesheet"
       H.body $ do
         H.h1 $ "Admin and Dev"
         H.p  $ "A division of Jolly Crouton Media?  Maybe?  Idk."
         body
         H.script ! A.src jQuery $ "For real."
         H.script ! A.src jQueryUI $ "Srsly."
-        H.script ! A.src "static" $ "This site really needs javascript."
+        H.script ! A.src "js" $ "This site really needs javascript."
 
 appTemplate :: (Happstack m) => String -> Html -> Html -> m Response
 appTemplate title headers body =

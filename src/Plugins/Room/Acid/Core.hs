@@ -94,6 +94,11 @@ createRoom uid cap =
 getUserRoomsIx :: UserId -> IxSet Room -> [Room]
 getUserRoomsIx uid rms = toList $ rms @= uid
 
+-- ********** EXTREMELY DISHONEST *****************
+--getUserRoom :: UserId -> Query RoomState RoomId
+getUserRoom uid = return (RoomId 1)
+-- ********** TEMPORARY FOR TROUBLESHOOTING *******
+
 leaveRoom :: UserId -> Update RoomState (Maybe Room)
 leaveRoom uid = (room uid) . rooms %= fmap (removeUserFromRoom uid)
 
@@ -108,15 +113,14 @@ joinRoom uid rid =
 
 send :: UserId -> Text -> Update RoomState (IxSet Room)
 send uid msg =
-    do  roomState <- get
-        case getOne $ (rooms ^$ roomState) @= uid of
-             Nothing    -> return (rooms ^$ roomState)
-             Just rm    -> modRoom (roomId ^$ rm) (addChat uid msg)
+    do  userRoom    <- getUserRoom uid
+        modRoom userRoom (addChat uid msg)
 
 receive :: UserId -> Query RoomState [Chat]
 receive uid =
     do  roomState <- ask
-        case getOne $ (rooms ^$ roomState) @= uid of
+        userRoom    <- getUserRoom uid
+        case getOne $ (rooms ^$ roomState) @= userRoom of
              Nothing    -> return []
              Just rm    -> return $ chat ^$ rm
 

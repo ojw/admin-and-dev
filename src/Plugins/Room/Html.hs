@@ -39,7 +39,7 @@ chatInput =
 chatBox :: Html
 chatBox =
     div ! class_ "chat_box" $ 
-        do  textarea "chat text here" ! class_ "chat_display"
+        do  div "chat text here" ! class_ "chat_display" ! readonly "true"
             chatInput 
 
 createRoomButton :: Html
