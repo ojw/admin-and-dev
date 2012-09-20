@@ -13,7 +13,9 @@ AdminAndDev.Room = (function() {
     var initRoomWindow;
     var initSendButton;
 
-    var url = "http://localhost:8000/api/room/";
+    var chatRefreshRate = 500
+    var roomListRefreshRate = 2000;
+    var url = "http://192.168.200.12:8000/api/room/";
 
     var getJson;
 
@@ -74,7 +76,7 @@ AdminAndDev.Room = (function() {
     };
 
     displayChat = function(chat) {
-        return chat.sender + ": " + chat.message + "<br />"//"\n"
+        return chat.sender + ": " + chat.message + "\n"
     };
 
     // displays list backwards
@@ -96,7 +98,9 @@ AdminAndDev.Room = (function() {
         $(sendButton).click( function(){ 
             var message = $(chatInput).val();
             Room.send(message);
-            //alert(message)  
+            $(chatInput).val("");
+            $(chatInput).focus();
+            return false;
             } );
     }
 
@@ -109,7 +113,7 @@ AdminAndDev.Room = (function() {
                             } 
                         ) 
                      }
-                   , 2000
+                   , roomListRefreshRate
         )
     }
 
@@ -119,13 +123,14 @@ AdminAndDev.Room = (function() {
                         Room.receive(
                             function(data){
                                 var ppData = displayChatList(data);
-                                if (ppData !== chatWindow.html()){
-                                    chatWindow.html(ppData)
+                                if (ppData !== chatWindow.val()){
+                                    chatWindow.val(ppData);
+                                    chatWindow.scrollTop( chatWindow[0].scrollHeight );
                                 }
                             }
                         )
                      }
-                   , 1000
+                   , chatRefreshRate
         )
     }
 

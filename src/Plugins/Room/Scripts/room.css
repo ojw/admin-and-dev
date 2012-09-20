@@ -1,14 +1,3 @@
-div.chat_display
-{
-    border-style:solid;
-    background-color:blue;
-}
-
-div
-{
-    background-color:blue;
-}    
-body
-{
-    background-color:red;
-}
+textarea {
+        resize: none;
+} 

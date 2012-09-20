@@ -32,14 +32,14 @@ import Plugins.Room.Acid.Core --            ( RoomId(..), RoomState )
 
 chatInput :: Html
 chatInput =
-    div ! class_ "chat_input" $
-        do  input ! class_ "chat_input" ! type_ "text" ! value "type some stuff"
-            input ! class_ "chat_send" ! type_ "button" ! value "Send"
+    div ! class_ "chat_input" $ H.form $
+            do  input ! class_ "chat_input" ! type_ "text" ! value "type some stuff"
+                input ! class_ "chat_send" ! type_ "submit" ! value "Send"
 
 chatBox :: Html
 chatBox =
     div ! class_ "chat_box" $ 
-        do  div "chat text here" ! class_ "chat_display" ! readonly "true"
+        do  textarea "chat text here" ! class_ "chat_display" ! readonly "true" ! cols "50" ! rows "20"
             chatInput 
 
 createRoomButton :: Html

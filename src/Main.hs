@@ -24,5 +24,7 @@ import Api
 
 import Site.Routes
 
+
+
 main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://localhost:8000" "/api")
+main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://192.168.200.12:8000" "/api")
