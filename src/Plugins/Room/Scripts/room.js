@@ -94,7 +94,7 @@ AdminAndDev.Room = (function() {
     }
 
     initSendButton = function(sendButton, chatInput) {
-        //$(str).click( function(){ Room.send("FOO")} );
+        $(chatInput).focus( function() {this.select()}  );
         $(sendButton).click( function(){ 
             var message = $(chatInput).val();
             Room.send(message);
@@ -155,5 +155,4 @@ $(document).ready( function() {
         Room.initChatWindow(".chat_display");
         Room.initRoomWindow(".room_list");
         Room.initSendButton(".chat_send", "input.chat_input");
-        
 });
