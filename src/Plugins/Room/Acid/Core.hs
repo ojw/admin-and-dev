@@ -39,7 +39,6 @@ newtype Chat = Chat (UserId, Text) deriving (Eq, Ord, Data, Typeable, SafeCopy, 
 
 data Room = Room
     { _roomId :: RoomId
-    , _capacity :: Int
     , _members :: [UserId]
     , _chat :: [Chat]
     } deriving (Eq, Ord, Data, Typeable, Read, Show)
@@ -49,24 +48,35 @@ $(deriveSafeCopy 0 'base ''Room)
 
 instance Indexable Room where
     empty = ixSet [ ixFun $ \room -> [ roomId ^$ room ]
-                  , ixFun $ \room -> [ capacity ^$ room ]
                   , ixFun $ \room -> members ^$ room
                   ]
 
 data RoomState = RoomState
     { _nextRoomId   :: RoomId
     , _rooms        :: IxSet Room
+    , _defaultRoom  :: RoomId
     }
     deriving (Eq, Ord, Typeable)
 
 $(makeLens ''RoomState)
 $(deriveSafeCopy 0 'base ''RoomState)
 
+-- includes default lobby room w/ RoomId 0
+
 initialRoomState :: RoomState
 initialRoomState = RoomState
-    { _nextRoomId = RoomId 1
-    , _rooms      = empty
+    { _nextRoomId   = RoomId 1
+    , _rooms        = updateIx lobbyId lobby empty
+    , _defaultRoom  = lobbyId
     }
+
+lobbyId :: RoomId
+lobbyId = RoomId 0
+
+lobby :: Room
+lobby = Room lobbyId [] []
+
+--
 
 room :: (Typeable key) => key -> Lens (IxSet Room) (Maybe Room)
 room = ixLens          
@@ -77,17 +87,30 @@ removeUserFromRoom uid rm = (members ^%= (filter (/= uid))) rm
 addUserToRoom :: UserId -> Room -> Room
 addUserToRoom uid rm = (members ^%= (uid:)) rm
 
-modRoom :: RoomId -> (Room -> Room) -> Update RoomState (IxSet Room)
-modRoom rid fn = rooms %= (room rid ^%= fmap fn)
-
 addChat :: UserId -> Text -> Room -> Room
 addChat uid msg rm = (chat ^%= (Chat (uid, msg) : )) rm
 
-createRoom :: UserId -> Int -> Update RoomState RoomId
-createRoom uid cap = 
+blankRoom :: RoomId -> Room
+blankRoom rid = Room rid [] []
+
+modRoom :: RoomId -> (Room -> Room) -> Update RoomState (IxSet Room)
+modRoom rid fn = rooms %= (room rid ^%= fmap fn)
+
+createEmptyRoom :: Update RoomState RoomId
+createEmptyRoom =
     do  roomState <- get
         let next = nextRoomId ^$ roomState
-        rooms %= updateIx next (Room next cap [uid] [])
+        rooms %= updateIx next (blankRoom next)
+        nextRoomId %= succ
+        return next
+
+-- this doesn't even remove the user from their other rooms
+-- clearly the room / user relationship must be rethought
+createRoom :: UserId -> Update RoomState RoomId
+createRoom uid = 
+    do  roomState <- get
+        let next = nextRoomId ^$ roomState
+        rooms %= updateIx next (Room next [uid] [])
         nextRoomId %= succ
         return next
 
@@ -99,6 +122,7 @@ getUserRoomsIx uid rms = toList $ rms @= uid
 getUserRoom uid = return (RoomId 1)
 -- ********** TEMPORARY FOR TROUBLESHOOTING *******
 
+-- rethink join / leave situation
 leaveRoom :: UserId -> Update RoomState (Maybe Room)
 leaveRoom uid = (room uid) . rooms %= fmap (removeUserFromRoom uid)
 

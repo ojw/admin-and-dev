@@ -119,7 +119,7 @@ runRoomAPI uid request =
     do
         roomState :: AcidState RoomState <- getAcidState
         case request of
-            RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid cap)
+            RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid )
                                        ok $ toResponse $ show rid               -- good for now
             RequestJoin rid      -> do update' roomState (JoinRoom uid rid)
                                        ok $ toResponse $ ("Success" :: Text)    -- this is the wrong behavior
