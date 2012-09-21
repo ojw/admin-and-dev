@@ -41,4 +41,4 @@ instance HasAcidState App RoomState where
     getAcidState = acidRoom <$> ask
 
 runApp :: Acid -> App a -> ServerPartT IO a
-runApp acid (App sp) = mapServerPartT (flip runReaderT acid) sp
+runApp acid (App sp) = mapServerPartT (`runReaderT` acid) sp

@@ -4,8 +4,6 @@ module Site.Routes
 
 where
 
-import Control.Monad.Trans          ( liftIO )
-import Control.Monad                ( mzero )
 import Control.Monad                ( msum )
 import Happstack.Server.RqData      ( decodeBody, defaultBodyPolicy )
 import Happstack.Server             ( Response, toResponse, simpleHTTP, nullConf
@@ -13,10 +11,9 @@ import Happstack.Server             ( Response, toResponse, simpleHTTP, nullConf
                                     , serveFile, guessContentTypeM, asContentType )
 import Happstack.Server
 import Web.Routes                   ( RouteT, runRouteT, Site(..), setDefault )
-
 import Data.Text                    ( Text )
 import Web.Routes.Boomerang         ( boomerangSite )
-import Web.Routes.Happstack         ( implSite, implSite_ )
+import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
 import Site.Sitemap
@@ -41,7 +38,6 @@ site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
 app :: Text -> Text -> App Response
 app baseURL apiDir =  
-    do  --decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000)
         msum [ dir "favicon.ico" $ notFound (toResponse ())
              , apiSite  baseURL apiDir
              , dir "js" $ serveFile (asContentType "text/javascript") "Plugins/Room/Scripts/room.js"

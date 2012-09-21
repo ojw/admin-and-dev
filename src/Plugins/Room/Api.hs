@@ -34,32 +34,32 @@ import Plugins.Room.Acid.Json as Json
 
 -- URL routing for the Room API
 
-data RoomAPI_URL
-    = RoomAPI_Default -- probably won't actually use routing beyond this
-    | RoomAPI_Create
-    | RoomAPI_Join
-    | RoomAPI_Leave
-    | RoomAPI_Send
-    | RoomAPI_Receive
-    | RoomAPI_Look
+data RoomAPIURL
+    = RoomAPIDefault -- probably won't actually use routing beyond this
+    | RoomAPICreate
+    | RoomAPIJoin
+    | RoomAPILeave
+    | RoomAPISend
+    | RoomAPIReceive
+    | RoomAPILook
 
-$(derivePrinterParsers ''RoomAPI_URL)
+$(derivePrinterParsers ''RoomAPIURL)
 
-roomAPIBoomerang :: Router () (RoomAPI_URL :- ())
+roomAPIBoomerang :: Router () (RoomAPIURL :- ())
 roomAPIBoomerang =
-    (  rRoomAPI_Default
-    <> rRoomAPI_Create . (lit "create")
-    <> rRoomAPI_Join . (lit "join")
-    <> rRoomAPI_Leave . (lit "leave")
-    <> rRoomAPI_Send . (lit "send")
-    <> rRoomAPI_Receive . (lit "receive")
-    <> rRoomAPI_Look . (lit "look")
+    (  rRoomAPIDefault
+    <> rRoomAPICreate . (lit "create")
+    <> rRoomAPIJoin . (lit "join")
+    <> rRoomAPILeave . (lit "leave")
+    <> rRoomAPISend . (lit "send")
+    <> rRoomAPIReceive . (lit "receive")
+    <> rRoomAPILook . (lit "look")
     )
 
 -- maps a URL in the Room API to a response
 -- need function to get json Value from request body
 processRoomURL :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
-               => RoomAPI_URL -> RouteT RoomAPI_URL m Response
+               => RoomAPIURL -> RouteT RoomAPIURL m Response
 processRoomURL url =
     do
         body <- lift $ getBody
@@ -74,11 +74,11 @@ processRoomURL url =
                                                           ok $ toResponse $ t
 
 temp :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
-     => RoomAPI_URL -> RouteT RoomAPI_URL m Response
+     => RoomAPIURL -> RouteT RoomAPIURL m Response
 temp url = ok $ toResponse ("FOOOOOOOOOOOOOO" :: String)
 
 roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
-            => Site RoomAPI_URL (m Response)
+            => Site RoomAPIURL (m Response)
 roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
 
 ------------------------------------------------------------------

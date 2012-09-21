@@ -5,6 +5,7 @@
 
 module Plugins.Auth.Api where
 
+import Control.Monad ( mzero )
 import Happstack.Server.RqData
 import Happstack.Server             ( Response, ServerPart, ServerPartT, ok
                                     , toResponse, simpleHTTP, nullConf
@@ -30,9 +31,9 @@ import Data.Aeson
 import Data.Text
 
 data AuthAPI
-    = AuthAPI_Login Text Text
-    | AuthAPI_Logout
-    | AuthAPI_Register Text Text
+    = AuthAPILogin Text Text
+    | AuthAPILogout
+    | AuthAPIRegister Text Text
 
 instance FromJSON AuthAPI where
     parseJSON (Object o) =
@@ -42,16 +43,17 @@ instance FromJSON AuthAPI where
                 "login"     -> do
                                 name <- o .: "name"
                                 password <- o .: "password"
-                                return $ AuthAPI_Login name password
-                "logout"    -> return $ AuthAPI_Logout
+                                return $ AuthAPILogin name password
+                "logout"    -> return $ AuthAPILogout
                 "register"  -> do
                                 name <- o .: "name"
                                 password <- o .: "password"
-                                return $ AuthAPI_Register name password
+                                return $ AuthAPIRegister name password
+    parseJSON _ = mzero
 
 runAuthRequest :: AuthAPI -> Text
 runAuthRequest authAPI =
     case authAPI of
-        AuthAPI_Login name password     -> "asdf"
-        AuthAPI_Logout                  -> "asdf"
-        AuthAPI_Register name password  -> "asdf" 
+        AuthAPILogin name password     -> "asdf"
+        AuthAPILogout                  -> "asdf"
+        AuthAPIRegister name password  -> "asdf" 
