@@ -85,10 +85,9 @@ homePage =
             (profileState :: AcidState ProfileState) <- lift getAcidState
             mUserId <- getUserId authState profileState
             welcome <- welcomeBox mUserId
-            rooms <- lift $ roomBox'
             appTemplate "Home" mempty $ do
                 welcome
-                rooms
+                roomBox''
                 chatBox
 
 loginPage :: RouteT Sitemap App Response

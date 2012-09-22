@@ -64,3 +64,6 @@ roomBox' :: (Functor m, MonadIO m, HasAcidState m RoomState) => m Html
 roomBox' =
     do  rooms <- query LookRooms
         return $ roomBox $ fmap _roomId rooms 
+
+roomBox'' :: Html
+roomBox'' = roomBox []
