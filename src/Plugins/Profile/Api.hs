@@ -65,14 +65,6 @@ profileAPISite = boomerangSite (runRouteT processProfileURL) profileAPIBoomerang
 
 ------------------------------------------------------------------
 
--- type to represent profile API requests from json
-
--- actually, should be able to just write a FromJSON instance
--- for the Acidic types from Profile.Acid.
--- however, the acidic types all want username as input
--- so either remove that requirement or keep as is
-
--- probably needs some error handling which will have to come from eventual Profile.Acid
 runProfileAPI :: (HasAcidState m P.ProfileState, MonadIO m, Happstack m) 
            => UserId -> MaybeProfile -> m Response -- Text
 runProfileAPI uid maybeProfile =
