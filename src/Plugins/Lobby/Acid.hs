@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell #-}
--- apparently DatatypeContexts is a misfeature
--- what should I use instead?
+{-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 
 module Plugins.Lobby.Acid
 
@@ -8,6 +6,7 @@ where
 
 import Data.IxSet
 import Data.Acid
+import Data.SafeCopy
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
@@ -27,24 +26,26 @@ import Util.HasAcidState
 -- gonna start by with Lobby as a container with a room...
 -- then add permissions, then maybe options, then games
 
-newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Ord, Eq, Data, Typeable, Read, Show)--, SafeCopy)
+newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Ord, Eq, Data, Typeable, Read, Show, SafeCopy)
 
-data Lobby state options = Lobby
-    { _room         :: RoomId
-    , _users        :: [UserId]
-    , _games        :: IxSet state
-    , _openGames    :: IxSet options
+data Lobby = Lobby
+    { _lobbyId      :: LobbyId
+    , _roomId       :: RoomId
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 $(makeLens ''Lobby)
+$(deriveSafeCopy 0 'base ''Lobby)
 
-instance (Indexable options, Ord options, Typeable options) => Indexable (Lobby state options) where
-    empty = ixSet [ ixFun $ \lobby -> users ^$ lobby
-                  , ixFun $ \lobby -> [ room ^$ lobby ]
-                  , ixFun $ \lobby -> toList $ openGames ^$ lobby
+instance Indexable Lobby where
+    empty = ixSet [ ixFun $ \lobby -> [ roomId ^$ lobby ]
                   ]
 
-data LobbyState state options = LobbyState
-    { lobbies       :: IxSet (Lobby state options)
-    , nextLobbyId   :: LobbyId
+data LobbyState = LobbyState
+    { _nextLobbyId   :: LobbyId
+    , _lobbies       :: IxSet Lobby
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
+
+$(makeLens ''LobbyState)
+$(deriveSafeCopy 0 'base ''LobbyState)
+
+$(makeAcidic ''LobbyState [])
