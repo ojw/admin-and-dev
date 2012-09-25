@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Profile.Acid
+module Core.Profile.Acid
 
 where
 
@@ -33,7 +33,7 @@ import Data.Time
 import Data.Aeson
 
 import Util.HasAcidState
-import Plugins.Auth                 ( UserId )
+import Core.Auth                 ( UserId )
 
 data Profile = Profile
     { _userId       :: UserId

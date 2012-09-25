@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Room.Acid.Core
+module Core.Room.Acid.Core
 
 where
 
@@ -26,7 +26,7 @@ import Data.Lens.IxSet              ( ixLens )
 import Data.Text                    ( Text )
 import Prelude  hiding              ( null, (.) )
 
-import Plugins.Auth                 ( UserId )
+import Core.Auth                 ( UserId )
 
 import Util.HasAcidState
 

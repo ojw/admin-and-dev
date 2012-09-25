@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 
-module Plugins.Lobby.Acid
+module Core.Lobby.Acid
 
 where
 
@@ -11,15 +11,15 @@ import Data.Data
 import Data.Lens
 import Data.Lens.Template
 
-import Plugins.Auth.Acid        ( UserId )
-import Plugins.Room.Acid.Core   ( RoomId )
+import Core.Auth.Acid        ( UserId )
+import Core.Room.Acid.Core   ( RoomId )
 
 import Util.HasAcidState
 
 -- state is type of game state to be stored during gameplay
 -- options is type of all options (including players joining game) to store before game starts
 -- permissions is datatype that game will translate to bool for players trying to join lobby
--- possibly have OngoingGame and OpenGame types similarly parameterized in Plugins.Game for use here
+-- possibly have OngoingGame and OpenGame types similarly parameterized in Core.Game for use here
 --
 -- might need to have class constraint on a parameter! this might be getting tricky...
 --

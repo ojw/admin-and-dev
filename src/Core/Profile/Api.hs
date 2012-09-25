@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Profile.Api where
+module Core.Profile.Api where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
@@ -26,10 +26,10 @@ import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
 import Happstack.Auth as A
-import Plugins.Auth
+import Core.Auth
 import Util.HasAcidState
 import Util.GetBody
-import Plugins.Profile.Acid as P
+import Core.Profile.Acid as P
 
 -- URL routing for the Profile API
 

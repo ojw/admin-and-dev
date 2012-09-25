@@ -3,17 +3,13 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Auth 
+module Core.Room.Acid
 
-( loginForm
-, newAccountForm
-, UserId(..)
-, getUserId
-, getUserId'
+( Room(..)
+, RoomState(..)
+, initialRoomState
 )
 
 where
 
-import Plugins.Auth.Acid
-import Plugins.Auth.Api
-import Plugins.Auth.Html
+import Core.Room.Acid.Core

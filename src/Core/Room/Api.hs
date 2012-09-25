@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Room.Api where
+module Core.Room.Api where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
@@ -26,11 +26,11 @@ import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
 import Happstack.Auth
-import Plugins.Auth
+import Core.Auth
 import Util.HasAcidState
 import Util.GetBody
-import Plugins.Room.Acid.Core
-import Plugins.Room.Acid.Json as Json
+import Core.Room.Acid.Core
+import Core.Room.Acid.Json as Json
 
 -- URL routing for the Room API
 

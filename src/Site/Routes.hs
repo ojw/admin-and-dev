@@ -17,13 +17,13 @@ import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
 import Site.Sitemap
-import Plugins.Auth
+import Core.Auth
 import Acid
 import App
 import Api
 import Site.Handlers
 
-import Plugins.Room.Api
+import Core.Room.Api
 
 route :: Sitemap -> RouteT Sitemap App Response
 route url =
@@ -40,8 +40,8 @@ app :: Text -> Text -> App Response
 app baseURL apiDir =  
         msum [ dir "favicon.ico" $ notFound (toResponse ())
              , apiSite  baseURL apiDir
-             , dir "js" $ serveFile (asContentType "text/javascript") "Plugins/Room/Scripts/room.js"
-             , dir "css" $ serveFile (asContentType "text/css") "Plugins/Room/Scripts/room.css"
+             , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
+             , dir "css" $ serveFile (asContentType "text/css") "Core/Room/Scripts/room.css"
              , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())
              ] 
