@@ -1,5 +1,5 @@
 
-module Types 
+module Core.Types 
 
 ( UserId(..)
 , GameType
