@@ -4,29 +4,27 @@ module Game where
 
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Acid
+import Data.Text
+import Happstack.Server ( Response )
 import Data.SafeCopy    ( SafeCopy )
+
+import Data.ByteString.Lazy.Char8   ( ByteString )
 
 import Util.HasAcidState
 
-class (ToJSON o, FromJSON o) => Options o
-class FromJSON c => Command c
+-- This is the only structure we really NEED for a Game.
+-- Some other structure might be nice - should we insist on JSON?
+-- Probably not, but we will probably always use it.
+-- Text vs Lazy Bytestring?  Probably use Lazy Bytestring.
+-- We take it from POST requests, don't decode it, pass it straight to the game.
+-- We expect the game to use Aeson to decode JSON data from bytestring,
+-- but game is welcome to do whatever it pleases.
 
--- not sure this is right
-class (SafeCopy state, Options options) => GameState state options  where
-    --getState    :: (HasAcidState m state) => m state
-    getState    :: state
-    newGame     :: options -> state
+class Game st where
+    runCommand  :: (HasAcidState m st) => ByteString -> m Response
+    getState    :: (HasAcidState m st) => m Response 
+    newGame     :: (HasAcidState m st) => ByteString -> m () -- bytestring represents options
 
-class GameState2 g where
-    getState2    :: (SafeCopy state) => g -> state
-    newGame2     :: (Options options, SafeCopy state) => g -> options -> state -- takes blank g and applies options?
-
-class (SafeCopy state, Command command) => GameCommand state command where
-    runCommand  :: (HasAcidState m state) => command -> m state
-
-class (GameState state options, GameCommand state command) => Game id state options command where
-    getId       :: g -> id
-
--- is this useful? does game have enough of an idea of how it is stored to implement this?
--- startGame :: (GameState state command, HasAcidState m state, Monad m) => options -> m () 
-
+-- This is the essential behavior of a game.
+-- Other structures will be added - possibly as a datatype - with areas for profile-type data,
+-- maybe front-end goodies, etc.  
