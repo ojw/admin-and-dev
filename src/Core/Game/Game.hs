@@ -1,10 +1,12 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 
 module Game where
 
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Acid
+import Data.Data
 import Data.Text
+import Data.Map
 import Data.IxSet       ( Indexable )
 import Happstack.Server ( Response )
 import Data.SafeCopy    ( SafeCopy )
@@ -14,37 +16,50 @@ import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 import Util.HasAcidState
 import Core.Auth.Acid   ( UserId )
 
--- This is all that we ask of a game.
--- We might try to require ToJson of st, but we can't know which parts of st to show to which player
--- so this must be defined by class.
--- Maaaaybe add encode :: st -> ByteString? But this is really just getState
+newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
-class Indexable st => Game st where
-    runCommand  :: UserId -> ByteString -> st -> st -- ByteString is JSON encoded command
-    encodeState :: UserId -> st -> ByteString -- ByteString is JSON encoded parts of game state that user is allowed to know
-    newGame     :: ByteString -> st -- use as (newGame bs :: WhateverGame); ByteString is JSON encoded game options
 
--- Games must provide their own javascript bits - how to display and interact with the state, etc.
--- (Or provide other front ends.)
--- I'm not sure how to make this extremely general - probably add typeclasses representing each reasonable client type we expect to support
--- This seems like a good idea presently.
+class IdealGame player state display command options where
+    idealRunCommand  :: player -> command -> state -> state
+    idealGetView     :: player -> state -> display
+    idealNewGame     :: options -> state
 
--- Typeclass for each client type - initially probably just html + js.
--- Not much we can enforce about html or js.
--- I would expect the Html / Js to look the same for any st and just handle different states on the client side,
--- but this allows the game author to decide this (and makes the code legal)
--- Should look into enforcing more structure here, but it's tricky without enforcing a particular HTML framework.
--- It's probably correct to just trust that the game author claiming a ByteString is HTML or JS isn't lying.
--- This is a seriously uninformative class.
+class ThisKindaGame state where
+    thisRunCommand  :: (HasAcidState m state) => UserId -> ByteString -> m ()
+    thisGetView     :: (HasAcidState m state) => UserId -> m ByteString
+    thisNewGame     :: (HasAcidState m state) => ByteString -> m ()
 
-data Html5Game state command = Html5Game
-    { javascript    :: ByteString -- ???
-    , html          :: ByteString
-    , decodeCommand :: ByteString -> Command
-    , encodeState   :: state -> ByteString -- we need different encodings for different users viewing the game
+-- we have a translator object 
+
+data Game player state display command options = Game
+    { runCommand    :: player -> command -> state -> state
+    , getView       :: player -> state -> display
+    , newGame       :: options -> state
+    } 
+
+{-
+data Html5Game state = Html5Game
+    { runCommand    :: UserId -> ByteString -> state -> state
+    , getView       :: UserId -> state -> ByteString
+    , newGame       :: ByteString -> state
+    }
+-}
+
+-- for Html games on this server, this is what we need to store
+data GameState player state = GameState
+    { gameId :: GameId
+    , state :: state
+    , players :: Map UserId player
     }
 
-class Game st => HasHtml5Client st where
-    getClientHtml   :: st -> ByteString
-    getClientJs     :: st -> ByteString
-    getClientCss    :: st -> ByteString
+data Html5Client display command options player = Html5Client
+    { encodeDisplay :: display -> ByteString
+    , decodeCommand :: ByteString -> command
+    , decodeOptions :: ByteString -> options
+    }
+
+{-
+convertGameToHtml5 :: Game state player display command options -> Html5Client player display command options -> Html5Game state
+convertGameToHtml5 (Game run get new) (Html5Client encDis, decCom, decOpt) = 
+    let newRunCommand = \userId byteString state -> runCommand (getPlayerWithId userId) 
+-} 
