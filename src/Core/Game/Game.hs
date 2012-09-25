@@ -5,26 +5,40 @@ module Game where
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Acid
 import Data.Text
+import Data.IxSet       ( Indexable )
 import Happstack.Server ( Response )
 import Data.SafeCopy    ( SafeCopy )
 
-import Data.ByteString.Lazy.Char8   ( ByteString )
+import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 
 import Util.HasAcidState
+import Core.Auth.Acid   ( UserId )
 
--- This is the only structure we really NEED for a Game.
--- Some other structure might be nice - should we insist on JSON?
--- Probably not, but we will probably always use it.
--- Text vs Lazy Bytestring?  Probably use Lazy Bytestring.
--- We take it from POST requests, don't decode it, pass it straight to the game.
--- We expect the game to use Aeson to decode JSON data from bytestring,
--- but game is welcome to do whatever it pleases.
+-- This is all that we ask of a game.
+-- We might try to require ToJson of st, but we can't know which parts of st to show to which player
+-- so this must be defined by class.
+-- Maaaaybe add encode :: st -> ByteString? But this is really just getState
 
-class Game st where
-    runCommand  :: (HasAcidState m st) => ByteString -> m Response
-    getState    :: (HasAcidState m st) => m Response 
-    newGame     :: (HasAcidState m st) => ByteString -> m () -- bytestring represents options
+class Indexable st => Game st where
+    runCommand  :: UserId -> ByteString -> st -> st -- ByteString is JSON encoded command
+    encodeState :: UserId -> st -> ByteString -- ByteString is JSON encoded parts of game state that user is allowed to know
+    newGame     :: ByteString -> st -- use as (newGame bs :: WhateverGame); ByteString is JSON encoded game options
 
--- This is the essential behavior of a game.
--- Other structures will be added - possibly as a datatype - with areas for profile-type data,
--- maybe front-end goodies, etc.  
+-- Games must provide their own javascript bits - how to display and interact with the state, etc.
+-- (Or provide other front ends.)
+-- I'm not sure how to make this extremely general - probably add typeclasses representing each reasonable client type we expect to support
+-- This seems like a good idea presently.
+
+-- Typeclass for each client type - initially probably just html + js.
+-- Not much we can enforce about html or js.
+-- I would expect the Html / Js to look the same for any st and just handle different states on the client side,
+-- but this allows the game author to decide this (and makes the code legal)
+
+class Game st => HasHtmlJsClient st where
+    getClientHtml   :: st -> ByteString
+    getClientJs     :: st -> ByteString
+
+instance Game Int where
+    runCommand _ _ i = succ i
+    encodeState _ i = L.pack "FOO"
+    newGame _ = 0
