@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types #-}
 
 module Game where
 
@@ -18,48 +18,41 @@ import Core.Auth.Acid   ( UserId )
 
 newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
+-- will be more complex later to allow rankings in many-player games
+data Outcome = Won | Loss | Draw
 
-class IdealGame player state display command options where
-    idealRunCommand  :: player -> command -> state -> state
-    idealGetView     :: player -> state -> display
-    idealNewGame     :: options -> state
+data GenericGameOutcome player = GenericGameOutcome [(player, Outcome)]
+newtype GameOutcome = GameOutcome [(UserId, Outcome)]
 
-class ThisKindaGame state where
-    thisRunCommand  :: (HasAcidState m state) => UserId -> ByteString -> m ()
-    thisGetView     :: (HasAcidState m state) => UserId -> m ByteString
-    thisNewGame     :: (HasAcidState m state) => ByteString -> m ()
-
--- we have a translator object 
-
-data Game player state display command options = Game
-    { runCommand    :: player -> command -> state -> state
-    , getView       :: player -> state -> display
+-- need SafeCopy instance for state; might demand it here, but this is supposed to be pretty abstract
+data TurnBasedGame player state outcome display command options = TurnBasedGame
+    { runCommand    :: player -> command -> state -> Either outcome state
+    , getView       :: player -> Either outcome state -> display -- this one might change -- not sure if display needs to cover outcomes
     , newGame       :: options -> state
     } 
 
-{-
-data Html5Game state = Html5Game
-    { runCommand    :: UserId -> ByteString -> state -> state
-    , getView       :: UserId -> state -> ByteString
-    , newGame       :: ByteString -> state
+-- as a web game serving html / js, mostly we're receiving and returning bytestrings
+-- might actually switch to storing outcomes on disc? or entire games for replay
+-- SafeCopy constraint is necessary, but not sure if this is right way to enforce it
+data ThisKindaGame state = ThisKindaGame
+    { thisRunCommand  :: (SafeCopy state) => UserId -> ByteString -> state -> Either GameOutcome state 
+    , thisGetView     :: (SafeCopy state) => UserId -> Either GameOutcome state -> ByteString
+    , thisNewGame     :: (SafeCopy state) => ByteString -> state
     }
--}
 
 -- for Html games on this server, this is what we need to store
+-- the actual state might also look like [(command, state)] to allow for game replay later
+-- or just [state], since logging in state will probably provide info on the commands
 data GameState player state = GameState
     { gameId :: GameId
     , state :: state
-    , players :: Map UserId player
+    , players :: Map UserId player -- possibly an IxSet of (UserId, player) instead since we need lookup in both directions
     }
 
-data Html5Client display command options player = Html5Client
-    { encodeDisplay :: display -> ByteString
-    , decodeCommand :: ByteString -> command
-    , decodeOptions :: ByteString -> options
+-- all the pieces we need to translate from an IdealGame to a ThisKindaGame
+data Html5Client outcome display command options player = Html5Client
+    { encodeDisplay     :: display -> ByteString
+    , decodeCommand     :: ByteString -> command
+    , decodeOptions     :: ByteString -> options
+    , convertOutcome    :: outcome -> GenericGameOutcome player -- then the server can convert player to UserId
     }
-
-{-
-convertGameToHtml5 :: Game state player display command options -> Html5Client player display command options -> Html5Game state
-convertGameToHtml5 (Game run get new) (Html5Client encDis, decCom, decOpt) = 
-    let newRunCommand = \userId byteString state -> runCommand (getPlayerWithId userId) 
--} 
