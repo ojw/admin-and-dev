@@ -12,8 +12,6 @@ data StatefulService state = StatefulService
     , handler       :: (HasAcidState m state) => ByteString -> m Response -- takes ByteString, probably parses into json, does some stuff and returns a response
     }
 
-    
-
 -- could have
 -- authService :: StatefulService AuthState
 -- profileService :: StatefulService Profile State
