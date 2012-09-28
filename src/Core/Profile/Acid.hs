@@ -35,19 +35,21 @@ import Data.Aeson
 import Util.HasAcidState
 import Core.Auth                 ( UserId )
 
+{-
 data Location games
     = Lobby games Int
     | Game games Int
     | Matchmaking games Int
     deriving (Eq, Ord, Data, Typeable, Read, Show)
+-}
 
-data Profile games = Profile
+data Profile = Profile
     { _userId       :: UserId
     , _userName     :: UserName
     , _email        :: Email
     , _joinDate     :: UTCTime
     , _timeStamp    :: UTCTime
-    , _location     :: Location games
+--    , _location     :: location
     } deriving (Eq, Ord, Data, Typeable, Read, Show)
 
 newtype UserName = UserName { _unUserName :: Text } deriving (Eq, Ord, Data, Typeable, Read, Show, SafeCopy)
@@ -59,14 +61,14 @@ $(makeLens ''Email)
 
 $(deriveSafeCopy 0 'base ''Profile)
 
-instance Indexable (Profile games) where
+instance Indexable Profile where
     empty = ixSet [ ixFun $ \profile -> [ userId ^$ profile ]
                   , ixFun $ \profile -> [ userName ^$ profile ]
                   , ixFun $ \profile -> [ email ^$ profile ]
                   , ixFun $ \profile -> [ joinDate ^$ profile ]
                   ]
 
-instance ToJSON (Profile games) where
+instance ToJSON Profile where
     toJSON p = object [ "userName"    .= (unUserName .userName ^$ p) 
                       , "email"       .= (unEmail . email ^$ p)
                       , "joinDate"    .= (joinDate ^$ p)
@@ -89,8 +91,8 @@ instance FromJSON MaybeProfile where
     parseJSON _ = mzero
 
 
-data ProfileState games = ProfileState
-    { _profiles  :: IxSet (Profile games)
+data ProfileState = ProfileState
+    { _profiles  :: IxSet Profile
     }
 
 $(makeLens ''ProfileState)
