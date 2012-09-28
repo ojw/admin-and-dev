@@ -34,8 +34,7 @@ getDomain = decode
 
 routeService :: App Response
 routeService =
-    do 
-        mUserId <- getUserId'
+    do  mUserId <- getUserId'
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok

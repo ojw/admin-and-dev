@@ -5,7 +5,7 @@ module Site.Routes
 where
 
 import Control.Monad.Trans
-import Control.Monad                -- ( msum )
+import Control.Monad                ( msum )
 import Happstack.Server.RqData      ( decodeBody, defaultBodyPolicy )
 import Happstack.Server             ( Response, toResponse, simpleHTTP, nullConf
                                     , seeOther, dir, notFound, seeOther, serveDirectory
@@ -40,7 +40,7 @@ site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 app :: Text -> App Response
 app baseURL =
         msum [ dir "favicon.ico" $ notFound (toResponse ())
-             , dir "api" $ routeService -- ok $ toResponse ("hrm" :: Text) -- liftIO (print "HELLO???") >> routeService
+             , dir "api" $ routeService
              , dir "foo" $ ok $ toResponse ("Bar." :: Text)
              , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
              , dir "css" $ serveFile (asContentType "text/css") "Core/Room/Scripts/room.css"

@@ -4,12 +4,12 @@ module Main
 
 where
 
-import Happstack.Server             ( simpleHTTP, nullConf )
-import Data.Text                    ( Text )
+import Happstack.Server ( simpleHTTP, nullConf )
+import Data.Text        ( Text )
 
-import Acid
-import App
-import Site.Routes
+import Acid             ( Acid, withAcid )
+import App              ( App, runApp )
+import Site.Routes      ( app )
 
 
 
