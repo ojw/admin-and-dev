@@ -6,9 +6,10 @@ import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Acid
 import Data.Data
 import Data.Text
+import Prelude hiding   ( lookup )
 import Data.Map
 import Data.IxSet       ( Indexable )
-import Happstack.Server ( Response )
+import Happstack.Server -- ( Response )
 import Data.SafeCopy    ( SafeCopy )
 
 import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
@@ -45,7 +46,7 @@ data ThisKindaGame state = ThisKindaGame
 -- or just [state], since logging in state will probably provide info on the commands
 data GameState player state = GameState
     { gameId :: GameId
-    , state :: state
+    , state :: state -- Either outcome state ??? Or does something special happen when the game ends?  (Probably write something to disc, stop storing in ram.
     , players :: Map UserId player -- possibly an IxSet of (UserId, player) instead since we need lookup in both directions
     }
 
@@ -56,3 +57,37 @@ data Html5Client outcome display command options player = Html5Client
     , decodeOptions     :: ByteString -> options
     , convertOutcome    :: outcome -> GenericGameOutcome player -- then the server can convert player to UserId
     }
+
+clientRunCommand
+    :: UserId 
+    -> ByteString 
+    -> GameState player state 
+    -> TurnBasedGame player state outcome display command options
+    -> Html5Client outcome display command options player
+    -> Either outcome state
+clientRunCommand userId json acidState gameType client =
+    case lookup userId (players acidState) of
+        Nothing     -> Right (state acidState)
+        Just player -> let  command     = (decodeCommand client) json
+                            gameState   = state acidState in
+                            (runCommand gameType) player command gameState
+
+clientGetView
+    :: UserId 
+    -> ByteString 
+    -> GameState player state 
+    -> TurnBasedGame player state outcome display command options
+    -> Html5Client outcome display command options player
+    -> ByteString
+clientGetView userId json acidState gameType client =
+    case lookup userId (players acidState) of
+        Nothing     -> L.pack "User not a player in game."
+        Just player -> (encodeDisplay client) $ (getView gameType) player (Right (state acidState))
+
+clientNewGame
+    :: ByteString 
+    -> TurnBasedGame player state outcome display command options
+    -> Html5Client outcome display command options player
+    -> state
+clientNewGame json gameType client =
+    (newGame gameType) $ (decodeOptions client) json
