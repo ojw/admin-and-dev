@@ -58,6 +58,7 @@ roomAPIBoomerang =
 
 -- maps a URL in the Room API to a response
 -- need function to get json Value from request body
+
 processRoomURL :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
                => RoomAPIURL -> RouteT RoomAPIURL m Response
 processRoomURL url =
@@ -72,6 +73,16 @@ processRoomURL url =
                                     Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
                                     Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t
+
+ 
+processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
+                   => UserId -> ByteString -> m Response
+processRoomRequest uid json =
+    do
+        case decode json :: Maybe RoomAPIRequest of
+            Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
+            Just request    -> do t <- runRoomAPI uid request
+                                  ok $ toResponse $ t
 
 temp :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
      => RoomAPIURL -> RouteT RoomAPIURL m Response
