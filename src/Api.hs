@@ -14,4 +14,4 @@ import Data.Text            ( append )
 
 import Core.Room         ( roomAPISite )
 
-apiSite baseURL dir = msum [ implSite baseURL (append dir  "/room") roomAPISite ]
+apiSite baseURL dir = msum [ implSite baseURL (append dir  "") roomAPISite ]

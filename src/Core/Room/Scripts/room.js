@@ -15,7 +15,7 @@ AdminAndDev.Room = (function() {
 
     var chatRefreshRate = 500
     var roomListRefreshRate = 2000;
-    var url = "http://localhost:8000/api/room/";
+    var url = "http://localhost:8000/api/";
 
     var getJson;
 
