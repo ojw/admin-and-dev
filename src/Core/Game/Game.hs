@@ -3,6 +3,7 @@
 module Game where
 
 import Data.Aeson       ( ToJSON, FromJSON )
+import Data.Functor
 import Data.Acid
 import Data.Data
 import Data.Text
@@ -53,8 +54,8 @@ data GameState player state = GameState
 -- all the pieces we need to translate from an IdealGame to a ThisKindaGame
 data Html5Client outcome display command options player = Html5Client
     { encodeDisplay     :: display -> ByteString
-    , decodeCommand     :: ByteString -> command
-    , decodeOptions     :: ByteString -> options
+    , decodeCommand     :: ByteString -> Maybe command
+    , decodeOptions     :: ByteString -> Maybe options
     , convertOutcome    :: outcome -> GenericGameOutcome player -- then the server can convert player to UserId
     }
 
@@ -68,9 +69,9 @@ clientRunCommand
 clientRunCommand userId json acidState gameType client =
     case lookup userId (players acidState) of
         Nothing     -> Right (state acidState)
-        Just player -> let  command     = (decodeCommand client) json
-                            gameState   = state acidState in
-                            (runCommand gameType) player command gameState
+        Just player -> case (decodeCommand client) json of
+                        Nothing      -> Right (state acidState)
+                        Just command -> (runCommand gameType) player command (state acidState)
 
 clientGetView
     :: UserId 
@@ -88,6 +89,6 @@ clientNewGame
     :: ByteString 
     -> TurnBasedGame player state outcome display command options
     -> Html5Client outcome display command options player
-    -> state
+    -> Maybe state
 clientNewGame json gameType client =
-    (newGame gameType) $ (decodeOptions client) json
+    (newGame gameType) <$> (decodeOptions client) json
