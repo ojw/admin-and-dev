@@ -21,7 +21,6 @@ import Site.Sitemap
 import Core.Auth
 import Acid
 import App
-import Api
 import Service
 import Site.Handlers
 
@@ -38,10 +37,9 @@ route url =
 site :: Site Sitemap (App Response)
 site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
-app :: Text -> Text -> App Response
-app baseURL apiDir =  
+app :: Text -> App Response
+app baseURL =
         msum [ dir "favicon.ico" $ notFound (toResponse ())
---             , apiSite  baseURL "/api" -- apiDir
              , dir "api" $ routeService -- ok $ toResponse ("hrm" :: Text) -- liftIO (print "HELLO???") >> routeService
              , dir "foo" $ ok $ toResponse ("Bar." :: Text)
              , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
