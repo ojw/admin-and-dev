@@ -5,10 +5,11 @@ module Game where
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Functor
 import Data.Acid
+import Data.Maybe       ( fromJust )
 import Data.Data
-import Data.Text
-import Prelude hiding   ( lookup )
-import Data.Map
+import Data.Text hiding ( map )
+-- import Prelude hiding   ( lookup )
+-- import Data.Map
 import Data.IxSet       ( Indexable )
 import Happstack.Server -- ( Response )
 import Data.SafeCopy    ( SafeCopy )
@@ -23,8 +24,21 @@ newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data,
 -- will be more complex later to allow rankings in many-player games
 data Outcome = Won | Loss | Draw
 
-data GenericGameOutcome player = GenericGameOutcome [(player, Outcome)]
+newtype GenericGameOutcome player = GenericGameOutcome [(player, Outcome)]
 newtype GameOutcome = GameOutcome [(UserId, Outcome)]
+
+genericToGameOutcome :: Eq player => GenericGameOutcome player -> [(UserId, player)] -> GameOutcome
+genericToGameOutcome (GenericGameOutcome generic) userMap = GameOutcome $ map (\(u,p)->(u,fromJust (lookup p generic))) userMap
+
+gameToGenericOutcome :: GameOutcome -> [(UserId, player)] -> GenericGameOutcome player
+gameToGenericOutcome (GameOutcome game) userMap = GenericGameOutcome $ map (\(p,u)->(p,fromJust (lookup u game))) (reverseMap userMap)
+
+reverseMap :: [(a,b)] -> [(b,a)]
+reverseMap [] = []
+reverseMap ((first, second):xs) = (second, first) : (reverseMap xs)
+
+reverseLookup :: (Eq b) => [(a,b)] -> b -> Maybe a
+reverseLookup m key = lookup key $ reverseMap m
 
 -- need SafeCopy instance for state; might demand it here, but this is supposed to be pretty abstract
 data TurnBasedGame player state outcome display command options = TurnBasedGame
@@ -39,7 +53,7 @@ data TurnBasedGame player state outcome display command options = TurnBasedGame
 data ThisKindaGame state = ThisKindaGame
     { thisRunCommand  :: (SafeCopy state) => UserId -> ByteString -> state -> Either GameOutcome state 
     , thisGetView     :: (SafeCopy state) => UserId -> Either GameOutcome state -> ByteString
-    , thisNewGame     :: (SafeCopy state) => ByteString -> state
+    , thisNewGame     :: (SafeCopy state) => ByteString -> Maybe state -- because could be invalid config
     }
 
 -- for Html games on this server, this is what we need to store
@@ -48,7 +62,7 @@ data ThisKindaGame state = ThisKindaGame
 data GameState player state = GameState
     { gameId :: GameId
     , state :: state -- Either outcome state ??? Or does something special happen when the game ends?  (Probably write something to disc, stop storing in ram.
-    , players :: Map UserId player -- possibly an IxSet of (UserId, player) instead since we need lookup in both directions
+    , players :: [(UserId,player)] -- possibly an IxSet of (UserId, player) instead since we need lookup in both directions
     }
 
 -- all the pieces we need to translate from an IdealGame to a ThisKindaGame
@@ -56,8 +70,45 @@ data Html5Client outcome display command options player = Html5Client
     { encodeDisplay     :: display -> ByteString
     , decodeCommand     :: ByteString -> Maybe command
     , decodeOptions     :: ByteString -> Maybe options
-    , convertOutcome    :: outcome -> GenericGameOutcome player -- then the server can convert player to UserId
+    , encodeOutcome     :: outcome -> GenericGameOutcome player -- then the server can convert player to UserId
+    , decodeOutcome     :: GenericGameOutcome player -> outcome  -- then the server can convert player to UserId
     }
+
+convertRunCommand
+    :: Eq player
+    => (player -> command -> state -> Either outcome state) 
+    -> (ByteString -> Maybe command)
+    -> (outcome -> GenericGameOutcome player)
+    -> [(UserId,player)]
+    -> (UserId -> ByteString -> state -> Either GameOutcome state)
+convertRunCommand abstractRun commandDecoder outcomeDecoder playerMap = \ userId json state ->
+    case lookup userId playerMap of
+        Nothing     -> Right state
+        Just player -> case commandDecoder json of
+                        Nothing       -> Right state
+                        Just command  -> case abstractRun player command state of
+                                            Right state -> Right state
+                                            Left outcome -> Left $ genericToGameOutcome (outcomeDecoder outcome) playerMap
+
+convertGetView
+    :: (player -> Either outcome state -> display)
+    -> (display -> ByteString)
+    -> (GenericGameOutcome player -> outcome )
+    -> [(UserId,player)]
+    -> (UserId -> Either GameOutcome state -> ByteString)
+convertGetView getView convertDisplay convertOutcomes playerMap = \ userId outcomeOrState ->
+    case lookup userId playerMap of
+        Nothing     -> L.pack "User not a player in game."
+        Just player -> convertDisplay $ getView player $ case outcomeOrState of
+                                                            Left outcome -> Left $ convertOutcomes $ gameToGenericOutcome outcome playerMap
+                                                            Right s      -> Right s
+
+convertNewGame
+    :: (options -> state)
+    -> (ByteString -> Maybe options)
+    -> (ByteString -> Maybe state)
+convertNewGame toGame decodeOptions = \byteString ->
+    toGame <$> decodeOptions byteString
 
 clientRunCommand
     :: UserId 
