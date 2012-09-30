@@ -11,13 +11,12 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.Text
 
-import Core.Auth
 import Core.Room.Api
 import Util.GetBody
 import Acid
 import App
-import Core.Room
-import Core.Auth
+import Core.Room.Room
+import Core.Auth.Auth
 
 data Domain = Room | Lobby | Game | Matchmaker
 

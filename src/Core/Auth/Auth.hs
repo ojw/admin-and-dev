@@ -3,14 +3,17 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Core.Room 
+module Core.Auth.Auth
 
-( RoomState(..) -- state to store in Acid
-, initialRoomState
-, roomAPISite   -- Site to implsite in API
-) 
+( loginForm
+, newAccountForm
+, UserId(..)
+, getUserId
+, getUserId'
+)
 
 where
 
-import Core.Room.Acid
-import Core.Room.Api
+import Core.Auth.Acid
+import Core.Auth.Api
+import Core.Auth.Html

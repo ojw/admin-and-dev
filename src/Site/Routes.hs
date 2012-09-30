@@ -18,7 +18,7 @@ import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
 import Site.Sitemap
-import Core.Auth
+import Core.Auth.Auth
 import Acid
 import App
 import Service

@@ -26,7 +26,7 @@ import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
 import Happstack.Auth
-import Core.Auth
+import Core.Auth.Auth
 import Util.HasAcidState
 import Util.GetBody
 import Core.Room.Acid.Core

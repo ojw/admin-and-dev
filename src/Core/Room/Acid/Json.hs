@@ -19,7 +19,7 @@ import Data.Acid.Advanced
 import Data.Aeson
 import Data.Text as Text
 
-import Core.Auth             ( UserId(..) )
+import Core.Auth.Auth        ( UserId(..) )
 import Core.Room.Acid.Core   ( Room(..), RoomId(..), Chat(..) )
 
 instance ToJSON Chat where

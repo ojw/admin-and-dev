@@ -26,7 +26,7 @@ import Data.Lens.IxSet              ( ixLens )
 import Data.Text                    ( Text )
 import Prelude  hiding              ( null, (.) )
 
-import Core.Auth                    ( UserId )
+import Core.Auth.Auth               ( UserId )
 
 import Util.HasAcidState
 
