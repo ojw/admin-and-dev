@@ -57,7 +57,7 @@ template title headers body =
         H.link ! A.href "css" ! type_ "text/css" ! rel "stylesheet"
       H.body $ do
         H.h1 $ "Admin and Dev"
-        H.p  $ "A division of Jolly Crouton Media?  Maybe?  Idk."
+        H.p  $ "Serving multiplayer games."
         body
         H.script ! A.src jQuery $ "For real."
         H.script ! A.src jQueryUI $ "Srsly."

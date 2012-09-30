@@ -39,7 +39,7 @@ site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
 app :: Text -> App Response
 app baseURL =
-        msum [ dir "favicon.ico" $ notFound (toResponse ())
+        msum [ dir "favicon.ico" $ serveFile (asContentType "image") "favicon.ico" -- notFound (toResponse ())
              , dir "api" $ routeService
              , dir "foo" $ ok $ toResponse ("Bar." :: Text)
              , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
