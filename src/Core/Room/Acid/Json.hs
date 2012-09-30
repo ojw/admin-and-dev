@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Room.Acid.Json
+module Core.Room.Acid.Json
 
 ( encode
 )
@@ -19,8 +19,8 @@ import Data.Acid.Advanced
 import Data.Aeson
 import Data.Text as Text
 
-import Plugins.Auth             ( UserId(..) )
-import Plugins.Room.Acid.Core   ( Room(..), RoomId(..), Chat(..) )
+import Core.Auth             ( UserId(..) )
+import Core.Room.Acid.Core   ( Room(..), RoomId(..), Chat(..) )
 
 instance ToJSON Chat where
     toJSON (Chat ((UserId sender), message)) = object [ "sender" .= sender, "message" .= message ]

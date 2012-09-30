@@ -4,6 +4,7 @@ module Site.Routes
 
 where
 
+import Control.Monad.Trans
 import Control.Monad                ( msum )
 import Happstack.Server.RqData      ( decodeBody, defaultBodyPolicy )
 import Happstack.Server             ( Response, toResponse, simpleHTTP, nullConf
@@ -17,13 +18,13 @@ import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
 import Site.Sitemap
-import Plugins.Auth
+import Core.Auth
 import Acid
 import App
-import Api
+import Service
 import Site.Handlers
 
-import Plugins.Room.Api
+import Core.Room.Api
 
 route :: Sitemap -> RouteT Sitemap App Response
 route url =
@@ -36,12 +37,13 @@ route url =
 site :: Site Sitemap (App Response)
 site = setDefault Home $ boomerangSite (runRouteT route) sitemap
 
-app :: Text -> Text -> App Response
-app baseURL apiDir =  
+app :: Text -> App Response
+app baseURL =
         msum [ dir "favicon.ico" $ notFound (toResponse ())
-             , apiSite  baseURL apiDir
-             , dir "js" $ serveFile (asContentType "text/javascript") "Plugins/Room/Scripts/room.js"
-             , dir "css" $ serveFile (asContentType "text/css") "Plugins/Room/Scripts/room.css"
+             , dir "api" $ routeService
+             , dir "foo" $ ok $ toResponse ("Bar." :: Text)
+             , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
+             , dir "css" $ serveFile (asContentType "text/css") "Core/Room/Scripts/room.css"
              , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())
              ] 

@@ -1,6 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Util.GetBody where
+module Util.GetBody 
+
+( getBody
+)
+
+where
 
 import Control.Monad.Trans          ( MonadIO )
 import Control.Monad.IO.Class       ( liftIO )

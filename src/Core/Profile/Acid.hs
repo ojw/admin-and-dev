@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Profile.Acid
+module Core.Profile.Acid
 
 where
 
@@ -33,7 +33,15 @@ import Data.Time
 import Data.Aeson
 
 import Util.HasAcidState
-import Plugins.Auth                 ( UserId )
+import Core.Auth                 ( UserId )
+
+{-
+data Location games
+    = Lobby games Int
+    | Game games Int
+    | Matchmaking games Int
+    deriving (Eq, Ord, Data, Typeable, Read, Show)
+-}
 
 data Profile = Profile
     { _userId       :: UserId
@@ -41,6 +49,7 @@ data Profile = Profile
     , _email        :: Email
     , _joinDate     :: UTCTime
     , _timeStamp    :: UTCTime
+--    , _location     :: location
     } deriving (Eq, Ord, Data, Typeable, Read, Show)
 
 newtype UserName = UserName { _unUserName :: Text } deriving (Eq, Ord, Data, Typeable, Read, Show, SafeCopy)

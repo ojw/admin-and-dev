@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Auth.Api where
+module Core.Auth.Api where
 
 import Control.Monad ( mzero )
 import Happstack.Server.RqData

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
-module Plugins.Room.Html where
+module Core.Room.Html where
 
 
 import Prelude hiding               ( div )
@@ -25,10 +25,10 @@ import Text.Blaze.Html5.Attributes  as A
 import Text.Blaze.Html5             as H
 
 import Util.HasAcidState
---import Plugins.Auth
+--import Core.Auth
 --}
 
-import Plugins.Room.Acid.Core --            ( RoomId(..), RoomState )
+import Core.Room.Acid.Core --            ( RoomId(..), RoomState )
 
 chatInput :: Html
 chatInput =

@@ -4,14 +4,14 @@ module Main
 
 where
 
-import Happstack.Server             ( simpleHTTP, nullConf )
-import Data.Text                    ( Text )
+import Happstack.Server ( simpleHTTP, nullConf )
+import Data.Text        ( Text )
 
-import Acid
-import App
-import Site.Routes
+import Acid             ( Acid, withAcid )
+import App              ( App, runApp )
+import Site.Routes      ( app )
 
 
 
 main :: IO ()
-main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid (app "http://localhost:8000" "/api")
+main = withAcid Nothing $ \acid -> simpleHTTP nullConf $ runApp acid $ app "http://localhost:8000"

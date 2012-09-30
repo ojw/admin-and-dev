@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Auth.Acid
+module Core.Auth.Acid
 
 ( UserId(..)
 , AuthState

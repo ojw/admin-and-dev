@@ -3,10 +3,10 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Auth.Html
+module Core.Auth.Html
 
 ( loginForm
-, Plugins.Auth.Html.newAccountForm
+, Core.Auth.Html.newAccountForm
 )
 
 where

@@ -19,8 +19,8 @@ import System.FilePath              ( (</>) )
 import Control.Exception            ( bracket )
 
 import Util.HasAcidState
-import Plugins.Auth.Acid
-import Plugins.Room.Acid            ( RoomState, initialRoomState )
+import Core.Auth.Acid
+import Core.Room.Acid            ( RoomState, initialRoomState )
 
 data Acid = Acid
     { acidAuth      :: AcidState AuthState

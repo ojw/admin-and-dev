@@ -3,13 +3,14 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Plugins.Room.Acid
+module Core.Room 
 
-( Room(..)
-, RoomState(..)
+( RoomState(..) -- state to store in Acid
 , initialRoomState
-)
+, roomAPISite   -- Site to implsite in API
+) 
 
 where
 
-import Plugins.Room.Acid.Core
+import Core.Room.Acid
+import Core.Room.Api

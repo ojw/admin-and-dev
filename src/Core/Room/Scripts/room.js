@@ -15,7 +15,7 @@ AdminAndDev.Room = (function() {
 
     var chatRefreshRate = 500
     var roomListRefreshRate = 2000;
-    var url = "http://localhost:8000/api/room/";
+    var url = "http://localhost:8000/api/";
 
     var getJson;
 
@@ -30,14 +30,16 @@ AdminAndDev.Room = (function() {
         
 
     look = function(fn) {
-        getJson( JSON.stringify({type: "look"})
+        getJson( JSON.stringify({ domain: "room"
+                                , type: "look"})
                , function(data){fn(data)}
                );
     };
 
     create = function(capacity) {
         $.post( url
-              , JSON.stringify( { type: "create"
+              , JSON.stringify( { domain: "room"
+                                , type: "create"
                                 , capacity: capacity
                                 } )
               , function(data){}
@@ -46,7 +48,8 @@ AdminAndDev.Room = (function() {
 
     join = function(roomId) {
         $.post( url
-              , JSON.stringify( { type: "join"
+              , JSON.stringify( { domain: "room"
+                                , type: "join"
                                 , roomId: roomId
                                 } )
               , function(data){}
@@ -55,21 +58,24 @@ AdminAndDev.Room = (function() {
 
     leave = function() {
         $.post( url
-              , JSON.stringify( { type: "leave" } )
+              , JSON.stringify( { domain: "room"
+                                , type: "leave" } )
               , function(data){}
               )
     };
 
     send = function(message) {
-        getJson( JSON.stringify( { type: "send"
-                                , message: message
-                                } )
+        getJson( JSON.stringify( { domain: "room"
+                                 , type: "send"
+                                 , message: message
+                                 } )
                , function(data){fn(data)}
                )
     };
 
     receive = function(fn) {
-        getJson( JSON.stringify( { type: "receive" } )
+        getJson( JSON.stringify( { domain: "room"
+                                 , type: "receive" } )
                , fn
                )
     
