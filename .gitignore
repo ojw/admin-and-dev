@@ -1,3 +1,4 @@
 *.swp
 .state*
 favicon.ico
+dist
