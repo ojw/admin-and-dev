@@ -1,38 +1,40 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
+    OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
 
 module Core.Lobby.Acid
 
 where
 
+import Control.Applicative hiding (empty)
+import Control.Monad.Reader 
 import Data.IxSet
 import Data.Acid
 import Data.SafeCopy
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
+import Data.Aeson
+import Data.Text hiding (empty)
+import Data.ByteString.Lazy as L hiding (empty)
+import Happstack.Server
 
 import Core.Auth.Acid        ( UserId )
 import Core.Room.Acid.Core   ( RoomId )
-
+import Core.Room.Api
 import Util.HasAcidState
+import Util.GetBody
 
--- gonna start with Lobby as a container with a room...
--- then add permissions, matchmaking, and games
-
-newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Ord, Eq, Data, Typeable, Read, Show, SafeCopy)
-
-data SubLocation = InLobby | InMatchmaker | InGame -- ugh, the name is bad
+data Location = InLobby | InMatchmaker | InGame
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-$(deriveSafeCopy 0 'base ''SubLocation)
+$(deriveSafeCopy 0 'base ''Location)
 
 data UserLocation = UserLocation 
     { _userId        :: UserId
-    , _subLocation   :: SubLocation
+    , _subLocation   :: Location
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 $(makeLens ''UserLocation)
-
 $(deriveSafeCopy 0 'base ''UserLocation)
 
 instance Indexable UserLocation where
@@ -40,25 +42,37 @@ instance Indexable UserLocation where
                   , ixFun $ \location -> [ subLocation ^$ location ]
                   ]
 
-data Lobby = Lobby
-    { _lobbyId       :: LobbyId
-    , _roomId        :: RoomId
-    , _userLocations :: IxSet UserLocation
-    } deriving (Ord, Eq, Data, Typeable, Read, Show)
+data Lobby game = Lobby
+    { _roomId       :: RoomId
+    , _locations    :: IxSet UserLocation
+    , _game         :: game -- doesn't belong here!
+    }
+
+initialLobby :: RoomId -> game -> Lobby game
+initialLobby roomId game = Lobby roomId empty game
+
+deriving instance Ord game => Ord (Lobby game)
+deriving instance Eq game => Eq (Lobby game)
+deriving instance Data game => Data (Lobby game)
+deriving instance Typeable1 Lobby
+deriving instance Read game => Read (Lobby game)
+deriving instance Show game => Show (Lobby game)
 
 $(makeLens ''Lobby)
 $(deriveSafeCopy 0 'base ''Lobby)
 
-instance Indexable Lobby where
+instance Indexable (Lobby game) where
     empty = ixSet [ ixFun $ \lobby -> [ roomId ^$ lobby ]
                   ]
 
-data LobbyState = LobbyState
-    { _nextLobbyId   :: LobbyId
-    , _lobbies       :: IxSet Lobby
-    } deriving (Ord, Eq, Data, Typeable, Read, Show)
+setLocation :: UserId -> Location -> Update (Lobby game) (IxSet UserLocation)
+setLocation userId subLocation = locations %= updateIx userId (UserLocation userId subLocation)
 
-$(makeLens ''LobbyState)
-$(deriveSafeCopy 0 'base ''LobbyState)
+getLocation :: UserId -> Query (Lobby game) Location
+getLocation userId = 
+    do  lobby <- ask
+        case getOne $ (locations ^$ lobby) @= userId of
+            Nothing -> return InLobby
+            Just l  -> return $ subLocation ^$ l
 
-$(makeAcidic ''LobbyState [])
+$(makeAcidic ''Lobby ['setLocation, 'getLocation])

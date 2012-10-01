@@ -1,13 +1,14 @@
-{-# LANGUAGE TemplateHaskell, Rank2Types, StandaloneDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE TemplateHaskell, Rank2Types, StandaloneDeriving, DeriveDataTypeable, TypeFamilies #-}
 
-module Location where
+module Core.Location.Location where
 
 import Control.Monad.State  ( get )
 import Control.Monad.Reader ( ask )
-import Control.Applicative
+import Control.Applicative hiding ( empty )
 import Data.Functor
 import Data.IxSet
 import Data.Acid
+import Data.Acid.Advanced
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
@@ -42,6 +43,9 @@ data LocationState game = LocationState
     { _locations :: IxSet (Location game)
     }
 
+initialLocationState :: (Ord game, Typeable game) => LocationState game
+initialLocationState = LocationState empty
+
 $(makeLens ''LocationState)
 
 instance (Ord game, Typeable game, SafeCopy game) => SafeCopy (LocationState game) where
@@ -59,3 +63,33 @@ getLocation userId =
         case getOne $ (locations ^$ locationState) @= userId of
             Nothing  -> return Nothing
             Just loc -> return $ Just $ game ^$ loc
+
+-- below code is equivalent to just using
+-- $(makeAcidic ''LocationState ['setLocation, 'getLocation])
+-- but it avoids the duplicate constraint compilers warnings I get from the TH version
+
+data SetLocation game = SetLocation UserId game
+data GetLocation game = GetLocation UserId
+
+deriving instance Typeable1 SetLocation
+instance (SafeCopy game) => SafeCopy (SetLocation game) where
+    putCopy (SetLocation user game) = contain $ do safePut user; safePut game
+    getCopy = contain $ SetLocation <$> safeGet <*> safeGet
+instance (SafeCopy game, Typeable game) => Method (SetLocation game) where
+    type MethodResult (SetLocation game)= game
+    type MethodState (SetLocation game) = LocationState game
+instance (SafeCopy game, Typeable game) => UpdateEvent (SetLocation game)
+
+deriving instance Typeable1 GetLocation
+instance (SafeCopy game) => SafeCopy (GetLocation game) where
+    putCopy (GetLocation user) = contain $ safePut user
+    getCopy = contain $ GetLocation <$> safeGet
+instance (SafeCopy game, Typeable game) => Method (GetLocation game) where
+    type MethodResult (GetLocation game) = Maybe game
+    type MethodState (GetLocation game) = LocationState game
+instance (SafeCopy game, Typeable game) => QueryEvent (GetLocation game)
+
+instance (SafeCopy game, Ord game, Typeable game) => IsAcidic (LocationState game) where
+    acidEvents = [ UpdateEvent (\(SetLocation userId game) -> setLocation userId game)
+                 , QueryEvent (\(GetLocation userId)       -> getLocation userId)
+                 ]
