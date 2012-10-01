@@ -7,6 +7,7 @@ module Acid
 
 ( Acid(..)
 , withAcid
+, Game
 )
 
 where

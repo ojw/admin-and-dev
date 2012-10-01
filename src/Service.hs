@@ -17,6 +17,7 @@ import Acid
 import App
 import Core.Room.Room
 import Core.Auth.Auth
+import Core.Location.Location
 
 data Domain = Room | Lobby | Game | Matchmaker
 
@@ -37,10 +38,10 @@ routeService =
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
-            Just uid ->
-                case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
-                    Nothing         -> ok $ toResponse ("Bad json." :: Text) -- should not be ok
-                    Just Room       -> processRoomRequest uid body
-                    Just Lobby      -> ok $ toResponse ("Haven't added this domain yet." :: Text)
-                    Just Game       -> ok $ toResponse ("Haven't added this domain yet." :: Text)
-                    Just Matchmaker -> ok $ toResponse ("Haven't added this domain yet." :: Text)
+            Just uid -> do  location :: Maybe Game <- query $ GetLocation uid
+                            case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
+                                Nothing         -> ok $ toResponse ("Bad json." :: Text) -- should not be ok
+                                Just Room       -> processRoomRequest uid body
+                                Just Lobby      -> ok $ toResponse ("Haven't added this domain yet." :: Text)
+                                Just Game       -> ok $ toResponse ("Haven't added this domain yet." :: Text)
+                                Just Matchmaker -> ok $ toResponse ("Haven't added this domain yet." :: Text)
