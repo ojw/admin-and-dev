@@ -21,9 +21,29 @@ import Util.HasAcidState
 
 newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Ord, Eq, Data, Typeable, Read, Show, SafeCopy)
 
+data SubLocation = InLobby | InMatchmaker | InGame -- ugh, the name is bad
+    deriving (Ord, Eq, Read, Show, Data, Typeable)
+
+$(deriveSafeCopy 0 'base ''SubLocation)
+
+data UserLocation = UserLocation 
+    { _userId        :: UserId
+    , _subLocation   :: SubLocation
+    } deriving (Ord, Eq, Data, Typeable, Read, Show)
+
+$(makeLens ''UserLocation)
+
+$(deriveSafeCopy 0 'base ''UserLocation)
+
+instance Indexable UserLocation where
+    empty = ixSet [ ixFun $ \location -> [ userId ^$ location ]
+                  , ixFun $ \location -> [ subLocation ^$ location ]
+                  ]
+
 data Lobby = Lobby
-    { _lobbyId      :: LobbyId
-    , _roomId       :: RoomId
+    { _lobbyId       :: LobbyId
+    , _roomId        :: RoomId
+    , _userLocations :: IxSet UserLocation
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 $(makeLens ''Lobby)
