@@ -11,15 +11,17 @@ import Data.SafeCopy
 
 import Core.Auth.Auth       ( UserId )
 
+{-
 data SubLocation = InLobby | InMatchmaker | InGame -- terrible name, I must be sleep-deprived
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(deriveSafeCopy 0 'base ''SubLocation)
+-}
 
 data Location game = Location
     { user          :: UserId
     , game          :: game
-    , subLocation   :: SubLocation
+--    , subLocation   :: SubLocation
     }
 
 deriving instance (Ord game) => Ord (Location game)
@@ -35,8 +37,8 @@ instance (Ord game, Typeable game) => Indexable (Location game) where
                   ]
 
 instance (SafeCopy game) => SafeCopy (Location game) where
-    putCopy (Location user game subLocation) = contain $ do safePut user; safePut game; safePut subLocation
-    getCopy = contain $ Location <$> safeGet <*> safeGet <*> safeGet
+    putCopy (Location user game {-subLocation-}) = contain $ do safePut user; safePut game--; safePut subLocation
+    getCopy = contain $ Location <$> safeGet <*> safeGet-- <*> safeGet
 
 data LocationState game = LocationState
     { locations :: IxSet (Location game)
