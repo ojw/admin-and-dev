@@ -22,7 +22,7 @@ import Happstack.Server             ( Response, ServerPartT, FilterMonad
                                     ) 
 import Core.Auth.Acid            ( AuthState, ProfileState )
 import Core.Room.Acid            ( RoomState )
-import Core.Location.Location
+import Core.Location.Acid
 import Util.HasAcidState
 import Acid
 

@@ -17,7 +17,7 @@ import Acid
 import App
 import Core.Room.Room
 import Core.Auth.Auth
-import Core.Location.Location
+import Core.Location.Acid
 
 data Domain = Room | Lobby | Game | Matchmaker
 

@@ -24,7 +24,7 @@ import Control.Exception            ( bracket )
 import Util.HasAcidState
 import Core.Auth.Acid
 import Core.Room.Acid            ( RoomState, initialRoomState )
-import Core.Location.Location
+import Core.Location.Acid
 
 data Game = Dummy
 
