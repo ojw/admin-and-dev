@@ -2,27 +2,25 @@
 
 module Location where
 
+import Control.Monad.State  ( get )
+import Control.Monad.Reader ( ask )
 import Control.Applicative
 import Data.Functor
 import Data.IxSet
 import Data.Acid
 import Data.Data
+import Data.Lens
+import Data.Lens.Template
 import Data.SafeCopy
 
 import Core.Auth.Auth       ( UserId )
 
-{-
-data SubLocation = InLobby | InMatchmaker | InGame -- terrible name, I must be sleep-deprived
-    deriving (Ord, Eq, Read, Show, Data, Typeable)
-
-$(deriveSafeCopy 0 'base ''SubLocation)
--}
-
 data Location game = Location
-    { user          :: UserId
-    , game          :: game
---    , subLocation   :: SubLocation
+    { _user          :: UserId
+    , _game          :: game
     }
+
+$(makeLens ''Location)
 
 deriving instance (Ord game) => Ord (Location game)
 deriving instance (Eq game) => Eq (Location game)
@@ -32,20 +30,32 @@ deriving instance (Data game) => Data (Location game)
 deriving instance Typeable1 Location
 
 instance (Ord game, Typeable game) => Indexable (Location game) where
-    empty = ixSet [ ixFun $ \location -> [ user location ]
-                  , ixFun $ \location -> [ game location ]
+    empty = ixSet [ ixFun $ \location -> [ user ^$ location ]
+                  , ixFun $ \location -> [ game ^$ location ]
                   ]
 
 instance (SafeCopy game) => SafeCopy (Location game) where
-    putCopy (Location user game {-subLocation-}) = contain $ do safePut user; safePut game--; safePut subLocation
-    getCopy = contain $ Location <$> safeGet <*> safeGet-- <*> safeGet
+    putCopy (Location user game) = contain $ do safePut user; safePut game
+    getCopy = contain $ Location <$> safeGet <*> safeGet
 
 data LocationState game = LocationState
-    { locations :: IxSet (Location game)
+    { _locations :: IxSet (Location game)
     }
+
+$(makeLens ''LocationState)
 
 instance (Ord game, Typeable game, SafeCopy game) => SafeCopy (LocationState game) where
      version = 0
      kind = base
      putCopy (LocationState locations) = contain $ safePut locations
      getCopy = contain $ LocationState <$> safeGet
+
+setLocation :: (Ord game, Typeable game) => UserId -> game -> Update (LocationState game) game
+setLocation userId game = do locations %= updateIx userId (Location userId game); return game
+
+getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
+getLocation userId =
+    do  locationState <- ask
+        case getOne $ (locations ^$ locationState) @= userId of
+            Nothing  -> return Nothing
+            Just loc -> return $ Just $ game ^$ loc
