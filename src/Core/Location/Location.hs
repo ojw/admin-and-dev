@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, Rank2Types, StandaloneDeriving, DeriveDataTypeable #-}
+{-# LANGUAGE TemplateHaskell, Rank2Types, StandaloneDeriving, DeriveDataTypeable, TypeFamilies #-}
 
 module Location where
 
@@ -51,7 +51,9 @@ instance (Ord game, Typeable game, SafeCopy game) => SafeCopy (LocationState gam
      getCopy = contain $ LocationState <$> safeGet
 
 setLocation :: (Ord game, Typeable game) => UserId -> game -> Update (LocationState game) game
-setLocation userId game = do locations %= updateIx userId (Location userId game); return game
+setLocation userId game = 
+    do  locations %= updateIx userId (Location userId game)
+        return game
 
 getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
 getLocation userId =
@@ -59,3 +61,5 @@ getLocation userId =
         case getOne $ (locations ^$ locationState) @= userId of
             Nothing  -> return Nothing
             Just loc -> return $ Just $ game ^$ loc
+
+$(makeAcidic ''LocationState ['setLocation, 'getLocation])
