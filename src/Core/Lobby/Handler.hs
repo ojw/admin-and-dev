@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
-    OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
+    OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
+    FlexibleContexts #-}
 
 module Core.Lobby.Handler
 
@@ -18,8 +19,8 @@ import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
 import Happstack.Server
 
-import Core.Auth.Acid        ( UserId )
-import Core.Room.Acid.Core   ( RoomId )
+import Core.Auth.Acid        ( UserId, AuthState, ProfileState )
+import Core.Room.Acid.Core   ( RoomId, RoomState )
 import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody
@@ -38,7 +39,7 @@ instance FromJSON Domain where
 getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
---routeService :: (Happstack m) =>  userId -> Response
+routeService :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) =>  UserId -> Lobby game -> ByteString -> m Response
 routeService userId lobby body=
         case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
             Nothing             -> ok $ toResponse ("Bad json." :: Text) -- should not be ok

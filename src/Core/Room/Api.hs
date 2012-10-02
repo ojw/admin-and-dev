@@ -74,6 +74,14 @@ processRoomURL url =
                                     Just request    -> do t <- lift $ runRoomAPI uid request
                                                           ok $ toResponse $ t
 
+processRoomRequest' :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
+                   => UserId -> RoomId -> ByteString -> m Response
+processRoomRequest' uid roomId json =
+    do
+        case decode json :: Maybe RoomAPIRequest of
+            Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
+            Just request    -> do t <- runRoomAPI uid request -- will be uid roomId request
+                                  ok $ toResponse $ t
  
 processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
                    => UserId -> ByteString -> m Response
@@ -83,10 +91,6 @@ processRoomRequest uid json =
             Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
             Just request    -> do t <- runRoomAPI uid request
                                   ok $ toResponse $ t
-
-temp :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
-     => RoomAPIURL -> RouteT RoomAPIURL m Response
-temp url = ok $ toResponse ("FOOOOOOOOOOOOOO" :: String)
 
 roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
             => Site RoomAPIURL (m Response)
