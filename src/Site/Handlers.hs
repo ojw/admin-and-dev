@@ -42,6 +42,7 @@ import qualified Data.Set         as Set
 import Util.HasAcidState
 import Core.Auth.Auth
 import Core.Room.Html
+import Core.Lobby.Html
 import Acid
 import App
 import Site.Sitemap
@@ -87,8 +88,9 @@ homePage =
             welcome <- welcomeBox mUserId
             appTemplate "Home" mempty $ do
                 welcome
-                roomBox''
-                chatBox
+                --roomBox''
+                --chatBox
+                lobby
 
 loginPage :: RouteT Sitemap App Response
 loginPage =
