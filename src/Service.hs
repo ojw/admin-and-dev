@@ -17,7 +17,7 @@ import Core.Room.Api
 import Util.GetBody
 import Acid
 import App
-import Core.Room.Room
+import Core.Room.Acid
 import Core.Auth.Auth
 import Core.Location.Acid
 import Core.Lobby.Handler
