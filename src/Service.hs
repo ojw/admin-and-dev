@@ -32,5 +32,5 @@ routeService =
             Just uid -> do  location :: Maybe Game <- query $ Core.Location.Acid.GetLocation uid
                             case fromMaybe Dummy location of
                                 Dummy           ->
-                                    do  lobby :: Lobby Game <- query GetLobby 
-                                        lobbyRouter uid lobby body
+                                    do  acidLobby :: AcidState (Lobby Game) <- getAcidState -- Lobby Game <- query GetLobby 
+                                        lobbyRouter uid acidLobby body

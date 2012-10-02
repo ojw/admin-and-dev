@@ -78,4 +78,9 @@ getLocation userId =
 getLobby :: Query (Lobby game) (Lobby game)
 getLobby = ask
 
-$(makeAcidic ''Lobby ['setLocation, 'getLocation, 'getLobby])
+getRoomId :: Query (Lobby game) RoomId
+getRoomId = 
+    do  lobby <- ask
+        return $ roomId ^$ lobby
+
+$(makeAcidic ''Lobby ['setLocation, 'getLocation, 'getLobby, 'getRoomId])
