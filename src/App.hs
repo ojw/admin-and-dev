@@ -23,6 +23,7 @@ import Happstack.Server             ( Response, ServerPartT, FilterMonad
 import Core.Auth.Acid            ( AuthState, ProfileState )
 import Core.Room.Acid            ( RoomState )
 import Core.Location.Acid
+import Core.Lobby.Acid
 import Util.HasAcidState
 import Acid
 
@@ -43,6 +44,9 @@ instance HasAcidState App RoomState where
 
 instance HasAcidState App (LocationState Game) where
     getAcidState = acidLocation <$> ask
+
+instance HasAcidState App (Lobby Game) where
+    getAcidState = acidLobby <$> ask
 
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (`runReaderT` acid) sp

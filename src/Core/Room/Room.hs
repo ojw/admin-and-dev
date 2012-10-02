@@ -7,7 +7,6 @@ module Core.Room.Room
 
 ( RoomState(..) -- state to store in Acid
 , initialRoomState
-, roomAPISite   -- Site to implsite in API
 ) 
 
 where

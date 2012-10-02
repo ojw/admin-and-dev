@@ -6,6 +6,7 @@
 module Core.Room.Acid
 
 ( Room(..)
+, RoomId(..)
 , RoomState(..)
 , initialRoomState
 )

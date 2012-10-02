@@ -75,4 +75,7 @@ getLocation userId =
             Nothing -> return InLobby
             Just l  -> return $ subLocation ^$ l
 
-$(makeAcidic ''Lobby ['setLocation, 'getLocation])
+getLobby :: Query (Lobby game) (Lobby game)
+getLobby = ask
+
+$(makeAcidic ''Lobby ['setLocation, 'getLocation, 'getLobby])

@@ -7,7 +7,7 @@ module Acid
 
 ( Acid(..)
 , withAcid
-, Game
+, Game(..)
 )
 
 where
@@ -23,8 +23,9 @@ import Control.Exception            ( bracket )
 
 import Util.HasAcidState
 import Core.Auth.Acid
-import Core.Room.Acid            ( RoomState, initialRoomState )
+import Core.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
 import Core.Location.Acid
+import Core.Lobby.Acid
 
 data Game = Dummy
 
@@ -38,6 +39,7 @@ data Acid = Acid
     , acidProfile   :: AcidState ProfileState
     , acidRoom      :: AcidState RoomState  
     , acidLocation  :: AcidState (LocationState Game)
+    , acidLobby     :: AcidState (Lobby Game)
     }
 
 withAcid :: Maybe FilePath -- ^ state directory
@@ -49,4 +51,5 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "profile")    initialProfileState)    (createCheckpointAndClose) $ \profile ->
     bracket (openLocalStateFrom (basePath </> "room")       initialRoomState)       (createCheckpointAndClose) $ \room ->
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
-        f (Acid auth profile room location)
+    bracket (openLocalStateFrom (basePath </> "lobby")      (initialLobby (RoomId 1) Dummy))   (createCheckpointAndClose) $ \lobby ->
+        f (Acid auth profile room location lobby)

@@ -39,11 +39,11 @@ instance FromJSON Domain where
 getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
-routeService :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) =>  UserId -> Lobby game -> ByteString -> m Response
-routeService userId lobby body=
+lobbyRouter :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) =>  UserId -> Lobby game -> ByteString -> m Response
+lobbyRouter userId lobby body=
         case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
             Nothing             -> ok $ toResponse ("Bad json." :: Text) -- should not be ok
-            Just DomRoom        -> processRoomRequest userId body
+            Just DomRoom        -> processRoomRequest userId (roomId ^$ lobby) body
             Just DomLobby       -> ok $ toResponse ("Haven't added this domain yet." :: Text)
             Just DomGame        -> ok $ toResponse ("Haven't added this domain yet." :: Text)
             Just DomMatchmaker  -> ok $ toResponse ("Haven't added this domain yet." :: Text)

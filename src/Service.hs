@@ -10,6 +10,8 @@ import Happstack.Server
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Text
+import Data.Maybe ( fromMaybe )
+import Data.Acid hiding (query)
 
 import Core.Room.Api
 import Util.GetBody
@@ -18,19 +20,8 @@ import App
 import Core.Room.Room
 import Core.Auth.Auth
 import Core.Location.Acid
-
-data Domain = Room | Lobby | Game | Matchmaker
-
-instance FromJSON Domain where
-    parseJSON (Object o) =
-        do  domain <- o .: "domain"
-            case domain of
-                ("room" :: Text)  -> return Room
-                _       -> mzero
-    parseJSON _ = mzero
-
-getDomain :: ByteString -> Maybe Domain
-getDomain = decode
+import Core.Lobby.Handler
+import Core.Lobby.Acid
 
 routeService :: App Response
 routeService =
@@ -38,10 +29,8 @@ routeService =
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
-            Just uid -> do  location :: Maybe Game <- query $ GetLocation uid
-                            case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
-                                Nothing         -> ok $ toResponse ("Bad json." :: Text) -- should not be ok
-                                Just Room       -> processRoomRequest uid body
-                                Just Lobby      -> ok $ toResponse ("Haven't added this domain yet." :: Text)
-                                Just Game       -> ok $ toResponse ("Haven't added this domain yet." :: Text)
-                                Just Matchmaker -> ok $ toResponse ("Haven't added this domain yet." :: Text)
+            Just uid -> do  location :: Maybe Game <- query $ Core.Location.Acid.GetLocation uid
+                            case fromMaybe Dummy location of
+                                Dummy           ->
+                                    do  lobby :: Lobby Game <- query GetLobby 
+                                        lobbyRouter uid lobby body

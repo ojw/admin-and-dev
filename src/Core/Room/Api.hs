@@ -32,57 +32,16 @@ import Util.GetBody
 import Core.Room.Acid.Core
 import Core.Room.Acid.Json as Json
 
--- URL routing for the Room API
-
-data RoomAPIURL
-    = RoomAPIDefault -- probably won't actually use routing beyond this
-    | RoomAPICreate
-    | RoomAPIJoin
-    | RoomAPILeave
-    | RoomAPISend
-    | RoomAPIReceive
-    | RoomAPILook
-
-$(derivePrinterParsers ''RoomAPIURL)
-
-roomAPIBoomerang :: Router () (RoomAPIURL :- ())
-roomAPIBoomerang =
-    (  rRoomAPIDefault
-    <> rRoomAPICreate . (lit "create")
-    <> rRoomAPIJoin . (lit "join")
-    <> rRoomAPILeave . (lit "leave")
-    <> rRoomAPISend . (lit "send")
-    <> rRoomAPIReceive . (lit "receive")
-    <> rRoomAPILook . (lit "look")
-    )
-
--- maps a URL in the Room API to a response
--- need function to get json Value from request body
-
-processRoomURL :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m) 
-               => RoomAPIURL -> RouteT RoomAPIURL m Response
-processRoomURL url =
-    do
-        body <- lift $ getBody
-        mUserId <- lift $ getUserId'
-        case mUserId of
-            Nothing     -> ok $ toResponse $ ("You aren't logged in!" :: String) -- improve, obv
-            Just uid    -> do   
-
-                                case decode body :: Maybe RoomAPIRequest of
-                                    Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
-                                    Just request    -> do t <- lift $ runRoomAPI uid request
-                                                          ok $ toResponse $ t
-
-processRoomRequest' :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
+processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
                    => UserId -> RoomId -> ByteString -> m Response
-processRoomRequest' uid roomId json =
+processRoomRequest userId roomId json =
     do
         case decode json :: Maybe RoomAPIRequest of
             Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
-            Just request    -> do t <- runRoomAPI uid request -- will be uid roomId request
+            Just request    -> do t <- runRoomAPI userId roomId request -- will be uid roomId request
                                   ok $ toResponse $ t
  
+{-
 processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
                    => UserId -> ByteString -> m Response
 processRoomRequest uid json =
@@ -91,11 +50,7 @@ processRoomRequest uid json =
             Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
             Just request    -> do t <- runRoomAPI uid request
                                   ok $ toResponse $ t
-
-roomAPISite :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState) 
-            => Site RoomAPIURL (m Response)
-roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
-
+-}
 ------------------------------------------------------------------
 
 -- type to represent room API requests from json
@@ -107,8 +62,8 @@ roomAPISite = boomerangSite (runRouteT processRoomURL) roomAPIBoomerang
 
 data RoomAPIRequest
     = RequestCreate Int
-    | RequestJoin RoomId
-    | RequestLeave
+--    | RequestJoin RoomId
+--    | RequestLeave
     | RequestSend Text
     | RequestReceive
     | RequestLook
@@ -120,8 +75,8 @@ instance FromJSON RoomAPIRequest where
             (rqType :: Text) <- o .: "type"
             case rqType of
                 "create"    -> o .: "capacity" >>= \cap -> return $ RequestCreate (read cap :: Int)
-                "join"      -> o .: "roomId" >>= \rid -> return $ RequestJoin (RoomId rid)
-                "leave"     -> return RequestLeave
+--                "join"      -> o .: "roomId" >>= \rid -> return $ RequestJoin (RoomId rid)
+--                "leave"     -> return RequestLeave
                 "send"      -> o .: "message" >>= \msg -> return $ RequestSend msg
                 "receive"   -> return RequestReceive
                 "look"      -> return RequestLook
@@ -129,20 +84,20 @@ instance FromJSON RoomAPIRequest where
 
 -- probably needs some error handling which will have to come from eventual Room.Acid
 runRoomAPI :: (HasAcidState m RoomState, MonadIO m, Happstack m) 
-           => UserId -> RoomAPIRequest -> m Response -- Text
-runRoomAPI uid request =
+           => UserId -> RoomId -> RoomAPIRequest -> m Response -- Text
+runRoomAPI userId roomId request =
     do
         roomState :: AcidState RoomState <- getAcidState
         case request of
-            RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid )
-                                       ok $ toResponse $ show rid               -- good for now
-            RequestJoin rid      -> do update' roomState (JoinRoom uid rid)
-                                       ok $ toResponse $ ("Success" :: Text)    -- this is the wrong behavior
-            RequestLeave         -> do update' roomState (LeaveRoom uid)
-                                       ok $ toResponse $ ("Success" :: Text)    -- wrong again
-            RequestSend msg      -> do update' roomState (Send uid msg)
+--            RequestCreate cap    -> do (RoomId rid) <- update' roomState (CreateRoom uid )
+--                                       ok $ toResponse $ show rid               -- good for now
+--            RequestJoin rid      -> do update' roomState (JoinRoom uid rid)
+--                                       ok $ toResponse $ ("Success" :: Text)    -- this is the wrong behavior
+--            RequestLeave         -> do update' roomState (LeaveRoom uid)
+--                                       ok $ toResponse $ ("Success" :: Text)    -- wrong again
+            RequestSend msg      -> do update' roomState (Send userId roomId msg)
                                        ok $ toResponse $ ("Success" :: Text)    -- so dumb
-            RequestReceive       -> do chat <- query'  roomState (Receive uid)
+            RequestReceive       -> do chat <- query'  roomState (Receive userId roomId)
                                        ok $ toResponse $ encode chat            -- good for now
             RequestLook          -> do rooms <- query'  roomState (LookRooms)
                                        ok $ toResponse $ encode rooms -- Json.encode $ [(1 :: Int),(2 :: Int),(3 :: Int)]           -- good for now
