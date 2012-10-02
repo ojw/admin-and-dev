@@ -29,8 +29,8 @@ import Happstack.Auth
 import Core.Auth.Auth
 import Util.HasAcidState
 import Util.GetBody
-import Core.Room.Acid.Core
-import Core.Room.Acid.Json as Json
+import Core.Room.Acid
+import Core.Room.Json as Json
 
 processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
                    => UserId -> RoomId -> ByteString -> m Response

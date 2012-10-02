@@ -21,7 +21,7 @@ import Data.ByteString.Lazy as L hiding (empty)
 import Happstack.Server
 
 import Core.Auth.Acid        ( UserId, AuthState, ProfileState )
-import Core.Room.Acid.Core   ( RoomId, RoomState )
+import Core.Room.Acid        ( RoomId, RoomState )
 import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody

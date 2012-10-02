@@ -28,7 +28,7 @@ import Util.HasAcidState
 --import Core.Auth
 --}
 
-import Core.Room.Acid.Core --            ( RoomId(..), RoomState )
+import Core.Room.Acid
 
 chatInput :: Html
 chatInput =
