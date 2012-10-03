@@ -5,9 +5,11 @@ module Core.Matchmaker.Api where
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
 import Control.Monad.Trans
+import Control.Monad
 import Data.Data
 import Data.Acid hiding ( query, update )
 import Data.Acid.Advanced
+import Data.SafeCopy
 import Data.Aeson
 import Data.Text as Text
 import Data.Text.Encoding   ( decodeUtf8 )
@@ -29,14 +31,14 @@ import Util.GetBody
 import Core.Room.Acid
 import Core.Matchmaker.Acid
 import Core.Matchmaker.Json
---import Core.Lobby.Acid
+import Core.Lobby.Acid
 
-processMatchmakerRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m MatchmakerState, Happstack m, MonadIO m)
-                   => UserId -> ByteString -> m Response
-processMatchmakerRequest userId json =
+processMatchmakerRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m MatchmakerState, Happstack m, MonadIO m, Typeable g, SafeCopy g)
+                   => UserId -> ByteString -> AcidState (Lobby g) -> m Response
+processMatchmakerRequest userId json lobby =
     case decode json :: Maybe MatchmakerRequest of
         Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
-        Just request    -> do t <- runMatchmakerAPI userId request -- will be uid roomId request
+        Just request    -> do t <- runMatchmakerAPI userId request lobby -- will be uid roomId request
                               ok $ toResponse $ t
  
 data MatchmakerRequest
@@ -59,9 +61,9 @@ instance FromJSON MatchmakerRequest where
                 "look"      -> return RequestLook
     parseJSON _ = mzero
 
-runMatchmakerAPI :: (HasAcidState m MatchmakerState, HasAcidState m RoomState, MonadIO m, Happstack m) 
-           => UserId -> MatchmakerRequest -> m Response -- Text
-runMatchmakerAPI userId request =
+runMatchmakerAPI :: (HasAcidState m MatchmakerState, HasAcidState m RoomState, MonadIO m, Happstack m, Typeable g, SafeCopy g)
+           => UserId -> MatchmakerRequest -> AcidState (Lobby g) -> m Response -- Text
+runMatchmakerAPI userId request lobby =
     do
         matchmakerState :: AcidState MatchmakerState <- getAcidState
         case request of
@@ -73,6 +75,7 @@ runMatchmakerAPI userId request =
                                         Nothing -> ok $ toResponse $ ("You don't own the room." :: Text)
                                         Just matchmakerId ->
                                             do toRelocate <- update' matchmakerState (DeleteMatchmaker matchmakerId)
+                                               mapM (\u -> update' lobby (SetLocation u InLobby)) toRelocate
                                                ok $ toResponse $ ("Should relocate..." :: Text) -- should relocate these players to lobby
             RequestJoin mId     -> do update (JoinMatchmaker userId mId)
                                       ok $ toResponse $ ("You're now there!" :: Text)
@@ -81,6 +84,7 @@ runMatchmakerAPI userId request =
                                         Nothing     -> ok $ toResponse $ ("You aren't in that room." :: Text)
                                         Just mId    -> do
                                             toRelocate <- update (LeaveMatchmaker userId mId)
+                                            mapM (\u -> update' lobby (SetLocation u InLobby)) toRelocate
                                             ok $ toResponse $ ("We should relocate some people maybe..." :: Text) -- needs relocation
             RequestLook         -> do matchmakers <- query LookMatchmakers
                                       ok $ toResponse $ encode $ matchmakers

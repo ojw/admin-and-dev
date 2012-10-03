@@ -122,7 +122,7 @@ leaveMatchmaker userId matchmakerId =
             Just matchmaker -> if userId == (owner ^$ matchmaker)
                                then do  deleteMatchmaker matchmakerId
                                else do  matchmakers %= updateIx matchmakerId (removeUser userId matchmaker)
-                                        return []
+                                        return [userId]
 
 lookMatchmakers :: Query MatchmakerState [Matchmaker]
 lookMatchmakers = 
