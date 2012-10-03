@@ -28,6 +28,8 @@ import Util.HasAcidState
 import Util.GetBody
 import Core.Room.Acid
 import Core.Matchmaker.Acid
+import Core.Matchmaker.Json
+--import Core.Lobby.Acid
 
 processMatchmakerRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m MatchmakerState, Happstack m, MonadIO m)
                    => UserId -> ByteString -> m Response
@@ -81,4 +83,4 @@ runMatchmakerAPI userId request =
                                             toRelocate <- update (LeaveMatchmaker userId mId)
                                             ok $ toResponse $ ("We should relocate some people maybe..." :: Text) -- needs relocation
             RequestLook         -> do matchmakers <- query LookMatchmakers
-                                      ok $ toResponse $ ("Here are some matchmakers..." :: Text) -- encode $ matchmakers
+                                      ok $ toResponse $ encode $ matchmakers

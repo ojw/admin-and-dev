@@ -20,7 +20,8 @@ import Core.Room.Acid   ( RoomId )
 -- or are some decided on in the game?
 -- let's start by deciding on everything before the Matchmaker goes live
 
-newtype MatchmakerId = MatchmakerId Int deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)
+newtype MatchmakerId = MatchmakerId { _unMatchmakerId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)
+$(makeLens ''MatchmakerId)
 
 data Matchmaker = Matchmaker
     { _matchmakerId :: MatchmakerId
@@ -60,7 +61,10 @@ removeUser :: UserId -> Matchmaker -> Matchmaker
 removeUser userId m = (players ^%= (filter (/= userId))) m
 
 hasCapacity :: Matchmaker -> Bool
-hasCapacity matchmaker = length (players ^$ matchmaker) < (capacity ^$ matchmaker)
+hasCapacity matchmaker = availableCapacity matchmaker > 0-- length (players ^$ matchmaker) < (capacity ^$ matchmaker)
+
+availableCapacity :: Matchmaker -> Int
+availableCapacity matchmaker = (capacity ^$ matchmaker) - length (players ^$ matchmaker)
 
 createMatchmaker :: Int -> UserId -> RoomId -> Update MatchmakerState MatchmakerId
 createMatchmaker cap userId roomId =
