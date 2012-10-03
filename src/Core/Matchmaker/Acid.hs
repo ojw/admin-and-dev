@@ -3,6 +3,7 @@
 module Core.Matchmaker.Acid where
 
 import Data.Data
+import Data.Functor         ( (<$>) )
 import Data.Acid
 import Data.SafeCopy
 import Control.Monad.State  ( get )
@@ -107,4 +108,14 @@ leaveMatchmaker userId matchmakerId =
                                else do  matchmakers %= updateIx matchmakerId (removeUser userId matchmaker)
                                         return []
 
-$(makeAcidic ''MatchmakerState ['createMatchmaker, 'deleteMatchmaker, 'getMatchmaker, 'joinMatchmaker, 'leaveMatchmaker])
+lookMatchmakers :: Query MatchmakerState [Matchmaker]
+lookMatchmakers = 
+    do  matchmakerState <- ask
+        return $ toList $ matchmakers ^$ matchmakerState        
+
+getOwner :: MatchmakerId -> Query MatchmakerState (Maybe UserId)
+getOwner matchmakerId =
+    do  matchmakerState <- ask
+        return $ _owner <$> (getOne $ (matchmakers ^$ matchmakerState) @= matchmakerId)
+
+$(makeAcidic ''MatchmakerState ['createMatchmaker, 'deleteMatchmaker, 'getMatchmaker, 'joinMatchmaker, 'leaveMatchmaker, 'lookMatchmakers, 'getOwner])
