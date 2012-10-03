@@ -82,10 +82,22 @@ deleteMatchmaker matchmakerId =
                         return playersToRelocate
 
 -- searches based on room *membership*, not ownership
-getMatchmaker :: UserId -> Query MatchmakerState (Maybe Matchmaker)
-getMatchmaker userId =
+getMatchmakerByUser :: UserId -> Query MatchmakerState (Maybe MatchmakerId)
+getMatchmakerByUser userId =
     do  matchmakerState <- ask
-        return $ getOne $ (matchmakers ^$ matchmakerState) @= userId
+        return $ _matchmakerId <$> (getOne $ (matchmakers ^$ matchmakerState) @= userId)
+
+getMatchmakerByOwner :: UserId -> Query MatchmakerState (Maybe MatchmakerId)
+getMatchmakerByOwner userId =
+    do  matchmakerState <- ask
+        return $ _matchmakerId  <$> (getOne $ (matchmakers ^$ matchmakerState) @= (Owner userId))
+
+{-
+getMatchmakerById   :: MatchmakerId -> Query MatchmakerState (Maybe Matchmaker)
+getMatchmakerById matchmakerId =
+    do  matchmakerState <- ask
+        return $ 
+-}
 
 joinMatchmaker :: UserId -> MatchmakerId -> Update MatchmakerState (Maybe MatchmakerId)
 joinMatchmaker userId matchmakerId =
@@ -118,4 +130,4 @@ getOwner matchmakerId =
     do  matchmakerState <- ask
         return $ _owner <$> (getOne $ (matchmakers ^$ matchmakerState) @= matchmakerId)
 
-$(makeAcidic ''MatchmakerState ['createMatchmaker, 'deleteMatchmaker, 'getMatchmaker, 'joinMatchmaker, 'leaveMatchmaker, 'lookMatchmakers, 'getOwner])
+$(makeAcidic ''MatchmakerState ['createMatchmaker, 'deleteMatchmaker, 'getMatchmakerByUser, 'joinMatchmaker, 'leaveMatchmaker, 'lookMatchmakers, 'getOwner, 'getMatchmakerByOwner])
