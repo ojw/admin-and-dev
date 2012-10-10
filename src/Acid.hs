@@ -27,7 +27,7 @@ import Core.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
 import Core.Location.Acid
 import Core.Lobby.Acid
 import Core.Matchmaker.Acid
-import Core.Game.Acid
+import Core.GameHolder.Acid
 
 data Games = Dummy
 
@@ -43,7 +43,7 @@ data Acid = Acid
     , acidLocation      :: AcidState (LocationState Games)
     , acidLobby         :: AcidState LobbyState
     , acidMatchmaker    :: AcidState MatchmakerState
-    , acidGame          :: AcidState Game
+    , acidGameHolder    :: AcidState GameHolder
     }
 
 withAcid :: Maybe FilePath -- ^ state directory
@@ -57,5 +57,5 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
     bracket (openLocalStateFrom (basePath </> "lobby")      initialLobbyState)      (createCheckpointAndClose) $ \lobby ->
     bracket (openLocalStateFrom (basePath </> "matchmaker") initialMatchmakerState) (createCheckpointAndClose) $ \matchmaker ->
-    bracket (openLocalStateFrom (basePath </> "game")       initialGame)            (createCheckpointAndClose) $ \game ->
-        f (Acid auth profile room location lobby matchmaker game)
+    bracket (openLocalStateFrom (basePath </> "gameholder") initialGameHolder)      (createCheckpointAndClose) $ \gameHolder ->
+        f (Acid auth profile room location lobby matchmaker gameHolder)

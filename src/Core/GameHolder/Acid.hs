@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
 
-module Core.Game.Acid where
+module Core.GameHolder.Acid where
 
 import Control.Applicative hiding (empty)
 import Control.Monad.Reader 
@@ -11,18 +11,12 @@ import Data.SafeCopy
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
-import Data.Aeson
 import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
-import Happstack.Server
 
 import Core.Auth.Acid        ( UserId )
-import Core.Room.Acid        ( RoomId )
 import Core.Lobby.Acid
 import Core.Matchmaker.Acid
-import Core.Room.Api
-import Util.HasAcidState
-import Util.GetBody
 
 data Location = InLobby LobbyId | InMatchmaker | InGame
     deriving (Ord, Eq, Read, Show, Data, Typeable)
@@ -30,8 +24,8 @@ data Location = InLobby LobbyId | InMatchmaker | InGame
 $(deriveSafeCopy 0 'base ''Location)
 
 data UserLocation = UserLocation 
-    { _userId        :: UserId
-    , _location   :: Location
+    { _userId       :: UserId
+    , _location     :: Location
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 $(makeLens ''UserLocation)
@@ -42,15 +36,16 @@ instance Indexable UserLocation where
                   , ixFun $ \loc -> [ location ^$ loc ]
                   ]
 
-data Game = Game
+data GameHolder = GameHolder
     { _lobbies      :: LobbyState
+    , _defaultLobby :: Maybe LobbyId -- temporarily Maybe while I decide how to initialize these
     , _matchmakers  :: MatchmakerState
     , _locations    :: IxSet UserLocation
     }
 
 -- this does not make sense! This is a temporary hack to get everything hooked up
-initialGame :: Game
-initialGame = Game initialLobbyState initialMatchmakerState empty
+initialGameHolder :: GameHolder
+initialGameHolder = GameHolder initialLobbyState Nothing initialMatchmakerState empty
 
 {-
 deriving instance Ord game => Ord (Lobby game)
@@ -61,17 +56,17 @@ deriving instance Read game => Read (Lobby game)
 deriving instance Show game => Show (Lobby game)
 -}
 
-$(makeLens ''Game)
-$(deriveSafeCopy 0 'base ''Game)
+$(makeLens ''GameHolder)
+$(deriveSafeCopy 0 'base ''GameHolder)
 
-setLocation :: UserId -> Location -> Update Game (IxSet UserLocation)
+setLocation :: UserId -> Location -> Update GameHolder (IxSet UserLocation)
 setLocation userId subLocation = locations %= updateIx userId (UserLocation userId subLocation)
 
-getLocation :: UserId -> Query Game (Maybe Location)
+getLocation :: UserId -> Query GameHolder (Maybe Location)
 getLocation userId = 
     do  game <- ask
         case getOne $ (locations ^$ game) @= userId of
-            -- Nothing -> return InLobby
+            Nothing -> return $ InLobby <$> (defaultLobby ^$ game)
             Just l  -> return $ Just $ location ^$ l
 
-$(makeAcidic ''Game ['setLocation, 'getLocation])
+$(makeAcidic ''GameHolder ['setLocation, 'getLocation])

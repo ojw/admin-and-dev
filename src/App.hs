@@ -25,7 +25,7 @@ import Core.Room.Acid            ( RoomState )
 import Core.Location.Acid
 import Core.Lobby.Acid
 import Util.HasAcidState
-import Core.Game.Acid
+import Core.GameHolder.Acid
 import Acid
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
@@ -49,8 +49,8 @@ instance HasAcidState App (LocationState Games) where
 instance HasAcidState App LobbyState where
     getAcidState = acidLobby <$> ask
 
-instance HasAcidState App Game where
-    getAcidState = acidGame <$> ask
+instance HasAcidState App GameHolder where
+    getAcidState = acidGameHolder <$> ask
 
 runApp :: Acid -> App a -> ServerPartT IO a
 runApp acid (App sp) = mapServerPartT (`runReaderT` acid) sp

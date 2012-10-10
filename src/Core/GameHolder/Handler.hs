@@ -2,7 +2,7 @@
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
     FlexibleContexts #-}
 
-module Core.Game.Handler
+module Core.GameHolder.Handler
 
 where
 
@@ -24,7 +24,7 @@ import Happstack.Server
 import Core.Auth.Acid        ( UserId, AuthState, ProfileState )
 import Core.Room.Acid        ( RoomId, RoomState )
 import Core.Lobby.Acid
-import Core.Game.Acid
+import Core.GameHolder.Acid
 import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody
@@ -44,8 +44,8 @@ getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
 gameRouter 
-    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m Game, HasAcidState m LobbyState)
-    =>  UserId -> AcidState Game -> ByteString -> m Response
+    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m GameHolder, HasAcidState m LobbyState)
+    =>  UserId -> AcidState GameHolder -> ByteString -> m Response
 gameRouter userId acidGame body =
     do  location <- query' acidGame (GetLocation userId)
         --lobby <- query' acidGame (GetLobby)
@@ -56,7 +56,7 @@ gameRouter userId acidGame body =
             Nothing                 -> ok $ toResponse $ ("You are not in a location :/" :: Text)
 
 lobbyRequestHandler 
-    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m Game, HasAcidState m LobbyState)
+    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m GameHolder, HasAcidState m LobbyState)
     =>  UserId -> LobbyId -> ByteString -> m Response
 lobbyRequestHandler userId lobbyId body =
         case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice

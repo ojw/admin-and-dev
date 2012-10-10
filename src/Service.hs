@@ -20,9 +20,9 @@ import App
 import Core.Room.Acid
 import Core.Auth.Auth
 import Core.Location.Acid
-import Core.Game.Handler
 import Core.Lobby.Acid
-import Core.Game.Acid
+import Core.GameHolder.Handler
+import Core.GameHolder.Acid
 
 routeService :: App Response
 routeService =
@@ -33,5 +33,5 @@ routeService =
             Just uid -> do  location :: Maybe Games <- query $ Core.Location.Acid.GetLocation uid
                             case fromMaybe Dummy location of
                                 Dummy           ->
-                                    do  gameAcid :: AcidState Game <- getAcidState
+                                    do  gameAcid :: AcidState GameHolder <- getAcidState
                                         gameRouter uid gameAcid body
