@@ -31,25 +31,26 @@ $(deriveSafeCopy 0 'base ''Location)
 
 data UserLocation = UserLocation 
     { _userId        :: UserId
-    , _subLocation   :: Location
+    , _location   :: Location
     } deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 $(makeLens ''UserLocation)
 $(deriveSafeCopy 0 'base ''UserLocation)
 
 instance Indexable UserLocation where
-    empty = ixSet [ ixFun $ \location -> [ userId ^$ location ]
-                  , ixFun $ \location -> [ subLocation ^$ location ]
+    empty = ixSet [ ixFun $ \loc -> [ userId ^$ loc ]
+                  , ixFun $ \loc -> [ location ^$ loc ]
                   ]
 
 data Game = Game
-    { _lobbies      :: IxSet Lobby
+    { _lobbies      :: LobbyState
+    , _matchmakers  :: MatchmakerState
     , _locations    :: IxSet UserLocation
     }
 
 -- this does not make sense! This is a temporary hack to get everything hooked up
 initialGame :: Game
-initialGame = Game empty empty
+initialGame = Game initialLobbyState initialMatchmakerState empty
 
 {-
 deriving instance Ord game => Ord (Lobby game)
@@ -71,6 +72,6 @@ getLocation userId =
     do  game <- ask
         case getOne $ (locations ^$ game) @= userId of
             -- Nothing -> return InLobby
-            Just l  -> return $ Just $ subLocation ^$ l
+            Just l  -> return $ Just $ location ^$ l
 
 $(makeAcidic ''Game ['setLocation, 'getLocation])

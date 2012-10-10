@@ -57,5 +57,5 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
     bracket (openLocalStateFrom (basePath </> "lobby")      initialLobbyState)      (createCheckpointAndClose) $ \lobby ->
     bracket (openLocalStateFrom (basePath </> "matchmaker") initialMatchmakerState) (createCheckpointAndClose) $ \matchmaker ->
-    bracket (openLocalStateFrom (basePath </> "game") initialGame)                  (createCheckpointAndClose) $ \game ->
+    bracket (openLocalStateFrom (basePath </> "game")       initialGame)            (createCheckpointAndClose) $ \game ->
         f (Acid auth profile room location lobby matchmaker game)
