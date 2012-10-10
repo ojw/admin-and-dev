@@ -24,63 +24,40 @@ import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody
 
-data Location = InLobby | InMatchmaker | InGame
-    deriving (Ord, Eq, Read, Show, Data, Typeable)
+newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy)
 
-$(deriveSafeCopy 0 'base ''Location)
+-- will have permission type later
+data Lobby = Lobby
+    { _lobbyId      :: LobbyId
+    , _roomId       :: RoomId
+    } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
-data UserLocation = UserLocation 
-    { _userId        :: UserId
-    , _subLocation   :: Location
-    } deriving (Ord, Eq, Data, Typeable, Read, Show)
-
-$(makeLens ''UserLocation)
-$(deriveSafeCopy 0 'base ''UserLocation)
-
-instance Indexable UserLocation where
-    empty = ixSet [ ixFun $ \location -> [ userId ^$ location ]
-                  , ixFun $ \location -> [ subLocation ^$ location ]
-                  ]
-
-data Lobby game = Lobby
-    { _roomId       :: RoomId
-    , _locations    :: IxSet UserLocation
-    , _game         :: game -- doesn't belong here!
-    }
-
-initialLobby :: RoomId -> game -> Lobby game
-initialLobby roomId game = Lobby roomId empty game
-
-deriving instance Ord game => Ord (Lobby game)
-deriving instance Eq game => Eq (Lobby game)
-deriving instance Data game => Data (Lobby game)
-deriving instance Typeable1 Lobby
-deriving instance Read game => Read (Lobby game)
-deriving instance Show game => Show (Lobby game)
+--initialLobby :: RoomId -> Lobby
+--initialLobby roomId = Lobby roomId
 
 $(makeLens ''Lobby)
 $(deriveSafeCopy 0 'base ''Lobby)
 
-instance Indexable (Lobby game) where
+instance Indexable Lobby where
     empty = ixSet [ ixFun $ \lobby -> [ roomId ^$ lobby ]
                   ]
 
-setLocation :: UserId -> Location -> Update (Lobby game) (IxSet UserLocation)
-setLocation userId subLocation = locations %= updateIx userId (UserLocation userId subLocation)
+data LobbyState = LobbyState
+    { _nextLobbyId  :: LobbyId
+    , _lobbies      :: IxSet Lobby
+    } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
-getLocation :: UserId -> Query (Lobby game) Location
-getLocation userId = 
-    do  lobby <- ask
-        case getOne $ (locations ^$ lobby) @= userId of
-            Nothing -> return InLobby
-            Just l  -> return $ subLocation ^$ l
+initialLobbyState = LobbyState (LobbyId 1) empty
 
-getLobby :: Query (Lobby game) (Lobby game)
-getLobby = ask
+$(makeLens ''LobbyState)
+$(deriveSafeCopy 0 'base ''LobbyState)
 
-getRoomId :: Query (Lobby game) RoomId
-getRoomId = 
-    do  lobby <- ask
-        return $ roomId ^$ lobby
+getRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)
+getRoomId' lobbyId lobbyState = fmap _roomId $ getOne $ (lobbies ^$ lobbyState) @= lobbyId
 
-$(makeAcidic ''Lobby ['setLocation, 'getLocation, 'getLobby, 'getRoomId])
+getRoomId :: LobbyId -> Query LobbyState (Maybe RoomId)
+getRoomId lobbyId = 
+    do  lobbyState <- ask
+        return $ getRoomId' lobbyId lobbyState
+
+$(makeAcidic ''LobbyState ['getRoomId])

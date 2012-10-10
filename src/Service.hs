@@ -20,8 +20,9 @@ import App
 import Core.Room.Acid
 import Core.Auth.Auth
 import Core.Location.Acid
-import Core.Lobby.Handler
+import Core.Game.Handler
 import Core.Lobby.Acid
+import Core.Game.Acid
 
 routeService :: App Response
 routeService =
@@ -29,8 +30,8 @@ routeService =
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
-            Just uid -> do  location :: Maybe Game <- query $ Core.Location.Acid.GetLocation uid
+            Just uid -> do  location :: Maybe Games <- query $ Core.Location.Acid.GetLocation uid
                             case fromMaybe Dummy location of
                                 Dummy           ->
-                                    do  acidLobby :: AcidState (Lobby Game) <- getAcidState -- Lobby Game <- query GetLobby 
-                                        lobbyRouter uid acidLobby body
+                                    do  gameAcid :: AcidState Game <- getAcidState
+                                        gameRouter uid gameAcid body

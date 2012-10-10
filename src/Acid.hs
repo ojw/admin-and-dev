@@ -7,7 +7,7 @@ module Acid
 
 ( Acid(..)
 , withAcid
-, Game(..)
+, Games(..)
 )
 
 where
@@ -27,21 +27,23 @@ import Core.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
 import Core.Location.Acid
 import Core.Lobby.Acid
 import Core.Matchmaker.Acid
+import Core.Game.Acid
 
-data Game = Dummy
+data Games = Dummy
 
-deriving instance Typeable Game
-deriving instance Eq Game
-deriving instance Ord Game
-$(deriveSafeCopy 0 'base ''Game)
+deriving instance Typeable Games
+deriving instance Eq Games
+deriving instance Ord Games
+$(deriveSafeCopy 0 'base ''Games)
 
 data Acid = Acid
     { acidAuth          :: AcidState AuthState
     , acidProfile       :: AcidState ProfileState
     , acidRoom          :: AcidState RoomState  
-    , acidLocation      :: AcidState (LocationState Game)
-    , acidLobby         :: AcidState (Lobby Game)
+    , acidLocation      :: AcidState (LocationState Games)
+    , acidLobby         :: AcidState LobbyState
     , acidMatchmaker    :: AcidState MatchmakerState
+    , acidGame          :: AcidState Game
     }
 
 withAcid :: Maybe FilePath -- ^ state directory
@@ -53,6 +55,7 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "profile")    initialProfileState)    (createCheckpointAndClose) $ \profile ->
     bracket (openLocalStateFrom (basePath </> "room")       initialRoomState)       (createCheckpointAndClose) $ \room ->
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
-    bracket (openLocalStateFrom (basePath </> "lobby")      (initialLobby (RoomId 1) Dummy))   (createCheckpointAndClose) $ \lobby ->
+    bracket (openLocalStateFrom (basePath </> "lobby")      initialLobbyState)      (createCheckpointAndClose) $ \lobby ->
     bracket (openLocalStateFrom (basePath </> "matchmaker") initialMatchmakerState) (createCheckpointAndClose) $ \matchmaker ->
-        f (Acid auth profile room location lobby matchmaker)
+    bracket (openLocalStateFrom (basePath </> "game") initialGame)                  (createCheckpointAndClose) $ \game ->
+        f (Acid auth profile room location lobby matchmaker game)
