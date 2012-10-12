@@ -69,14 +69,6 @@ initialRoomState = RoomState
 room :: (Typeable key) => key -> Lens (IxSet Room) (Maybe Room)
 room = ixLens          
 
-{-
-removeUserFromRoom :: UserId -> Room -> Room
-removeUserFromRoom uid rm = (members ^%= (filter (/= uid))) rm
-
-addUserToRoom :: UserId -> Room -> Room
-addUserToRoom uid rm = (members ^%= (uid:)) rm
--}
-
 addChat :: UserId -> Text -> Room -> Room
 addChat uid msg rm = (chat ^%= (Chat (uid, msg) : )) rm
 
@@ -86,46 +78,13 @@ blankRoom rid = Room rid []
 modRoom :: RoomId -> (Room -> Room) -> Update RoomState (IxSet Room)
 modRoom rid fn = rooms %= (room rid ^%= fmap fn)
 
-createEmptyRoom :: Update RoomState RoomId
-createEmptyRoom =
+createRoom :: Update RoomState RoomId
+createRoom =
     do  roomState <- get
         let next = nextRoomId ^$ roomState
         rooms %= updateIx next (blankRoom next)
         nextRoomId %= succ
         return next
-
--- this doesn't even remove the user from their other rooms
--- clearly the room / user relationship must be rethought
-createRoom :: Update RoomState RoomId
-createRoom = 
-    do  roomState <- get
-        let next = nextRoomId ^$ roomState
-        rooms %= updateIx next (Room next [])
-        nextRoomId %= succ
-        return next
-
---getUserRoomsIx :: UserId -> IxSet Room -> [Room]
---getUserRoomsIx uid rms = toList $ rms @= uid
-
--- ********** EXTREMELY DISHONEST *****************
---getUserRoom :: UserId -> Query RoomState RoomId
---getUserRoom uid = return (RoomId 1)
--- ********** TEMPORARY FOR TROUBLESHOOTING *******
-
-{-
--- rethink join / leave situation
-leaveRoom :: UserId -> Update RoomState (Maybe Room)
-leaveRoom uid = (room uid) . rooms %= fmap (removeUserFromRoom uid)
-
--- if single user ever joins multiple rooms it will be a problem
--- this should be impossible, but one never knows
-joinRoom :: UserId -> RoomId -> Update RoomState (IxSet Room)
-joinRoom uid rid =
-    do  roomState <- get
-        case getOne $ (rooms ^$ roomState) @= rid of
-             Nothing    -> modRoom rid (addUserToRoom uid) -- return (rooms ^$ roomState)
-             Just rm    -> leaveRoom uid >> modRoom rid (addUserToRoom uid)
--}
 
 send :: UserId -> RoomId -> Text -> Update RoomState (IxSet Room)
 send userId roomId message = modRoom roomId (addChat userId message)
@@ -142,4 +101,4 @@ lookRooms =
     do  roomState <- ask
         return $ toList $ rooms ^$ roomState
 
-$(makeAcidic ''RoomState ['createRoom, {-'joinRoom, 'leaveRoom,-} 'send, 'receive, 'lookRooms])
+$(makeAcidic ''RoomState ['createRoom, 'send, 'receive, 'lookRooms])

@@ -16,39 +16,41 @@ import Data.SafeCopy
 
 import Core.Auth.Auth       ( UserId )
 import Core.Lobby.Acid      ( LobbyId )
+import Core.Matchmaker.Acid ( MatchmakerId )
+import Core.Game.Acid       ( GameId )
 
-data SubLocation = InLobby LobbyId | InMatchmaker | InGame
+data Location = InLobby LobbyId | InMatchmaker MatchmakerId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-$(deriveSafeCopy 0 'base ''SubLocation)
+$(deriveSafeCopy 0 'base ''Location)
 
-data Location game = Location
+data UserLocation game = UserLocation
     { _user     :: UserId
     , _game     :: game
-    , _location :: SubLocation
+    , _location :: Location
     }
 
-$(makeLens ''Location)
+$(makeLens ''UserLocation)
 
-deriving instance (Ord game) => Ord (Location game)
-deriving instance (Eq game) => Eq (Location game)
-deriving instance (Read game) => Read (Location game)
-deriving instance (Show game) => Show (Location game)
-deriving instance (Data game) => Data (Location game)
-deriving instance Typeable1 Location
+deriving instance (Ord game) => Ord (UserLocation game)
+deriving instance (Eq game) => Eq (UserLocation game)
+deriving instance (Read game) => Read (UserLocation game)
+deriving instance (Show game) => Show (UserLocation game)
+deriving instance (Data game) => Data (UserLocation game)
+deriving instance Typeable1 UserLocation
 
-instance (Ord game, Typeable game) => Indexable (Location game) where
+instance (Ord game, Typeable game) => Indexable (UserLocation game) where
     empty = ixSet [ ixFun $ \location -> [ user ^$ location ]
                   , ixFun $ \location -> [ game ^$ location ]
                   , ixFun $ \location -> [ _location location ]
                   ]
 
-instance (SafeCopy game) => SafeCopy (Location game) where
-    putCopy (Location user game location) = contain $ do safePut user; safePut game; safePut location;
-    getCopy = contain $ Location <$> safeGet <*> safeGet <*> safeGet
+instance (SafeCopy game) => SafeCopy (UserLocation game) where
+    putCopy (UserLocation user game location) = contain $ do safePut user; safePut game; safePut location;
+    getCopy = contain $ UserLocation <$> safeGet <*> safeGet <*> safeGet
 
 data LocationState game = LocationState
-    { _locations :: IxSet (Location game)
+    { _locations :: IxSet (UserLocation game)
     }
 
 initialLocationState :: (Ord game, Typeable game) => LocationState game
@@ -62,9 +64,9 @@ instance (Ord game, Typeable game, SafeCopy game) => SafeCopy (LocationState gam
      putCopy (LocationState locations) = contain $ safePut locations
      getCopy = contain $ LocationState <$> safeGet
 
-setLocation :: (Ord game, Typeable game) => UserId -> game -> SubLocation -> Update (LocationState game) game
-setLocation userId game subLocation = 
-    do  locations %= updateIx userId (Location userId game subLocation)
+setLocation :: (Ord game, Typeable game) => UserId -> game -> Location -> Update (LocationState game) game
+setLocation userId game location = 
+    do  locations %= updateIx userId (UserLocation userId game location)
         return game
 
 getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
@@ -75,10 +77,10 @@ getLocation userId =
             Just loc -> return $ Just $ game ^$ loc
 
 -- below code is equivalent to just using
--- $(makeAcidic ''LocationState ['setLocation, 'getLocation])
+-- $(makeAcidic ''LocationState ['setUserLocation, 'getUserLocation])
 -- but it avoids the duplicate constraint compilers warnings I get from the TH version
 
-data SetLocation game = SetLocation UserId game SubLocation
+data SetLocation game = SetLocation UserId game Location
 data GetLocation game = GetLocation UserId
 
 deriving instance Typeable1 SetLocation
