@@ -41,7 +41,7 @@ data Acid = Acid
     , acidProfile       :: AcidState ProfileState
     , acidRoom          :: AcidState RoomState  
     , acidLocation      :: AcidState (LocationState Games)
-    , acidLobby         :: AcidState LobbyState
+    , acidLobby         :: AcidState (LobbyState Games)
     , acidMatchmaker    :: AcidState MatchmakerState
     , acidGameHolder    :: AcidState GameHolder
     }

@@ -12,6 +12,7 @@ import Data.Aeson.Types
 import Data.Text
 import Data.Maybe ( fromMaybe )
 import Data.Acid hiding (query)
+import Data.Acid.Advanced
 
 import Core.Room.Api
 import Util.GetBody
@@ -30,8 +31,11 @@ routeService =
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
-            Just uid -> do  location :: Maybe Games <- query $ Core.Location.Acid.GetLocation uid
-                            case fromMaybe Dummy location of
+            Just uid -> do  locationState :: AcidState (LocationState Games) <- getAcidState
+                            lobbyState :: AcidState (LobbyState Games) <- getAcidState
+                            game :: Maybe Games <- query' locationState $  Core.Location.Acid.GetGame uid
+                            location :: Maybe Location <- query' locationState $ Core.Location.Acid.GetLocation uid
+                            case fromMaybe Dummy game of
                                 Dummy           ->
                                     do  gameAcid :: AcidState GameHolder <- getAcidState
-                                        gameRouter uid gameAcid body
+                                        gameRouter uid location gameAcid lobbyState body

@@ -32,7 +32,7 @@ import Util.GetBody
 import Core.Room.Acid
 import Core.Room.Json as Json
 
-processRoomRequest :: (HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, Happstack m, MonadIO m)
+processRoomRequest :: (HasAcidState m RoomState, Happstack m, MonadIO m)
                    => UserId -> RoomId -> ByteString -> m Response
 processRoomRequest userId roomId json =
     do

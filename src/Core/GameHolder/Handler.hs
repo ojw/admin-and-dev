@@ -29,6 +29,7 @@ import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody
 import Core.Lobby.Acid
+import Core.Location.Acid
 
 data Domain = DomRoom | DomLobby | DomGame | DomMatchmaker
 
@@ -44,24 +45,24 @@ getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
 gameRouter 
-    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m GameHolder, HasAcidState m LobbyState)
-    =>  UserId -> AcidState GameHolder -> ByteString -> m Response
-gameRouter userId acidGame body =
-    do  location <- query' acidGame (GetLocation userId)
+    ::  (Happstack m, HasAcidState m RoomState, Ord game, Typeable game, SafeCopy game)
+    =>  UserId -> Maybe Location -> AcidState GameHolder -> AcidState (LobbyState game) -> ByteString -> m Response
+gameRouter userId location acidGame lobbyState body =
+    do  --location <- query' acidGame (GetLocation userId)
         --lobby <- query' acidGame (GetLobby)
         case location of
-            Just (InLobby lobbyId)  -> lobbyRequestHandler userId lobbyId body
-            Just InGame             -> ok $ toResponse $ ("Game functions are in the works." :: Text)
-            Just InMatchmaker       -> ok $ toResponse $ ("Matchmaker functions are in the works." :: Text)
+            Just (InLobby lobbyId)  -> lobbyRequestHandler userId lobbyId lobbyState body
+            Just (InGame gameId)    -> ok $ toResponse $ ("Game functions are in the works." :: Text)
+            Just (InMatchmaker mId) -> ok $ toResponse $ ("Matchmaker functions are in the works." :: Text)
             Nothing                 -> ok $ toResponse $ ("You are not in a location :/" :: Text)
 
 lobbyRequestHandler 
-    :: (Happstack m, HasAcidState m RoomState, HasAcidState m AuthState, HasAcidState m ProfileState, HasAcidState m GameHolder, HasAcidState m LobbyState)
-    =>  UserId -> LobbyId -> ByteString -> m Response
-lobbyRequestHandler userId lobbyId body =
+    :: (Happstack m, HasAcidState m RoomState, Ord game, Typeable game, SafeCopy game)
+    =>  UserId -> LobbyId -> AcidState (LobbyState game) -> ByteString -> m Response
+lobbyRequestHandler userId lobbyId lobbyState body =
         case getDomain body of -- this is inefficient -- I believe that it causes the body to be parsed twice
             Nothing             -> ok $ toResponse ("Bad json." :: Text) -- should not be ok
-            Just DomRoom        -> do   roomId <- fromJust <$> query (GetRoomId lobbyId)
+            Just DomRoom        -> do   roomId <- fromJust <$> query' lobbyState (GetRoomId lobbyId)
                                         processRoomRequest userId roomId body
             Just DomLobby       -> ok $ toResponse ("Haven't added this domain yet." :: Text)
             Just DomGame        -> ok $ toResponse ("Game requests when user is InLobby don't make sense." :: Text)

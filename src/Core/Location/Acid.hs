@@ -69,8 +69,15 @@ setLocation userId game location =
     do  locations %= updateIx userId (UserLocation userId game location)
         return game
 
-getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
+getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe Location)
 getLocation userId =
+    do  locationState <- ask
+        case getOne $ (locations ^$ locationState) @= userId of
+            Nothing  -> return Nothing
+            Just loc -> return $ Just $ location ^$ loc
+
+getGame :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
+getGame userId =
     do  locationState <- ask
         case getOne $ (locations ^$ locationState) @= userId of
             Nothing  -> return Nothing
@@ -82,6 +89,7 @@ getLocation userId =
 
 data SetLocation game = SetLocation UserId game Location
 data GetLocation game = GetLocation UserId
+data GetGame game = GetGame UserId
 
 deriving instance Typeable1 SetLocation
 instance (SafeCopy game) => SafeCopy (SetLocation game) where
@@ -97,11 +105,21 @@ instance (SafeCopy game) => SafeCopy (GetLocation game) where
     putCopy (GetLocation user) = contain $ safePut user
     getCopy = contain $ GetLocation <$> safeGet
 instance (SafeCopy game, Typeable game) => Method (GetLocation game) where
-    type MethodResult (GetLocation game) = Maybe game
+    type MethodResult (GetLocation game) = Maybe Location
     type MethodState (GetLocation game) = LocationState game
 instance (SafeCopy game, Typeable game) => QueryEvent (GetLocation game)
 
+deriving instance Typeable1 GetGame
+instance (SafeCopy game) => SafeCopy (GetGame game) where
+    putCopy (GetGame user) = contain $ safePut user
+    getCopy = contain $ GetGame <$> safeGet
+instance (SafeCopy game, Typeable game) => Method (GetGame game) where
+    type MethodResult (GetGame game) = Maybe game
+    type MethodState (GetGame game) = LocationState game
+instance (SafeCopy game, Typeable game) => QueryEvent (GetGame game)
+
 instance (SafeCopy game, Ord game, Typeable game) => IsAcidic (LocationState game) where
     acidEvents = [ UpdateEvent (\(SetLocation userId game location) -> setLocation userId game location)
-                 , QueryEvent (\(GetLocation userId)       -> getLocation userId)
+                 , QueryEvent (\(GetLocation userId)                -> getLocation userId)
+                 , QueryEvent (\(GetGame userId)                    -> getGame userId)
                  ]

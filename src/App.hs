@@ -46,7 +46,7 @@ instance HasAcidState App RoomState where
 instance HasAcidState App (LocationState Games) where
     getAcidState = acidLocation <$> ask
 
-instance HasAcidState App LobbyState where
+instance HasAcidState App (LobbyState Games) where
     getAcidState = acidLobby <$> ask
 
 instance HasAcidState App GameHolder where
