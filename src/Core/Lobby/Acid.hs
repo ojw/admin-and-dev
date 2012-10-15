@@ -26,12 +26,11 @@ import Util.GetBody
 
 newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy)
 
--- will have permission type later
 data Lobby game = Lobby
     { _lobbyId  :: LobbyId
     , _roomId   :: RoomId
     , _game     :: game
-    } -- deriving (Eq, Ord, Read, Show, Data, Typeable)
+    }
 
 deriving instance Eq game => Eq (Lobby game)
 deriving instance Ord game => Ord (Lobby game)

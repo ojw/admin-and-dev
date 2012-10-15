@@ -35,7 +35,7 @@ routeService =
                             lobbyState :: AcidState (LobbyState Games) <- getAcidState
                             game :: Maybe Games <- query' locationState $  Core.Location.Acid.GetGame uid
                             location :: Maybe Location <- query' locationState $ Core.Location.Acid.GetLocation uid
-                            case fromMaybe Dummy game of
+                            case fromMaybe Dummy game of -- should remove fromMaybe; Nothing means player is at game selecting menu
                                 Dummy           ->
                                     do  gameAcid :: AcidState GameHolder <- getAcidState
                                         gameRouter uid location gameAcid lobbyState body
