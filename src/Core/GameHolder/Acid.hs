@@ -20,12 +20,11 @@ import Core.Matchmaker.Acid
 
 data GameHolder = GameHolder
     { _defaultLobby :: Maybe LobbyId -- temporarily Maybe while I decide how to initialize these
-    , _matchmakers  :: MatchmakerState
     }
 
 -- this does not make sense! This is a temporary hack to get everything hooked up
 initialGameHolder :: GameHolder
-initialGameHolder = GameHolder Nothing initialMatchmakerState
+initialGameHolder = GameHolder Nothing
 
 {-
 deriving instance Ord game => Ord (Lobby game)
@@ -50,5 +49,9 @@ getLocation userId =
             Nothing -> return $ InLobby <$> (defaultLobby ^$ game)
             Just l  -> return $ Just $ location ^$ l
 -}
+
+setDefaultLobby :: LobbyId -> Update GameHolder (Maybe LobbyId)
+setDefaultLobby lobbyId =
+    defaultLobby != Just lobbyId
 
 $(makeAcidic ''GameHolder [])

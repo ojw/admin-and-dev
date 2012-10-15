@@ -26,8 +26,8 @@ $(deriveSafeCopy 0 'base ''Location)
 
 data UserLocation game = UserLocation
     { _user     :: UserId
-    , _game     :: game
-    , _location :: Location
+    , _game     :: Maybe game
+    , _location :: Maybe Location
     }
 
 $(makeLens ''UserLocation)
@@ -64,30 +64,30 @@ instance (Ord game, Typeable game, SafeCopy game) => SafeCopy (LocationState gam
      putCopy (LocationState locations) = contain $ safePut locations
      getCopy = contain $ LocationState <$> safeGet
 
-setLocation :: (Ord game, Typeable game) => UserId -> game -> Location -> Update (LocationState game) game
+setLocation :: (Ord game, Typeable game) => UserId -> Maybe game -> Maybe Location -> Update (LocationState game) ()
 setLocation userId game location = 
     do  locations %= updateIx userId (UserLocation userId game location)
-        return game
+        return ()
 
 getLocation :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe Location)
 getLocation userId =
     do  locationState <- ask
         case getOne $ (locations ^$ locationState) @= userId of
             Nothing  -> return Nothing
-            Just loc -> return $ Just $ location ^$ loc
+            Just loc -> return $ location ^$ loc
 
 getGame :: (Ord game, Typeable game) => UserId -> Query (LocationState game) (Maybe game)
 getGame userId =
     do  locationState <- ask
         case getOne $ (locations ^$ locationState) @= userId of
             Nothing  -> return Nothing
-            Just loc -> return $ Just $ game ^$ loc
+            Just loc -> return $ game ^$ loc
 
 -- below code is equivalent to just using
 -- $(makeAcidic ''LocationState ['setUserLocation, 'getUserLocation])
 -- but it avoids the duplicate constraint compilers warnings I get from the TH version
 
-data SetLocation game = SetLocation UserId game Location
+data SetLocation game = SetLocation UserId (Maybe game) (Maybe Location)
 data GetLocation game = GetLocation UserId
 data GetGame game = GetGame UserId
 
@@ -96,7 +96,7 @@ instance (SafeCopy game) => SafeCopy (SetLocation game) where
     putCopy (SetLocation user game location) = contain $ do safePut user; safePut game; safePut location;
     getCopy = contain $ SetLocation <$> safeGet <*> safeGet <*> safeGet
 instance (SafeCopy game, Typeable game) => Method (SetLocation game) where
-    type MethodResult (SetLocation game)= game
+    type MethodResult (SetLocation game)= ()
     type MethodState (SetLocation game) = LocationState game
 instance (SafeCopy game, Typeable game) => UpdateEvent (SetLocation game)
 
