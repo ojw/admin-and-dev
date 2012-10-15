@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell, DeriveDataTypeable, GeneralizedNewtypeDeriving, TypeFamilies #-}
 
-module Core.GameHolder.Matchmaker where
+module Core.GameHolder.Acid.Matchmaker where
 
 import Data.Data
 import Data.Functor         ( (<$>) )

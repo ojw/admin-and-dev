@@ -1,6 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types #-}
+{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types, StandaloneDeriving #-}
 
-module Game where
+module Core.GameHolder.Acid.Game where
 
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Functor
@@ -54,15 +54,6 @@ data ThisKindaGame state = ThisKindaGame
     { thisRunCommand  :: (SafeCopy state) => UserId -> ByteString -> state -> Either GameOutcome state 
     , thisGetView     :: (SafeCopy state) => UserId -> Either GameOutcome state -> ByteString
     , thisNewGame     :: (SafeCopy state) => ByteString -> Maybe state -- because could be invalid config
-    }
-
--- for Html games on this server, this is what we need to store
--- the actual state might also look like [(command, state)] to allow for game replay later
--- or just [state], since logging in state will probably provide info on the commands
-data GameState player state = GameState
-    { gameId :: GameId
-    , state :: state -- Either outcome state ??? Or does something special happen when the game ends?  (Probably write something to disc, stop storing in ram.
-    , players :: [(UserId,player)] -- possibly an IxSet of (UserId, player) instead since we need lookup in both directions
     }
 
 -- all the pieces we need to translate from an IdealGame to a ThisKindaGame
@@ -143,3 +134,23 @@ clientNewGame
     -> Maybe state
 clientNewGame json gameType client =
     (newGame gameType) <$> (decodeOptions client) json
+
+data GameState player state {-outcome-} = GameState
+    { gameId :: GameId
+    , state :: state --Either state outcome
+    , players :: [(UserId,player)]
+    }
+{-
+deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameState player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome) => Eq (GameState player state outcome)
+deriving instance (Read player, Read state, Read outcome) => Read (GameState player state outcome)
+deriving instance (Show player, Show state, Show outcome) => Show (GameState player state outcome)
+deriving instance (Data player, Data state, Data outcome) => Data (GameState player state outcome)
+deriving instance Typeable3 GameState
+-}
+deriving instance (Ord player, Ord state) => Ord (GameState player state)
+deriving instance (Eq player, Eq state) => Eq (GameState player state)
+deriving instance (Read player, Read state) => Read (GameState player state)
+deriving instance (Show player, Show state) => Show (GameState player state)
+deriving instance (Data player, Data state) => Data (GameState player state)
+deriving instance Typeable2 GameState

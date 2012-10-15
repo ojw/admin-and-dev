@@ -15,10 +15,9 @@ import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
 
 import Core.Auth.Acid        ( UserId )
-import Core.GameHolder.Lobby
-import Core.GameHolder.Matchmaker
-
-newtype GameId = GameId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
+import Core.GameHolder.Acid.Lobby
+import Core.GameHolder.Acid.Matchmaker
+import Core.GameHolder.Acid.Game
 
 data Location = InLobby LobbyId | InMatchmaker MatchmakerId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)
@@ -41,25 +40,14 @@ instance Indexable UserLocation where
 newtype LocationState = LocationState { _unLocationState :: IxSet UserLocation }
     deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
-data GameState player state outcome = GameState
-    { _gameId :: GameId
-    , _state :: Either state outcome
-    , _players :: [(UserId,player)]
-    }
-
-deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameState player state outcome)
-deriving instance (Eq player, Eq state, Eq outcome) => Eq (GameState player state outcome)
-deriving instance (Read player, Read state, Read outcome) => Read (GameState player state outcome)
-deriving instance (Show player, Show state, Show outcome) => Show (GameState player state outcome)
-deriving instance (Data player, Data state, Data outcome) => Data (GameState player state outcome)
-deriving instance Typeable3 GameState
 
 data GameHolder player state outcome = GameHolder
     { _locationState    :: LocationState
     , _lobbyState       :: LobbyState
     , _defaultLobby     :: Maybe LobbyId
     , _matchmakerState  :: MatchmakerState
-    , _gameState        :: GameState player state outcome
+    , _gameState        :: GameState player state --outcome
+    , _outcome          :: outcome -- placeholder because I have to stop for the night, need to get outcome into state tomorrow
     }
 
 deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameHolder player state outcome)

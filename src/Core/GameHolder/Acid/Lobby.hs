@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
 
-module Core.GameHolder.Lobby
+module Core.GameHolder.Acid.Lobby
 
 where
 
