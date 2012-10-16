@@ -18,7 +18,7 @@ import Core.Room.Acid        ( RoomId )
 
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.Types.Location
-import Core.Game.Acid.Acid
+import Core.Game.Acid.GameAcid
 
 getLobbyRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)
 getLobbyRoomId' lobbyId lobbyState = fmap _roomId $ getOne $ (lobbies ^$ lobbyState) @= lobbyId

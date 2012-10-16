@@ -16,7 +16,7 @@ import Core.Auth.Acid   ( UserId )
 import Core.Room.Acid   ( RoomId )
 
 import Core.Game.Acid.Types.Matchmaker
-import Core.Game.Acid.Acid
+import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Types.Location
 
 withMatchmaker :: (Matchmaker -> a) -> MatchmakerId -> Query (GameAcid p s o) (Maybe a)

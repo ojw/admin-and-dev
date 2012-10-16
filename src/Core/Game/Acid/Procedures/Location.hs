@@ -4,10 +4,6 @@ module Core.Game.Acid.Procedures.Location
 
 where
 
-import Core.Auth.Acid        ( UserId )
-import Core.Game.Acid.Types.Location
-import Core.Game.Acid.Acid
-
 import Control.Applicative hiding (empty)
 import Control.Monad.Reader 
 import Data.IxSet
@@ -18,6 +14,10 @@ import Data.Lens
 import Data.Lens.Template
 import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
+
+import Core.Auth.Acid        ( UserId )
+import Core.Game.Acid.Types.Location
+import Core.Game.Acid.GameAcid
 
 getLocation' :: UserId -> LocationState -> Maybe Location
 getLocation' userId locationState =
