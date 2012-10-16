@@ -9,6 +9,7 @@ import Core.Game.Acid.Procedures.Location
 import Core.Game.Acid.Procedures.Lobby
 import Core.Game.Acid.Procedures.Matchmaker
 import Core.Game.Acid.Procedures.Room
+import Core.Game.Acid.Procedures.Game
 
 import Core.Game.Acid.GameAcid
 
@@ -16,8 +17,6 @@ import Core.Game.Acid.GameAcid
 -- the template haskell generating the code is possibly buggy, needs to reduce constraint list to uniques
 -- set vs list, people
 
-dummy :: (SafeCopy (GameState p s), SafeCopy o) => Update (GameAcid p s o) ()
-dummy = return ()
 
 $(makeAcidic 
     ''GameAcid  
