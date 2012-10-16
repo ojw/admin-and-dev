@@ -10,7 +10,7 @@ module Core.Game.Acid.GameAcid
 , LobbyId(..)
 , MatchmakerState(..)
 , GameState(..)
-, locationState, lobbyState, defaultLobby, matchmakerState, gameState, outcome
+, locationState, lobbyState, defaultLobby, matchmakerState, roomState, gameState, outcome
 )
 
 where

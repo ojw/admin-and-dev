@@ -29,6 +29,8 @@ import Prelude  hiding              ( null, (.) )
 import Core.Auth.Auth               ( UserId )
 import Core.Game.Acid.Types.Room
 
+import Core.Game.Acid.GameAcid
+
 room :: (Typeable key) => key -> Lens (IxSet Room) (Maybe Room)
 room = ixLens          
 
@@ -38,30 +40,30 @@ addChat uid msg rm = (chat ^%= (Chat (uid, msg) : )) rm
 blankRoom :: RoomId -> Room
 blankRoom rid = Room rid []
 
-modRoom :: RoomId -> (Room -> Room) -> Update (GameAcid p s o) (IxSet Room)
+modRoom :: RoomId -> (Room -> Room) -> Update (GameAcid p s o) RoomState
 modRoom rid fn = roomState %= (rooms ^%= (room rid ^%= fmap fn))
 
-createRoom :: Update RoomState RoomId
+createRoom :: Update (GameAcid p s o) RoomId
 createRoom =
-    do  roomState <- get
-        let next = nextRoomId ^$ roomState
-        rooms %= updateIx next (blankRoom next)
-        nextRoomId %= succ
+    do  gameAcid <- get
+        let next = nextRoomId ^$ (roomState ^$ gameAcid)
+        roomState %= (rooms ^%= updateIx next (blankRoom next))
+        roomState %= (nextRoomId ^%= succ)
         return next
 
-send :: UserId -> RoomId -> Text -> Update RoomState (IxSet Room)
+send :: UserId -> RoomId -> Text -> Update (GameAcid p s o) RoomState
 send userId roomId message = modRoom roomId (addChat userId message)
 
-receive :: UserId -> RoomId -> Query RoomState [Chat]
+-- here a non-existent room simply return no chat
+-- maybe return type should be Maybe [Chat]
+receive :: UserId -> RoomId -> Query (GameAcid p s o) [Chat]
 receive userId roomId =
-    do  roomState <- ask
-        case getOne $ (rooms ^$ roomState) @= roomId of
+    do  gameAcid <- ask
+        case getOne $ (rooms . roomState ^$ gameAcid) @= roomId of
              Nothing    -> return []
              Just rm    -> return $ chat ^$ rm
 
-lookRooms :: Query RoomState [Room]
+lookRooms :: Query (GameAcid p s o) [Room]
 lookRooms =
-    do  roomState <- ask
-        return $ toList $ rooms ^$ roomState
-
-$(makeAcidic ''RoomState ['createRoom, 'send, 'receive, 'lookRooms])
+    do  gameAcid <- ask
+        return $ toList $ rooms . roomState ^$ gameAcid 
