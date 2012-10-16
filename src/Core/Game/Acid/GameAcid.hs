@@ -2,7 +2,7 @@
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
     FlexibleContexts #-}
 
-module Core.Game.Acid.Acid 
+module Core.Game.Acid.GameAcid
 
 ( GameAcid(..)
 , LocationState(..)
