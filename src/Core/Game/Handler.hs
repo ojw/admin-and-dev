@@ -2,7 +2,7 @@
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
     FlexibleContexts #-}
 
-module Core.GameHolder.Handler
+module Core.Game.Handler
 
 where
 
@@ -24,7 +24,7 @@ import Happstack.Server
 import Core.Auth.Acid        ( UserId, AuthState, ProfileState )
 import Core.Room.Acid        ( RoomId, RoomState )
 import Core.Lobby.Acid
-import Core.GameHolder.Acid
+import Core.Game.Acid
 import Core.Room.Api
 import Util.HasAcidState
 import Util.GetBody
