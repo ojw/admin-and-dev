@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types, StandaloneDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types, StandaloneDeriving,
+    FlexibleContexts, UndecidableInstances #-}
 
 module Core.Game.Acid.Types.Game where
 
@@ -8,9 +9,8 @@ import Data.Acid
 import Data.Maybe       ( fromJust )
 import Data.Data
 import Data.Text hiding ( map )
--- import Prelude hiding   ( lookup )
--- import Data.Map
-import Data.IxSet       ( Indexable )
+import Data.Lens
+import Data.IxSet
 import Happstack.Server -- ( Response )
 import Data.SafeCopy    ( SafeCopy )
 
@@ -106,28 +106,28 @@ convertNewGame toGame decodeOptions = \byteString ->
 clientRunCommand
     :: UserId 
     -> ByteString 
-    -> GameState player state 
+    -> Game player state 
     -> TurnBasedGame player state outcome display command options
     -> Html5Client outcome display command options player
     -> Either outcome state
 clientRunCommand userId json acidState gameType client =
-    case lookup userId (players acidState) of
-        Nothing     -> Right (state acidState)
+    case lookup userId (_players acidState) of
+        Nothing     -> Right (_state acidState)
         Just player -> case (decodeCommand client) json of
-                        Nothing      -> Right (state acidState)
-                        Just command -> (runCommand gameType) player command (state acidState)
+                        Nothing      -> Right (_state acidState)
+                        Just command -> (runCommand gameType) player command (_state acidState)
 
 clientGetView
     :: UserId 
     -> ByteString 
-    -> GameState player state 
+    -> Game player state 
     -> TurnBasedGame player state outcome display command options
     -> Html5Client outcome display command options player
     -> ByteString
 clientGetView userId json acidState gameType client =
-    case lookup userId (players acidState) of
+    case lookup userId (_players acidState) of
         Nothing     -> L.pack "User not a player in game."
-        Just player -> (encodeDisplay client) $ (getView gameType) player (Right (state acidState))
+        Just player -> (encodeDisplay client) $ (getView gameType) player (Right (_state acidState))
 
 clientNewGame
     :: ByteString 
@@ -137,24 +137,36 @@ clientNewGame
 clientNewGame json gameType client =
     (newGame gameType) <$> (decodeOptions client) json
 
-data GameState player state {-outcome-} = GameState
-    { gameId :: GameId
-    , state :: state --Either state outcome
-    , players :: [(UserId,player)]
-    , roomId :: RoomId
-    , lobbyId :: LobbyId
+data Game player state {-outcome-} = Game
+    { _gameId :: GameId
+    , _state :: state --Either state outcome
+    , _players :: [(UserId,player)]
+    , _roomId :: RoomId
+    , _lobbyId :: LobbyId
     }
-{-
-deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameState player state outcome)
-deriving instance (Eq player, Eq state, Eq outcome) => Eq (GameState player state outcome)
-deriving instance (Read player, Read state, Read outcome) => Read (GameState player state outcome)
-deriving instance (Show player, Show state, Show outcome) => Show (GameState player state outcome)
-deriving instance (Data player, Data state, Data outcome) => Data (GameState player state outcome)
-deriving instance Typeable3 GameState
--}
-deriving instance (Ord player, Ord state) => Ord (GameState player state)
-deriving instance (Eq player, Eq state) => Eq (GameState player state)
-deriving instance (Read player, Read state) => Read (GameState player state)
-deriving instance (Show player, Show state) => Show (GameState player state)
-deriving instance (Data player, Data state) => Data (GameState player state)
+
+deriving instance (Ord player, Ord state) => Ord (Game player state)
+deriving instance (Eq player, Eq state) => Eq (Game player state)
+deriving instance (Read player, Read state) => Read (Game player state)
+deriving instance (Show player, Show state) => Show (Game player state)
+deriving instance (Data player, Data state) => Data (Game player state)
+deriving instance Typeable2 Game
+
+instance Indexable (Game player state) where
+    empty = ixSet [ ixFun $ \game -> [ _gameId game ]
+                  , ixFun $ \game -> [ _lobbyId game ]
+                  , ixFun $ \game -> [ _roomId game ]
+                  , ixFun $ \game -> map fst (_players game)
+                  ]
+
+data GameState player state = GameState
+    { _nextGameId   :: GameId
+    , _games        :: IxSet (Game player state)
+    }
+
+deriving instance (Ord player, Ord state, Typeable player, Typeable state) => Ord (GameState player state)
+deriving instance (Eq player, Eq state, Ord player, Ord state, Typeable player, Typeable state) => Eq (GameState player state)
+deriving instance (Read player, Read state, Ord player, Ord state, Typeable player, Typeable state) => Read (GameState player state)
+deriving instance (Show player, Show state, Ord player, Ord state, Typeable player, Typeable state) => Show (GameState player state)
+deriving instance (Data player, Data state, Ord player, Ord state) => Data (GameState player state)
 deriving instance Typeable2 GameState

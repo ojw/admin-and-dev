@@ -27,6 +27,7 @@ import Data.ByteString.Lazy as L hiding (empty)
 import Core.Auth.Acid        ( UserId )
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.Types.Matchmaker
+import Core.Game.Acid.Types.Room
 import Core.Game.Acid.Types.Game
 import Core.Game.Acid.Types.Location
 
@@ -35,20 +36,21 @@ data GameAcid player state outcome = GameAcid
     , _lobbyState       :: LobbyState
     , _defaultLobby     :: Maybe LobbyId
     , _matchmakerState  :: MatchmakerState
+    , _roomState        :: RoomState
     , _gameState        :: GameState player state --outcome
-    , _outcome          :: outcome -- placeholder because I have to stop for the night, need to get outcome into state tomorrow
+    , _outcome          :: outcome -- placeholder
     }
 
 $(makeLens ''GameAcid)
 
-deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameAcid player state outcome)
-deriving instance (Eq player, Eq state, Eq outcome) => Eq (GameAcid player state outcome)
-deriving instance (Read player, Read state, Read outcome) => Read (GameAcid player state outcome)
-deriving instance (Show player, Show state, Show outcome) => Show (GameAcid player state outcome)
-deriving instance (Data player, Data state, Data outcome) => Data (GameAcid player state outcome)
+deriving instance (Ord player, Ord state, Ord outcome, Typeable player, Typeable state) => Ord (GameAcid player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome, Ord player, Ord state, Typeable player, Typeable state) => Eq (GameAcid player state outcome)
+deriving instance (Read player, Read state, Read outcome, Ord player, Ord state, Typeable player, Typeable state) => Read (GameAcid player state outcome)
+deriving instance (Show player, Show state, Show outcome, Ord player, Ord state, Typeable player, Typeable state) => Show (GameAcid player state outcome)
+deriving instance (Data player, Data state, Data outcome, Ord player, Ord state) => Data (GameAcid player state outcome)
 deriving instance Typeable3 GameAcid
 
 instance (SafeCopy (GameState player state), SafeCopy outcome) => SafeCopy (GameAcid player state outcome) where
-    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState gameState outcome) = 
-        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut gameState; safePut outcome
-    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState roomState gameState outcome) = 
+        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut roomState; safePut gameState; safePut outcome
+    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
