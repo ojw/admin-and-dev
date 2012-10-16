@@ -17,7 +17,9 @@ import Data.SafeCopy    ( SafeCopy )
 import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 
 import Util.HasAcidState
-import Core.Auth.Acid   ( UserId )
+import Core.Auth.Acid               ( UserId )
+import Core.Room.Acid               ( RoomId )
+import Core.Game.Acid.Types.Lobby   ( LobbyId)
 
 newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
@@ -139,6 +141,8 @@ data GameState player state {-outcome-} = GameState
     { gameId :: GameId
     , state :: state --Either state outcome
     , players :: [(UserId,player)]
+    , roomId :: RoomId
+    , lobbyId :: LobbyId
     }
 {-
 deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameState player state outcome)

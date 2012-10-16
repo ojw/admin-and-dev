@@ -2,7 +2,18 @@
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
     FlexibleContexts #-}
 
-module Core.Game.Acid.Acid where
+module Core.Game.Acid.Acid 
+
+( GameAcid(..)
+, LocationState(..)
+, LobbyState(..)
+, LobbyId(..)
+, MatchmakerState(..)
+, GameState(..)
+, locationState, lobbyState, defaultLobby, matchmakerState, gameState, outcome
+)
+
+where
 
 import Control.Applicative hiding (empty)
 import Control.Monad.Reader 

@@ -39,7 +39,4 @@ initialLobbyState :: LobbyState
 initialLobbyState = LobbyState (LobbyId 1) empty
 
 $(makeLens ''LobbyState)
-$(deriveSafeCopy 0 'base ''LobbyState)
-
-getLobbyRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)
-getLobbyRoomId' lobbyId lobbyState = fmap _roomId $ getOne $ (lobbies ^$ lobbyState) @= lobbyId
+$(deriveSafeCopy 0 'base ''LobbyState) 
