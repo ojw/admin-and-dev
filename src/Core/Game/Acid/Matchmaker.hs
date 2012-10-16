@@ -26,7 +26,7 @@ $(makeLens ''MatchmakerId)
 data Matchmaker = Matchmaker
     { _matchmakerId :: MatchmakerId
     , _capacity     :: Int
-    , _players      :: [UserId]
+    --, _players      :: [UserId]
     , _owner        :: UserId
     , _roomId       :: RoomId
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
@@ -40,7 +40,7 @@ instance Indexable Matchmaker where
     empty = ixSet [ ixFun $ \matchmaker -> [ matchmakerId ^$ matchmaker ]
                   , ixFun $ \matchmaker -> [ capacity ^$ matchmaker ]
                   , ixFun $ \matchmaker -> [ Owner $ owner ^$ matchmaker ]
-                  , ixFun $ \matchmaker -> players ^$ matchmaker
+--                  , ixFun $ \matchmaker -> players ^$ matchmaker
                   ]
 
 data MatchmakerState = MatchmakerState
@@ -54,6 +54,11 @@ initialMatchmakerState = MatchmakerState (MatchmakerId 1) empty
 $(makeLens ''MatchmakerState)
 $(deriveSafeCopy 0 'base ''MatchmakerState)
 
+
+
+{-
+
+{-
 addUser :: UserId -> Matchmaker -> Matchmaker
 addUser userId m = (players ^%= (userId:)) m
 
@@ -65,12 +70,13 @@ hasCapacity matchmaker = availableCapacity matchmaker > 0-- length (players ^$ m
 
 availableCapacity :: Matchmaker -> Int
 availableCapacity matchmaker = (capacity ^$ matchmaker) - length (players ^$ matchmaker)
+-}
 
 createMatchmaker :: Int -> UserId -> RoomId -> Update MatchmakerState MatchmakerId
 createMatchmaker cap userId roomId =
     do  matchmakerState <- get
         let next = nextMatchmaker ^$ matchmakerState in
-            do  matchmakers %= updateIx next (Matchmaker next cap [userId] userId roomId)
+            do  matchmakers %= updateIx next (Matchmaker next cap userId roomId)
                 nextMatchmaker %= succ
                 return next
 
@@ -135,3 +141,5 @@ getOwner matchmakerId =
         return $ _owner <$> (getOne $ (matchmakers ^$ matchmakerState) @= matchmakerId)
 
 $(makeAcidic ''MatchmakerState ['createMatchmaker, 'deleteMatchmaker, 'getMatchmakerByUser, 'joinMatchmaker, 'leaveMatchmaker, 'lookMatchmakers, 'getOwner, 'getMatchmakerByOwner])
+
+-}

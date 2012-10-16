@@ -1,12 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
-    OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
+    OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
+    FlexibleContexts #-}
 
 module Core.Game.Acid.Acid where
 
 import Control.Applicative hiding (empty)
 import Control.Monad.Reader 
-import Data.IxSet
-import Data.Acid
 import Data.SafeCopy
 import Data.Data
 import Data.Lens
@@ -20,7 +19,7 @@ import Core.Game.Acid.Matchmaker
 import Core.Game.Acid.Game
 import Core.Game.Acid.Location
 
-data Game player state outcome = Game
+data GameAcid player state outcome = GameAcid
     { _locationState    :: LocationState
     , _lobbyState       :: LobbyState
     , _defaultLobby     :: Maybe LobbyId
@@ -29,9 +28,16 @@ data Game player state outcome = Game
     , _outcome          :: outcome -- placeholder because I have to stop for the night, need to get outcome into state tomorrow
     }
 
-deriving instance (Ord player, Ord state, Ord outcome) => Ord (Game player state outcome)
-deriving instance (Eq player, Eq state, Eq outcome) => Eq (Game player state outcome)
-deriving instance (Read player, Read state, Read outcome) => Read (Game player state outcome)
-deriving instance (Show player, Show state, Show outcome) => Show (Game player state outcome)
-deriving instance (Data player, Data state, Data outcome) => Data (Game player state outcome)
-deriving instance Typeable3 Game 
+$(makeLens ''GameAcid)
+
+deriving instance (Ord player, Ord state, Ord outcome) => Ord (GameAcid player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome) => Eq (GameAcid player state outcome)
+deriving instance (Read player, Read state, Read outcome) => Read (GameAcid player state outcome)
+deriving instance (Show player, Show state, Show outcome) => Show (GameAcid player state outcome)
+deriving instance (Data player, Data state, Data outcome) => Data (GameAcid player state outcome)
+deriving instance Typeable3 GameAcid
+
+instance (SafeCopy (GameState player state), SafeCopy outcome) => SafeCopy (GameAcid player state outcome) where
+    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState gameState outcome) = 
+        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut gameState; safePut outcome
+    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet

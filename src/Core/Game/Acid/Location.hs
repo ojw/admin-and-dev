@@ -37,5 +37,17 @@ instance Indexable UserLocation where
                   , ixFun $ \location -> [ _location location ]
                   ]
 
-newtype LocationState = LocationState { _unLocationState :: IxSet UserLocation }
+newtype LocationState = LocationState { _locations :: IxSet UserLocation }
     deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
+
+$(makeLens ''LocationState)
+
+getLocation :: UserId -> LocationState -> Maybe Location
+getLocation userId locationState =
+    case getOne $ (locations ^$ locationState) @= userId of
+        Nothing         -> Nothing
+        Just userLocation  -> location ^$ userLocation
+
+setLocation :: UserId -> Maybe Location -> LocationState -> LocationState
+setLocation userId mLocation locationState =
+    locations ^%= updateIx userId (UserLocation userId mLocation) $ locationState
