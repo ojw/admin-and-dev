@@ -20,10 +20,16 @@ dummy :: (SafeCopy (GameState p s), SafeCopy o) => Update (GameAcid p s o) ()
 dummy = return ()
 
 $(makeAcidic 
-    ''GameAcid 
-    [ 'dummy 
-    , 'setLocation, 'getLocation
-    , 'getLobbyRoomId, 'getLobbyMemberIds
-    , 'matchmakerAvailableCapacity, 'matchmakerHasCapacity, 'getMatchmakerOwner, 'getMatchmakerRoomId, 'getMatchmakerMemberIds, 'getMatchmakerLobbyId
+    ''GameAcid  
+-- Location     -- tracks where user is within GameAcid
+    [ 'setLocation, 'getLocation
+-- Room         -- provides chat room service to lobby, matchmaker, and game
     , 'createRoom, 'send, 'receive, 'lookRooms
+-- Lobby        -- where one waits to join games
+    , 'getLobbyRoomId, 'getLobbyMemberIds
+-- Matchmaker   -- where one waits for a game to fill up / begin
+    , 'matchmakerAvailableCapacity, 'matchmakerHasCapacity, 'getMatchmakerOwner, 'getMatchmakerRoomId, 'getMatchmakerMemberIds, 'getMatchmakerLobbyId
+-- Game         -- the fun part!
+                -- nothing here yet; dummy just has needed constraints that game methods will provide later
+    , 'dummy 
     ])
