@@ -14,10 +14,10 @@ import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
 
 import Core.Auth.Acid        ( UserId )
-import Core.Game.Acid.Lobby
-import Core.Game.Acid.Matchmaker
-import Core.Game.Acid.Game
-import Core.Game.Acid.Location
+import Core.Game.Acid.Types.Lobby
+import Core.Game.Acid.Types.Matchmaker
+import Core.Game.Acid.Types.Game
+import Core.Game.Acid.Types.Location
 
 data GameAcid player state outcome = GameAcid
     { _locationState    :: LocationState

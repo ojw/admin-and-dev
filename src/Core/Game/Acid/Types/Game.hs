@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, DeriveDataTypeable, GeneralizedNewtypeDeriving, Rank2Types, StandaloneDeriving #-}
 
-module Core.Game.Acid.Game where
+module Core.Game.Acid.Types.Game where
 
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Functor
