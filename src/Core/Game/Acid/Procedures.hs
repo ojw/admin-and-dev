@@ -21,7 +21,7 @@ import Core.Game.Acid.GameAcid
 $(makeAcidic 
     ''GameAcid  
 -- Location     -- tracks where user is within GameAcid
-    [ 'setLocation, 'getLocation, 'deleteMatchmaker
+    [ 'setLocation, 'getLocation, 'deleteMatchmaker, 'getRoomId
 -- Room         -- provides chat room service to lobby, matchmaker, and game
     , 'createRoom, 'send, 'receive, 'lookRooms
 -- Lobby        -- where one waits to join games

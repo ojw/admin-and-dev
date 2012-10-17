@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Core.Game.Api.Location where
+module Core.Game.Api.Room where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
@@ -28,28 +28,33 @@ import Data.ByteString.Lazy as L
 
 import Core.Auth.Acid
 import Core.Game.Acid.GameAcid
-import Core.Game.Acid.Procedures -- .Location
-import Core.Game.Acid.Types.Location
-import Core.Game.Json.Location
+import Core.Game.Acid.Procedures -- .Room
+import Core.Game.Acid.Types.Room
+import Core.Game.Json.Room
 
-processLocationRequest 
+processRoomRequest 
     ::  ( Happstack m, MonadIO m
         , Typeable p, Typeable s, Typeable o
         , SafeCopy p, SafeCopy s, SafeCopy o
+        , Ord s, Ord p
         )
-    =>  UserId -> LocationId -> AcidState (GameAcid p s o) -> ByteString -> m Response
-processLocationRequest userId roomId gameAcid json =
-        case decode json :: Maybe LocationAPIRequest of
+    =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
+processRoomRequest userId gameAcid json =
+        case decode json :: Maybe RoomAPIRequest of
             Nothing         -> ok $ toResponse $ ("Yeah that request body didn't have the right stuff." :: String)
-            Just request    -> do t <- runLocationAPI userId roomId request gameAcid
-                                  ok $ toResponse $ t
+            Just request    -> do mRoomId <- query' gameAcid (GetRoomId userId)
+                                  case mRoomId of 
+                                    Just roomId ->runRoomAPI userId roomId request gameAcid
+                                    Nothing     -> ok $ toResponse $ ("You... seem not to be in a room." :: String)
+
  
-data LocationAPIRequest
-    = RequestSetLocation UserId (Maybe Location)
-    | RequestGetLocation UserId
+data RoomAPIRequest
+    = RequestSend Text
+    | RequestReceive
+    | RequestLook
     deriving (Ord, Eq, Data, Typeable, Read, Show)
 
-instance FromJSON LocationAPIRequest where
+instance FromJSON RoomAPIRequest where
     parseJSON (Object o) =
         do
             (rqType :: Text) <- o .: "type"
@@ -59,18 +64,17 @@ instance FromJSON LocationAPIRequest where
                 "look"      -> return RequestLook
     parseJSON _ = mzero
 
--- probably needs some error handling which will have to come from eventual Location.Acid
-runLocationAPI 
+runRoomAPI 
     ::  ( MonadIO m, Happstack m
         , Typeable p, Typeable s, Typeable o
         , SafeCopy p, SafeCopy s, SafeCopy o
         ) 
-    => UserId -> LocationId -> LocationAPIRequest -> AcidState (GameAcid p s o) -> m Response -- Text
-runLocationAPI userId roomId request gameAcid =
+    => UserId -> RoomId -> RoomAPIRequest -> AcidState (GameAcid p s o) -> m Response -- Text
+runRoomAPI userId roomId request gameAcid =
         case request of
             RequestSend msg      -> do update' gameAcid (Send userId roomId msg)
                                        ok $ toResponse $ ("Success" :: Text)    -- so dumb
             RequestReceive       -> do chat <- query'  gameAcid (Receive userId roomId)
                                        ok $ toResponse $ encode chat            -- good for now
-            RequestLook          -> do rooms <- query'  gameAcid (LookLocations)
+            RequestLook          -> do rooms <- query'  gameAcid (LookRooms)
                                        ok $ toResponse $ encode rooms
