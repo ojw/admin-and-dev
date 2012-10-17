@@ -39,12 +39,17 @@ hasCapacity' matchmakerId matchmakerState locationState =
         Nothing         -> False
         Just capacity   -> capacity > 0
 
+getMatchmakerMemberIds' :: MatchmakerId -> GameAcid p s o -> Maybe [UserId]
+getMatchmakerMemberIds' matchmakerId gameAcid =
+    case getOne $ ((gameAcid ^. matchmakerState) ^. matchmakers) @= matchmakerId of
+        Nothing         -> Nothing
+        Just matchmaker -> Just $ map _userId $ toList $ ((gameAcid ^. locationState) ^. locations) @= (InMatchmaker matchmakerId)
+
+
 getMatchmakerMemberIds :: MatchmakerId -> Query (GameAcid p s o) (Maybe [UserId])
 getMatchmakerMemberIds matchmakerId = do
     gameAcid <- ask
-    case getOne $ ((gameAcid ^. matchmakerState) ^. matchmakers) @= matchmakerId of
-        Nothing         -> return Nothing
-        Just matchmaker -> return $ Just $ map _userId $ toList $ ((gameAcid ^. locationState) ^. locations) @= (InMatchmaker matchmakerId)
+    return $ getMatchmakerMemberIds' matchmakerId gameAcid
 
 matchmakerAvailableCapacity :: MatchmakerId -> Query (GameAcid p s o) (Maybe Int)
 matchmakerAvailableCapacity matchmakerId = do 

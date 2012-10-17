@@ -4,20 +4,19 @@ module Core.Game.Acid.Procedures.Location
 
 where
 
-import Control.Applicative hiding (empty)
-import Control.Monad.Reader 
+import Control.Applicative
+import Control.Monad.Reader         
+import Control.Monad.State 
 import Data.IxSet
 import Data.Acid
 import Data.SafeCopy
 import Data.Data
 import Data.Lens
-import Data.Lens.Template
-import Data.Text hiding (empty)
-import Data.ByteString.Lazy as L hiding (empty)
 
 import Core.Auth.Acid        ( UserId )
 import Core.Game.Acid.Types.Location
 import Core.Game.Acid.Types.Room
+import Core.Game.Acid.Types.Matchmaker
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures.Lobby
 import Core.Game.Acid.Procedures.Matchmaker
@@ -52,3 +51,13 @@ getRoomId userId = do
         Just (InMatchmaker mId) -> getMatchmakerRoomId mId
         Just (InLobby lobbyId)  -> getLobbyRoomId lobbyId
         _                       -> return Nothing
+
+-- this probably belongs in Matchmaker, but it pertains to leaving a Matchmaker and avoids circular imports by living here
+deleteMatchmaker :: MatchmakerId -> Update (GameAcid p s o) ()
+deleteMatchmaker matchmakerId = do
+    gameAcid <- get
+    case fmap _lobbyId $ getOne $ ((gameAcid ^. matchmakerState) ^. matchmakers) @= matchmakerId of
+        Nothing     -> return ()
+        Just lobby  -> case getMatchmakerMemberIds' matchmakerId gameAcid of
+                        Nothing         -> return ()
+                        Just players    ->mapM_ (\player -> setLocation player (Just (InLobby lobby))) players
