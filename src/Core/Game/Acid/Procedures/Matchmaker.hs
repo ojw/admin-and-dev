@@ -2,6 +2,8 @@
 
 module Core.Game.Acid.Procedures.Matchmaker where
 
+import Prelude hiding ( (.) )
+import Control.Category     ( (.) )
 import Data.Data
 import Data.Functor         ( (<$>) )
 import Data.Acid
@@ -69,3 +71,18 @@ getMatchmakerRoomId = withMatchmaker _roomId
 
 getMatchmakerLobbyId :: MatchmakerId -> Query (GameAcid p s o) (Maybe LobbyId)
 getMatchmakerLobbyId = withMatchmaker _lobbyId
+
+-- return [] if lobby does not exist
+-- returns full matchmaker, not just id
+lookMatchmakers :: LobbyId -> Query (GameAcid p s o) [Matchmaker]
+lookMatchmakers lobbyId = do
+    gameAcid <- ask
+    return $ toList $ ((gameAcid ^. matchmakerState) ^. matchmakers) @= lobbyId
+
+createMatchmaker :: UserId -> Int -> RoomId -> LobbyId -> Update (GameAcid p s o) MatchmakerId
+createMatchmaker userId cap roomId lobbyId = do
+    gameAcid <- get
+    let next = (nextMatchmaker . matchmakerState) ^$ gameAcid in
+        do  matchmakerState %= (nextMatchmaker ^%= succ)
+            matchmakerState %= (matchmakers ^%= updateIx next (Matchmaker next cap userId roomId lobbyId))
+            return next
