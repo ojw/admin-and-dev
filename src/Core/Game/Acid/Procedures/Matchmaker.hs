@@ -13,9 +13,9 @@ import Data.Lens
 import Data.Lens.Template
 
 import Core.Auth.Acid   ( UserId )
-import Core.Room.Acid   ( RoomId )
 
 import Core.Game.Acid.Types.Matchmaker
+import Core.Game.Acid.Types.Room   ( RoomId )
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Types.Location
 

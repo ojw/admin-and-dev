@@ -14,10 +14,10 @@ import Data.Lens
 import Data.Lens.Template
 
 import Core.Auth.Acid        ( UserId )
-import Core.Room.Acid        ( RoomId )
 
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.Types.Location
+import Core.Game.Acid.Types.Room              ( RoomId )
 import Core.Game.Acid.GameAcid
 
 getLobbyRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)

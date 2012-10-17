@@ -18,7 +18,7 @@ import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 
 import Util.HasAcidState
 import Core.Auth.Acid               ( UserId )
-import Core.Room.Acid               ( RoomId )
+import Core.Game.Acid.Types.Room    ( RoomId )
 import Core.Game.Acid.Types.Lobby   ( LobbyId)
 
 newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)

@@ -13,7 +13,7 @@ import Data.Lens
 import Data.Lens.Template
 
 import Core.Auth.Acid               ( UserId )
-import Core.Room.Acid               ( RoomId )
+import Core.Game.Acid.Types.Room    ( RoomId )
 import Core.Game.Acid.Types.Lobby   ( LobbyId )
 
 newtype MatchmakerId = MatchmakerId { _unMatchmakerId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)

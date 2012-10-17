@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Core.Room.Api where
+module Core.Game.Api.Room where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )

@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, FlexibleContexts, OverloadedStrings #-}
 
-module Core.Matchmaker.Api where
+module Core.Game.Api.Matchmaker where
 
 import Prelude hiding ( (.) )
 import Control.Category ( (.) )
