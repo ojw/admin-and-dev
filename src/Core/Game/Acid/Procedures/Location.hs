@@ -21,6 +21,7 @@ import Core.Game.Acid.Types.Room
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures.Lobby
 import Core.Game.Acid.Procedures.Matchmaker
+import Core.Game.Acid.Procedures.Game
 
 getLocation' :: UserId -> LocationState -> Maybe Location
 getLocation' userId locationState =
@@ -41,11 +42,13 @@ setLocation :: UserId -> Maybe Location -> Update (GameAcid p s o) LocationState
 setLocation userId mLocation = do
     locationState %= setLocation' userId mLocation
 
-getRoomId :: UserId -> Query (GameAcid p s o) (Maybe RoomId)
+getRoomId 
+    ::  (Ord s, Ord p, Typeable s, Typeable p) 
+    =>  UserId -> Query (GameAcid p s o) (Maybe RoomId)
 getRoomId userId = do
     gameAcid <- ask
     case getLocation' userId $ gameAcid ^. locationState of
-        Just (InGame gameId)    -> return Nothing
+        Just (InGame gameId)    -> getGameRoomId gameId
         Just (InMatchmaker mId) -> getMatchmakerRoomId mId
         Just (InLobby lobbyId)  -> getLobbyRoomId lobbyId
         _                       -> return Nothing
