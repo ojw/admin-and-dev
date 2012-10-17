@@ -61,3 +61,10 @@ deleteMatchmaker matchmakerId = do
         Just lobby  -> case getMatchmakerMemberIds' matchmakerId gameAcid of
                         Nothing         -> return ()
                         Just players    ->mapM_ (\player -> setLocation player (Just (InLobby lobby))) players
+
+leaveLocation :: UserId -> Update (GameAcid p s o) ()
+leaveLocation userId = do
+    gameAcid <- get
+    case getLocation' userId $ gameAcid ^. locationState of
+        Just (InMatchmaker mId) -> deleteMatchmaker mId
+        _                       -> return ()

@@ -5,6 +5,8 @@ module Core.Game.Acid.Procedures.Lobby
 
 where
 
+import Prelude hiding ( (.) )
+import Control.Category     ( (.) )
 import Control.Monad.Reader
 import Data.IxSet
 import Data.SafeCopy
@@ -32,3 +34,8 @@ getLobbyMemberIds :: LobbyId -> Query (GameAcid p s o) [UserId]
 getLobbyMemberIds lobbyId = do
     gameAcid <- ask
     return $ map _userId $ toList $ ((gameAcid ^. locationState) ^. locations) @= (InLobby lobbyId)
+
+lookLobbies :: Query (GameAcid p s o) [Lobby]
+lookLobbies = do
+    gameAcid <- ask
+    return $ toList $ (lobbies . lobbyState) ^$ gameAcid

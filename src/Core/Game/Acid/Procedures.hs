@@ -25,7 +25,7 @@ $(makeAcidic
 -- Room         -- provides chat room service to lobby, matchmaker, and game
     , 'createRoom, 'send, 'receive, 'lookRooms
 -- Lobby        -- where one waits to join games
-    , 'getLobbyRoomId, 'getLobbyMemberIds
+    , 'getLobbyRoomId, 'getLobbyMemberIds, 'lookLobbies
 -- Matchmaker   -- where one waits for a game to fill up / begin
     , 'matchmakerAvailableCapacity, 'matchmakerHasCapacity, 'getMatchmakerOwner, 'getMatchmakerRoomId, 'getMatchmakerMemberIds, 'getMatchmakerLobbyId, 'lookMatchmakers, 'createMatchmaker
 -- Game         -- the fun part!
