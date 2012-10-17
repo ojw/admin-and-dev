@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable, FlexibleContexts, OverloadedStrings #-}
 
-module Core.Game.Api.Lobby where
+module Core.Game.Api.Game where
 
 import Prelude hiding ( (.))
 import Control.Category ( (.) )
@@ -29,60 +29,63 @@ import Core.Auth.Auth
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.Types.Room
 import Core.Game.Acid.Types.Location
-import Core.Game.Acid.Types.Lobby
+import Core.Game.Acid.Types.Game
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures
  
-data LobbyRequest
-    = RequestJoin LobbyId
-    | RequestLeave
-    | RequestLook
+data GameRequest
+    = StartGame
+    | QuitGame
+    | RunCommand
+    | GetDisplay
     deriving (Ord, Eq, Data, Typeable, Read, Show)
 
-instance FromJSON LobbyRequest where
+instance FromJSON GameRequest where
     parseJSON (Object o) =
         do
             (rqType :: Text) <- o .: "type"
             case rqType of
-                "join"      -> o .: "lobby" >>= \matchmakerId -> return $ RequestJoin (read matchmakerId :: LobbyId)
-                "leave"      -> return RequestLeave
-                "look"      -> return RequestLook
+                "StartGame"     -> return StartGame
+                "QuitGame"      -> return QuitGame
+                "RunCommand"    -> return RunCommand
+                "GetDisplay"    -> return GetDisplay
     parseJSON _ = mzero
 
-processLobbyRequest 
+processGameRequest 
     ::  (Happstack m, MonadIO m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
-processLobbyRequest userId gameAcid json =
-    case decode json :: Maybe LobbyRequest of
+processGameRequest userId gameAcid json =
+    case decode json :: Maybe GameRequest of
         Nothing         -> ok $ toResponse $ ("That request body didn't have the right stuff." :: Text)
-        Just request    -> runLobbyAPI userId gameAcid request
+        Just request    -> runGameAPI userId gameAcid request
 
-runLobbyAPI 
+runGameAPI 
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
-    =>  UserId -> AcidState (GameAcid p s o) -> LobbyRequest -> m Response
-runLobbyAPI userId gameAcid request =
+    =>  UserId -> AcidState (GameAcid p s o) -> GameRequest -> m Response
+runGameAPI userId gameAcid request =
         case request of
-            RequestJoin lobbyId -> handleRequestJoin userId gameAcid lobbyId
-            RequestLeave        -> handleRequestLook userId gameAcid
-            RequestLook         -> handleRequestLook userId gameAcid
+            StartGame   -> handleStartGame userId gameAcid
+            QuitGame    -> handleQuitGame userId gameAcid
+            RunCommand  -> handleRunCommand userId gameAcid
+            GetDisplay  -> handleGetDisplay userId gameAcid
  
-handleRequestJoin
-    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
-    =>  UserId -> AcidState (GameAcid p s o) -> LobbyId -> m Response
-handleRequestJoin userId gameAcid lobbyId = do
-    update' gameAcid (SetLocation userId (Just (InLobby lobbyId)))
-    ok $ toResponse $ ("Success" :: Text)
-
-handleRequestLeave
+handleStartGame
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
     =>  UserId -> AcidState (GameAcid p s o) -> m Response
-handleRequestLeave userId gameAcid = do
-    update' gameAcid (SetLocation userId Nothing)
-    ok $ toResponse $ ("Success" :: Text)
+handleStartGame userId gameAcid = do
+    ok $ toResponse $ ("Placeholder." :: Text)
 
-handleRequestLook
+handleQuitGame
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
     =>  UserId -> AcidState (GameAcid p s o) -> m Response
-handleRequestLook userId gameAcid = do
-    lobbies <- query' gameAcid LookLobbies
-    ok $ toResponse ("FOO" :: Text) -- $ encode $ lobbies
+handleQuitGame userId gameAcid = ok $ toResponse $ ("Placeholder." :: Text)
+
+handleRunCommand
+    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
+    =>  UserId -> AcidState (GameAcid p s o) -> m Response
+handleRunCommand userId gameAcid = ok $ toResponse $ ("Placeholder." :: Text) 
+
+handleGetDisplay
+    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
+    =>  UserId -> AcidState (GameAcid p s o) -> m Response
+handleGetDisplay userId gameAcid = ok $ toResponse $ ("Placeholder." :: Text)
