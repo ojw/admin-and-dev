@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
-module Core.Room.Html where
+module Core.Game.Html.Room where
 
 
 import Prelude hiding               ( div )
@@ -28,8 +28,6 @@ import Util.HasAcidState
 --import Core.Auth
 --}
 
-import Core.Room.Acid
-
 chatInput :: Html
 chatInput =
     div ! class_ "chat_input" $ H.form $
@@ -47,23 +45,23 @@ createRoomButton =
     div ! class_ "create_room" $
         do  input ! class_ "create_room_button" ! type_ "button" ! value "Create Room"
 
-roomList :: [RoomId] -> Html
-roomList rooms =
+roomList ::  Html
+roomList =
     div ! class_ "room_list" $
-        do  div ! class_ "room_list_header" 
-                $ toHtml $ "Rooms: (" ++ show (length rooms) ++ ")"
-            ul  $ forM_ rooms (li . toHtml . _unRoomId)
+        do  div ! class_ "room_list_header" $ ""
 
-roomBox :: [RoomId] -> Html
-roomBox rooms =
+roomBox :: Html
+roomBox =
     div ! class_ "room_box" $
-        do  roomList rooms
-            createRoomButton
+        createRoomButton
 
+{-
 roomBox' :: (Functor m, MonadIO m, HasAcidState m RoomState) => m Html
 roomBox' =
     do  rooms <- query LookRooms
         return $ roomBox $ fmap _roomId rooms 
-
+-}
+{-
 roomBox'' :: Html
 roomBox'' = roomBox []
+-}
