@@ -13,7 +13,7 @@ import Data.SafeCopy
 import Data.Acid
 import Data.Data
 import Data.Lens
-import Data.Lens.Template
+import Data.Text hiding ( map )
 
 import Core.Auth.Acid        ( UserId )
 
@@ -39,3 +39,11 @@ lookLobbies :: Query (GameAcid p s o) [Lobby]
 lookLobbies = do
     gameAcid <- ask
     return $ toList $ (lobbies . lobbyState) ^$ gameAcid
+
+withLobby :: (Lobby -> a) -> LobbyId -> Query (GameAcid p s o) (Maybe a)
+withLobby f lobbyId = do
+    gameAcid <- ask
+    return $ fmap f $ getOne $ (lobbies . lobbyState ^$ gameAcid) @= lobbyId
+
+getLobbyName :: LobbyId -> Query (GameAcid p s o) (Maybe Text)
+getLobbyName = withLobby _name

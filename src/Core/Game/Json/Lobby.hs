@@ -34,11 +34,13 @@ instance ToJSON LobbyDisplay where
 data LobbyDisplay = LobbyDisplay
     { _LobbyId      :: LobbyId
     , _members      :: [UserId]
+    , _name         :: Text
     }
 
 displayLobby 
     :: (Typeable o , Typeable s , Typeable p,SafeCopy o , SafeCopy s , SafeCopy p, MonadIO m) 
-    => AcidState (GameAcid p s o) -> LobbyId -> m LobbyDisplay
+    => AcidState (GameAcid p s o) -> LobbyId -> m (Maybe LobbyDisplay)
 displayLobby gameAcid lobbyId = do
     members <- query' gameAcid (GetLobbyMemberIds lobbyId)
-    return $ LobbyDisplay lobbyId members
+    name <- query' gameAcid (GetLobbyName lobbyId)
+    return $ LobbyDisplay lobbyId members <$> name
