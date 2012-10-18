@@ -3,9 +3,10 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Core.Matchmaker.Json
+module Core.Game.Json.Matchmaker
 
 ( encode
+, displayMatchmaker
 )
 
 where
@@ -39,12 +40,10 @@ data MatchmakerDisplay = MatchmakerDisplay
     , _capacity     :: Int
     }
 
---displayMatchmaker :: MatchmakerId -> Query (GameAcid p s o) (Maybe MatchmakerDisplay)
 displayMatchmaker 
-    :: (Typeable o , Typeable s , Typeable p,SafeCopy o , SafeCopy s , SafeCopy p, MonadReader (AcidState (GameAcid p s o)) m, MonadIO m) 
-    => MatchmakerId -> m (Maybe MatchmakerDisplay)
-displayMatchmaker matchmakerId = do
-    gameAcid <- ask
+    :: (Typeable o , Typeable s , Typeable p,SafeCopy o , SafeCopy s , SafeCopy p, MonadIO m) 
+    => AcidState (GameAcid p s o) -> MatchmakerId -> m (Maybe MatchmakerDisplay)
+displayMatchmaker gameAcid matchmakerId = do
     members <- query' gameAcid (GetMatchmakerMemberIds matchmakerId)
     owner <- query' gameAcid (GetMatchmakerOwner matchmakerId)
     capacity <- query' gameAcid (GetMatchmakerCapacity matchmakerId)

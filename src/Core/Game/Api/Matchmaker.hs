@@ -32,6 +32,7 @@ import Core.Game.Acid.Types.Location
 import Core.Game.Acid.Types.Matchmaker
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures
+import Core.Game.Json.Matchmaker
  
 data MatchmakerRequest
     = RequestCreate Int
@@ -117,5 +118,6 @@ handleRequestLook userId gameAcid = do
     loc <- query' gameAcid (GetLocation userId)
     case loc of
         Just (InLobby lobbyId)  ->  do  matchmakers <- query' gameAcid (LookMatchmakers lobbyId)
-                                        ok $ toResponse ("FOO" :: Text) -- $ encode $ matchmakers
+                                        display <- mapM (displayMatchmaker gameAcid . _matchmakerId) matchmakers
+                                        ok $ toResponse $ encode display -- ("FOO" :: Text) -- $ encode $ matchmakers
         _                       ->  ok $ toResponse ("Not in a lobby." :: Text)
