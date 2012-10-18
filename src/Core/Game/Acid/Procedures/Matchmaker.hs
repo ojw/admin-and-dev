@@ -86,3 +86,9 @@ createMatchmaker userId cap roomId lobbyId = do
         do  matchmakerState %= (nextMatchmaker ^%= succ)
             matchmakerState %= (matchmakers ^%= updateIx next (Matchmaker next cap userId roomId lobbyId))
             return next
+
+getMatchmaker :: MatchmakerId -> Query (GameAcid p s o) (Maybe Matchmaker)
+getMatchmaker = withMatchmaker id
+
+getMatchmakerCapacity :: MatchmakerId -> Query (GameAcid p s o) (Maybe Int)
+getMatchmakerCapacity = withMatchmaker _capacity

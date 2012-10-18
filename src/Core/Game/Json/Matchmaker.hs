@@ -10,20 +10,42 @@ module Core.Matchmaker.Json
 
 where
 
-import Prelude hiding ( (.) )
-import Control.Category ( (.) )
-import Control.Monad.Trans
-import Data.Data
-import Data.Acid
-import Data.Acid.Advanced
+import Control.Applicative
+import Control.Monad.Reader
+import Data.Functor
 import Data.Aeson
-import Data.Text as Text
+import Data.Acid
+import Data.Data
+import Data.SafeCopy
+import Data.Acid.Advanced
+import Data.Text as Text hiding ( map )
 
-import Core.Auth.Auth           ( UserId(..) )
-import Core.Matchmaker.Acid
+import Core.Auth.Acid
+import Core.Game.Acid.GameAcid
+import Core.Game.Acid.Types.Matchmaker ( Matchmaker, MatchmakerId(..) )
+import Core.Game.Acid.Procedures
 
-instance ToJSON Matchmaker where
-    toJSON matchmaker = object  [ "id" .= _unMatchmakerId (_matchmakerId matchmaker)
-                                , "available" .= (availableCapacity matchmaker) 
-                                , "capacity" .= _capacity matchmaker
+instance ToJSON MatchmakerDisplay where
+    toJSON matchmaker = object  [ "id" .= (_unMatchmakerId $ _matchmakerId matchmaker)
+                                , "owner" .= unUserId (_owner matchmaker)
+                                , "members" .= map unUserId (_members matchmaker)
+                                , "capacity" .= (_capacity matchmaker)
                                 ]
+
+data MatchmakerDisplay = MatchmakerDisplay
+    { _matchmakerId :: MatchmakerId
+    , _owner        :: UserId
+    , _members      :: [UserId]
+    , _capacity     :: Int
+    }
+
+--displayMatchmaker :: MatchmakerId -> Query (GameAcid p s o) (Maybe MatchmakerDisplay)
+displayMatchmaker 
+    :: (Typeable o , Typeable s , Typeable p,SafeCopy o , SafeCopy s , SafeCopy p, MonadReader (AcidState (GameAcid p s o)) m, MonadIO m) 
+    => MatchmakerId -> m (Maybe MatchmakerDisplay)
+displayMatchmaker matchmakerId = do
+    gameAcid <- ask
+    members <- query' gameAcid (GetMatchmakerMemberIds matchmakerId)
+    owner <- query' gameAcid (GetMatchmakerOwner matchmakerId)
+    capacity <- query' gameAcid (GetMatchmakerCapacity matchmakerId)
+    return $ MatchmakerDisplay matchmakerId <$> owner <*> members <*> capacity

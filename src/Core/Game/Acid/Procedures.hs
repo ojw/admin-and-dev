@@ -27,7 +27,7 @@ $(makeAcidic
 -- Lobby        -- where one waits to join games
     , 'getLobbyRoomId, 'getLobbyMemberIds, 'lookLobbies
 -- Matchmaker   -- where one waits for a game to fill up / begin
-    , 'matchmakerAvailableCapacity, 'matchmakerHasCapacity, 'getMatchmakerOwner, 'getMatchmakerRoomId, 'getMatchmakerMemberIds, 'getMatchmakerLobbyId, 'lookMatchmakers, 'createMatchmaker
+    , 'matchmakerAvailableCapacity, 'matchmakerHasCapacity, 'getMatchmakerOwner, 'getMatchmakerRoomId, 'getMatchmakerMemberIds, 'getMatchmakerLobbyId, 'lookMatchmakers, 'createMatchmaker, 'getMatchmakerCapacity
 -- Game         -- the fun part!
                 -- nothing here yet; dummy just has needed constraints that game methods will provide later
     , 'dummy 
