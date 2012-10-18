@@ -42,12 +42,12 @@ getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
 gameRouter 
-    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o)
+    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 gameRouter userId gameAcid body =
     case getDomain body of
-        Just DomRoom        -> ok $ toResponse $ ("Game functions are in the works." :: Text)
+        Just DomRoom        -> processRoomRequest userId gameAcid body
         Just DomLobby       -> processLobbyRequest userId gameAcid body
-        Just DomMatchmaker  -> ok $ toResponse $ ("Matchmaker functions are in the works." :: Text)
-        Just DomGame        -> ok $ toResponse $ ("Matchmaker functions are in the works." :: Text)
+        Just DomMatchmaker  -> processMatchmakerRequest userId gameAcid body
+        Just DomGame        -> processGameRequest userId gameAcid body
         Nothing             -> ok $ toResponse $ ("Request lacks domain." :: Text)
