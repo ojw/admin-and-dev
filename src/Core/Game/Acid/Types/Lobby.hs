@@ -5,11 +5,12 @@ module Core.Game.Acid.Types.Lobby
 
 where
 
-import Control.Applicative hiding (empty)
+import Control.Applicative hiding ( empty )
 import Data.IxSet
 import Data.SafeCopy
 import Data.Data
 import Data.Lens
+import Data.Text hiding ( empty )
 import Data.Lens.Template
 
 import Core.Auth.Acid        ( UserId )
@@ -20,6 +21,7 @@ newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, D
 data Lobby = Lobby
     { _lobbyId  :: LobbyId
     , _roomId   :: RoomId
+    , _name     :: Text
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''Lobby)

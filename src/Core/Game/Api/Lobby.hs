@@ -32,6 +32,7 @@ import Core.Game.Acid.Types.Location
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures
+import Core.Game.Json.Lobby
  
 data LobbyRequest
     = RequestJoin LobbyId
@@ -85,4 +86,5 @@ handleRequestLook
     =>  UserId -> AcidState (GameAcid p s o) -> m Response
 handleRequestLook userId gameAcid = do
     lobbies <- query' gameAcid LookLobbies
-    ok $ toResponse ("FOO" :: Text) -- $ encode $ lobbies
+    display <- mapM (displayLobby gameAcid . _lobbyId) lobbies
+    ok $ toResponse $ encode display -- ("FOO" :: Text) -- $ encode $ lobbies
