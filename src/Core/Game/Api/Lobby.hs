@@ -67,7 +67,7 @@ runLobbyAPI
 runLobbyAPI userId gameAcid request =
         case request of
             RequestJoin lobbyId -> handleRequestJoin userId gameAcid lobbyId
-            RequestLeave        -> handleRequestLook userId gameAcid
+            RequestLeave        -> handleRequestLeave userId gameAcid
             RequestLook         -> handleRequestLook userId gameAcid
  
 handleRequestJoin
