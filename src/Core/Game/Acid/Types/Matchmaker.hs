@@ -22,6 +22,7 @@ $(makeLens ''MatchmakerId)
 data Matchmaker = Matchmaker
     { _matchmakerId :: MatchmakerId
     , _capacity     :: Int
+    , _required     :: Int
     , _owner        :: UserId
     , _roomId       :: RoomId
     , _lobbyId      :: LobbyId -- the lobby that spawned the matchmaker, where to kick players if it closes

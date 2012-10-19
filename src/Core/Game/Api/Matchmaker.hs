@@ -38,7 +38,7 @@ import Core.Game.Acid.Procedures
 import Core.Game.Json.Matchmaker
  
 data MatchmakerRequest
-    = RequestCreate Int
+    = RequestCreate Int Int
     | RequestJoin MatchmakerId
     | RequestLeave
     | RequestLook
@@ -49,7 +49,9 @@ instance FromJSON MatchmakerRequest where
         do
             (rqType :: Text) <- o .: "type"
             case rqType of
-                "create"    -> o .: "capacity" >>= \cap -> return $ RequestCreate (read cap :: Int)
+                "create"    -> do   cap <- o .: "capacity"
+                                    required <- o .: "required"
+                                    return $ RequestCreate (read cap :: Int) (read required :: Int)
                 "join"      -> o .: "matchmaker" >>= \matchmakerId -> return $ RequestJoin (read matchmakerId :: MatchmakerId)
                 "leave"     -> return RequestLeave
                 "look"      -> return RequestLook
@@ -68,20 +70,20 @@ runMatchmakerAPI
     =>  UserId -> AcidState (GameAcid p s o) -> MatchmakerRequest -> m Response
 runMatchmakerAPI userId gameAcid request =
         case request of
-            RequestCreate cap   -> handleRequestCreate userId gameAcid cap
-            RequestJoin mId     -> handleRequestJoin userId gameAcid mId
-            RequestLeave        -> handleRequestLeave userId gameAcid
-            RequestLook         -> handleRequestLook userId gameAcid
+            RequestCreate cap required  -> handleRequestCreate userId gameAcid cap required
+            RequestJoin mId             -> handleRequestJoin userId gameAcid mId
+            RequestLeave                -> handleRequestLeave userId gameAcid
+            RequestLook                 -> handleRequestLook userId gameAcid
  
 handleRequestCreate 
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
-    =>  UserId -> AcidState (GameAcid p s o) -> Int -> m Response
-handleRequestCreate userId gameAcid cap = do
+    =>  UserId -> AcidState (GameAcid p s o) -> Int -> Int -> m Response
+handleRequestCreate userId gameAcid cap required = do
     loc <- query' gameAcid (GetLocation userId)
     case loc of
         Just (InLobby lobbyId)  -> do
             roomId <- update' gameAcid CreateRoom
-            matchmakerId <- update' gameAcid (CreateMatchmaker userId cap roomId lobbyId)
+            matchmakerId <- update' gameAcid (CreateMatchmaker userId cap required roomId lobbyId)
             update' gameAcid (SetLocation userId (Just (InMatchmaker matchmakerId)))
             ok $ toResponse $ ("Success" :: Text) -- stupid, should return matchmaker data to display
         _                       -> ok $ toResponse $ ("You must be in a lobby." :: Text)
