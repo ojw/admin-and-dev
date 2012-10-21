@@ -14,13 +14,14 @@ import Data.IxSet
 import Data.Lens
 import Data.Text            ( Text )
 
+import Core.Profile.Acid    ( UserName )
 import Core.Auth.Acid       ( UserId )
 
 newtype RoomId = RoomId { _unRoomId :: Integer } deriving (Eq, Ord, Enum, Data, Typeable, SafeCopy, Read, Show)
 
 $(makeLens ''RoomId)
 
-newtype Chat = Chat (UserId, Text) deriving (Eq, Ord, Data, Typeable, SafeCopy, Read, Show) 
+newtype Chat = Chat (UserName, Text) deriving (Eq, Ord, Data, Typeable, SafeCopy, Read, Show) 
 
 data Room = Room
     { _roomId :: RoomId

@@ -19,11 +19,12 @@ import Data.Acid.Advanced
 import Data.Aeson
 import Data.Text as Text
 
+import Core.Profile.Acid            ( UserName(..) )
 import Core.Auth.Auth               ( UserId(..) )
 import Core.Game.Acid.Types.Room    ( Room(..), RoomId(..), Chat(..) )
 
 instance ToJSON Chat where
-    toJSON (Chat ((UserId sender), message)) = object [ "sender" .= sender, "message" .= message ]
+    toJSON (Chat ((UserName sender), message)) = object [ "sender" .= sender, "message" .= message ]
 
 instance ToJSON Room where
     toJSON Room{..} = object [ "id" .= _unRoomId _roomId ] 

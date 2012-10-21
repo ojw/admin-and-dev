@@ -26,6 +26,7 @@ import Data.Lens.IxSet              ( ixLens )
 import Data.Text                    ( Text )
 import Prelude  hiding              ( null, (.) )
 
+import Core.Profile.Acid            ( UserName )
 import Core.Auth.Auth               ( UserId )
 import Core.Game.Acid.Types.Room
 
@@ -34,8 +35,8 @@ import Core.Game.Acid.GameAcid
 room :: (Typeable key) => key -> Lens (IxSet Room) (Maybe Room)
 room = ixLens          
 
-addChat :: UserId -> Text -> Room -> Room
-addChat uid msg rm = (chat ^%= (Chat (uid, msg) : )) rm
+addChat :: UserName -> Text -> Room -> Room
+addChat userName message room = (chat ^%= (Chat (userName, message) : )) room
 
 blankRoom :: RoomId -> Room
 blankRoom rid = Room rid []
@@ -51,19 +52,21 @@ createRoom =
         roomState %= (nextRoomId ^%= succ)
         return next
 
-send :: UserId -> RoomId -> Text -> Update (GameAcid p s o) RoomState
-send userId roomId message = modRoom roomId (addChat userId message)
+send :: UserName -> RoomId -> Text -> Update (GameAcid p s o) RoomState
+send userName roomId message = modRoom roomId (addChat userName message)
 
 -- here a non-existent room simply return no chat
 -- maybe return type should be Maybe [Chat]
-receive :: UserId -> RoomId -> Query (GameAcid p s o) [Chat]
-receive userId roomId =
+receive :: RoomId -> Query (GameAcid p s o) [Chat]
+receive roomId =
     do  gameAcid <- ask
         case getOne $ (rooms . roomState ^$ gameAcid) @= roomId of
              Nothing    -> return []
              Just rm    -> return $ chat ^$ rm
 
+{-
 lookRooms :: Query (GameAcid p s o) [Room]
 lookRooms =
     do  gameAcid <- ask
         return $ toList $ rooms . roomState ^$ gameAcid 
+-}

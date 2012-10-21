@@ -10,7 +10,7 @@ import Control.Category ( (.) )
 import Control.Monad.Trans
 import Data.Data
 import Data.SafeCopy
-import Data.Acid
+import Data.Acid hiding ( query )
 import Data.Acid.Advanced
 import Data.Aeson
 import Data.Text as Text
@@ -26,6 +26,8 @@ import Web.Routes.Boomerang
 import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
+import Util.HasAcidState
+import Core.Profile.Acid
 import Core.Auth.Acid
 import Core.Game.Acid.GameAcid
 import Core.Game.Acid.Procedures -- .Room
@@ -37,6 +39,7 @@ processRoomRequest
         , Typeable p, Typeable s, Typeable o
         , SafeCopy p, SafeCopy s, SafeCopy o
         , Ord s, Ord p, Ord o
+        , HasAcidState m Core.Profile.Acid.ProfileState
         )
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 processRoomRequest userId gameAcid json =
@@ -68,13 +71,15 @@ runRoomAPI
     ::  ( MonadIO m, Happstack m
         , Typeable p, Typeable s, Typeable o
         , SafeCopy p, SafeCopy s, SafeCopy o
+        , HasAcidState m Core.Profile.Acid.ProfileState
         ) 
     => UserId -> RoomId -> RoomAPIRequest -> AcidState (GameAcid p s o) -> m Response -- Text
 runRoomAPI userId roomId request gameAcid =
         case request of
-            RequestSend msg      -> do update' gameAcid (Send userId roomId msg)
+            RequestSend msg      -> do userName <- query $ AskName userId
+                                       update' gameAcid (Send (maybe (UserName "Unknown!") id userName) roomId msg) -- DANGER!
                                        ok $ toResponse $ ("Success" :: Text)    -- so dumb
-            RequestReceive       -> do chat <- query'  gameAcid (Receive userId roomId)
+            RequestReceive       -> do chat <- query'  gameAcid (Receive roomId)
                                        ok $ toResponse $ encode chat            -- good for now
 --            RequestLook          -> do rooms <- query'  gameAcid (LookRooms)
 --                                       ok $ toResponse $ encode rooms

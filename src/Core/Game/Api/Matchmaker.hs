@@ -25,6 +25,9 @@ import Control.Monad ( mzero )
 import Data.ByteString.Lazy as L
 
 import Happstack.Auth
+
+import Util.HasAcidState
+import Core.Profile.Acid
 import Core.Auth.Auth
 import Core.Game.Acid.Types.Lobby
 import Core.Game.Acid.Types.Room
@@ -53,7 +56,7 @@ instance FromJSON MatchmakerRequest where
     parseJSON _ = mzero
 
 processMatchmakerRequest 
-    ::  (Happstack m, MonadIO m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
+    ::  (Happstack m, MonadIO m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o, HasAcidState m Core.Profile.Acid.ProfileState)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 processMatchmakerRequest userId gameAcid json =
     case decode json :: Maybe MatchmakerRequest of
@@ -61,7 +64,7 @@ processMatchmakerRequest userId gameAcid json =
         Just request    -> runMatchmakerAPI userId gameAcid request
 
 runMatchmakerAPI 
-    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
+    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o, HasAcidState m Core.Profile.Acid.ProfileState)
     =>  UserId -> AcidState (GameAcid p s o) -> MatchmakerRequest -> m Response
 runMatchmakerAPI userId gameAcid request =
         case request of
@@ -112,7 +115,7 @@ handleRequestLeave userId gameAcid = do
             ok $ toResponse $ ("Lobby data here." :: Text)
 
 handleRequestLook
-    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
+    ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o, HasAcidState m Core.Profile.Acid.ProfileState)
     =>  UserId -> AcidState (GameAcid p s o) -> m Response
 handleRequestLook userId gameAcid = do
     loc <- query' gameAcid (GetLocation userId)

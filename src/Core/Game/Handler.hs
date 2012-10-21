@@ -21,6 +21,8 @@ import Data.Text hiding (empty)
 import Data.ByteString.Lazy as L hiding (empty)
 import Happstack.Server
 
+import Util.HasAcidState
+import Core.Profile.Acid as Profile
 import Core.Auth.Acid        ( UserId )
 import Core.Game.Api.Room
 import Core.Game.Api.Lobby
@@ -42,7 +44,7 @@ getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
 gameRouter 
-    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s, Ord o)
+    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s, Ord o, HasAcidState m Profile.ProfileState)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 gameRouter userId gameAcid body =
     case getDomain body of

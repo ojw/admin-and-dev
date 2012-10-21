@@ -23,7 +23,7 @@ $(makeAcidic
 -- Location     -- tracks where user is within GameAcid
     [ 'setLocation, 'getLocation, 'deleteMatchmaker, 'getRoomId
 -- Room         -- provides chat room service to lobby, matchmaker, and game
-    , 'createRoom, 'send, 'receive, 'lookRooms
+    , 'createRoom, 'send, 'receive--, 'lookRooms
 -- Lobby        -- where one waits to join games
     , 'getLobbyRoomId, 'getLobbyMemberIds, 'lookLobbies, 'getLobbyName
 -- Matchmaker   -- where one waits for a game to fill up / begin
