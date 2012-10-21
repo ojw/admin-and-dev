@@ -33,7 +33,7 @@ import Data.Time
 import Data.Aeson
 
 import Util.HasAcidState
-import Core.Auth                 ( UserId )
+import Core.Auth.Acid               ( UserId )
 
 {-
 data Location games
@@ -48,7 +48,7 @@ data Profile = Profile
     , _userName     :: UserName
     , _email        :: Email
     , _joinDate     :: UTCTime
-    , _timeStamp    :: UTCTime
+--    , _timeStamp    :: UTCTime
 --    , _location     :: location
     } deriving (Eq, Ord, Data, Typeable, Read, Show)
 
@@ -99,7 +99,7 @@ $(makeLens ''ProfileState)
 $(deriveSafeCopy 0 'base ''ProfileState)
 
 newProfile :: UserId -> UserName -> Email -> UTCTime -> Profile
-newProfile uid uname uemail ujoinDate = Profile uid uname uemail ujoinDate ujoinDate
+newProfile uid uname uemail ujoinDate = Profile uid uname uemail ujoinDate --ujoinDate
 
 addProfile :: UserId -> UserName -> Email -> UTCTime -> Update ProfileState UserId
 addProfile uid uname mail now =
@@ -128,6 +128,7 @@ updateProfile uid mProfile =
                            profiles %= updateIx uid p'
                            return $ Just p'
 
+{-
 updateTimeStamp :: UserId -> UTCTime -> Update ProfileState (Maybe Profile)
 updateTimeStamp uid now =
     do  profileState <- get
@@ -136,6 +137,7 @@ updateTimeStamp uid now =
             Just p  -> let p' = (timeStamp ^!= now) p in
                        do profiles %= updateIx uid p'
                           return $ Just p'
+-}
 
 askName :: UserId -> Query ProfileState (Maybe UserName)
 askName uid = 
@@ -152,6 +154,7 @@ askProfile uid =
     do  profileState <- ask
         return $ getProfileById uid profileState
 
+{-
 isAlive :: UserId -> UTCTime -> NominalDiffTime -> Query ProfileState Bool
 isAlive uid now aliveInterval =
     do  profileState <- ask
@@ -159,5 +162,5 @@ isAlive uid now aliveInterval =
             Nothing -> return False
             Just p  -> let interval = diffUTCTime now (timeStamp ^$ p) in
                        return $ interval <= aliveInterval
-                       
-$(makeAcidic ''ProfileState ['updateProfile, 'updateTimeStamp, 'askName, 'askId, 'askProfile, 'isAlive])
+-}                     
+$(makeAcidic ''ProfileState ['updateProfile, {-'updateTimeStamp,-} 'askName, 'askId, 'askProfile {-,'isAlive-}])
