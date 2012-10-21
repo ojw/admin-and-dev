@@ -42,7 +42,7 @@ setLocation userId mLocation = do
     locationState %= setLocation' userId mLocation
 
 getRoomId 
-    ::  (Ord s, Ord p, Typeable s, Typeable p) 
+    ::  (Ord s, Ord p, Ord o, Typeable s, Typeable p, Typeable o)
     =>  UserId -> Query (GameAcid p s o) (Maybe RoomId)
 getRoomId userId = do
     gameAcid <- ask

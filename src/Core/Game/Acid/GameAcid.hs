@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables,
-    FlexibleContexts #-}
+    FlexibleContexts, UndecidableInstances #-}
 
 module Core.Game.Acid.GameAcid
 
@@ -10,7 +10,7 @@ module Core.Game.Acid.GameAcid
 , LobbyId(..)
 , MatchmakerState(..)
 , GameState(..)
-, locationState, lobbyState, defaultLobby, matchmakerState, roomState, gameState, outcome
+, locationState, lobbyState, defaultLobby, matchmakerState, roomState, gameState
 )
 
 where
@@ -37,20 +37,19 @@ data GameAcid player state outcome = GameAcid
     , _defaultLobby     :: Maybe LobbyId
     , _matchmakerState  :: MatchmakerState
     , _roomState        :: RoomState
-    , _gameState        :: GameState player state --outcome
-    , _outcome          :: outcome -- placeholder
+    , _gameState        :: GameState player state outcome
     }
 
 $(makeLens ''GameAcid)
 
-deriving instance (Ord player, Ord state, Ord outcome, Typeable player, Typeable state) => Ord (GameAcid player state outcome)
-deriving instance (Eq player, Eq state, Eq outcome, Ord player, Ord state, Typeable player, Typeable state) => Eq (GameAcid player state outcome)
-deriving instance (Read player, Read state, Read outcome, Ord player, Ord state, Typeable player, Typeable state) => Read (GameAcid player state outcome)
-deriving instance (Show player, Show state, Show outcome, Ord player, Ord state, Typeable player, Typeable state) => Show (GameAcid player state outcome)
-deriving instance (Data player, Data state, Data outcome, Ord player, Ord state) => Data (GameAcid player state outcome)
+deriving instance (Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Ord (GameAcid player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Eq (GameAcid player state outcome)
+deriving instance (Read player, Read state, Read outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Read (GameAcid player state outcome)
+deriving instance (Show player, Show state, Show outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Show (GameAcid player state outcome)
+deriving instance (Data player, Data state, Data outcome, Ord player, Ord state, Ord outcome) => Data (GameAcid player state outcome)
 deriving instance Typeable3 GameAcid
 
-instance (SafeCopy (GameState player state), SafeCopy outcome) => SafeCopy (GameAcid player state outcome) where
-    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState roomState gameState outcome) = 
-        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut roomState; safePut gameState; safePut outcome
-    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+instance (SafeCopy (GameState player state outcome)) => SafeCopy (GameAcid player state outcome) where
+    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState roomState gameState) = 
+        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut roomState; safePut gameState
+    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet

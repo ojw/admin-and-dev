@@ -16,12 +16,12 @@ import Core.Game.Acid.Types.Lobby   ( LobbyId)
 import Core.Game.Acid.Types.Game
 import Core.Game.Acid.GameAcid
 
-dummy :: (SafeCopy (GameState p s), SafeCopy o) => Update (GameAcid p s o) ()
+dummy :: (SafeCopy (GameState p s o)) => Update (GameAcid p s o) ()
 dummy = return ()
 
 withGame 
-    ::  (Ord p, Ord s, Typeable p, Typeable s)
-    =>  (Game p s -> a) -> GameId -> Query (GameAcid p s o) (Maybe a)
+    ::  (Ord p, Ord s, Ord o, Typeable p, Typeable s, Typeable o)
+    =>  (Game p s o -> a) -> GameId -> Query (GameAcid p s o) (Maybe a)
 withGame f gameId = do
     gameAcid <- ask
     case getOne $ (_games (gameState ^$ gameAcid)) @= gameId of
@@ -29,11 +29,11 @@ withGame f gameId = do
         Just g  -> return $ Just $ f g
 
 getGameRoomId 
-    ::  ( Ord p, Ord s, Typeable p, Typeable s )
+    ::  (Ord p, Ord s, Ord o, Typeable p, Typeable s, Typeable o)
     =>  GameId -> Query (GameAcid p s o) (Maybe RoomId)
 getGameRoomId gameId = withGame _roomId gameId
 
 getGameLobbyId
-    ::  ( Ord p, Ord s, Typeable p, Typeable s )
+    ::  (Ord p, Ord s, Ord o, Typeable p, Typeable s, Typeable o)
     =>  GameId -> Query (GameAcid p s o) (Maybe LobbyId)
 getGameLobbyId gameId = withGame _lobbyId gameId

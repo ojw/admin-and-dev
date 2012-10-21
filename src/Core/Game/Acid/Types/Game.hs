@@ -44,11 +44,11 @@ reverseLookup m key = lookup key $ reverseMap m
 
 -- need SafeCopy instance for state; might demand it here, but this is supposed to be pretty abstract
 data TurnBasedGame player state outcome display command options = TurnBasedGame
-    { runCommand    :: player -> command -> state -> Either outcome state
+    { runCommand    :: player -> command -> (options, state) -> Either outcome state
     , getView       :: player -> Either outcome state -> display -- this one might change -- not sure if display needs to cover outcomes
     , newGame       :: options -> state
     } 
-
+{-
 -- as a web game serving html / js, mostly we're receiving and returning bytestrings
 -- might actually switch to storing outcomes on disc? or entire games for replay
 -- SafeCopy constraint is necessary, but not sure if this is right way to enforce it
@@ -106,7 +106,7 @@ convertNewGame toGame decodeOptions = \byteString ->
 clientRunCommand
     :: UserId 
     -> ByteString 
-    -> Game player state 
+    -> Game player state outcome
     -> TurnBasedGame player state outcome display command options
     -> Html5Client outcome display command options player
     -> Either outcome state
@@ -120,7 +120,7 @@ clientRunCommand userId json acidState gameType client =
 clientGetView
     :: UserId 
     -> ByteString 
-    -> Game player state 
+    -> Game player state outcome
     -> TurnBasedGame player state outcome display command options
     -> Html5Client outcome display command options player
     -> ByteString
@@ -136,37 +136,38 @@ clientNewGame
     -> Maybe state
 clientNewGame json gameType client =
     (newGame gameType) <$> (decodeOptions client) json
-
-data Game player state {-outcome-} = Game
-    { _gameId :: GameId
-    , _state :: state --Either state outcome
-    , _players :: [(UserId,player)]
-    , _roomId :: RoomId
-    , _lobbyId :: LobbyId
+-}
+data Game player state outcome = Game
+    { _gameId   :: GameId
+    --, _options  :: Options
+    , _state    :: Either state outcome
+    , _players  :: [(UserId,player)]
+    , _roomId   :: RoomId
+    , _lobbyId  :: LobbyId
     }
 
-deriving instance (Ord player, Ord state) => Ord (Game player state)
-deriving instance (Eq player, Eq state) => Eq (Game player state)
-deriving instance (Read player, Read state) => Read (Game player state)
-deriving instance (Show player, Show state) => Show (Game player state)
-deriving instance (Data player, Data state) => Data (Game player state)
-deriving instance Typeable2 Game
+deriving instance (Ord player, Ord state, Ord outcome) => Ord (Game player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome) => Eq (Game player state outcome)
+deriving instance (Read player, Read state, Read outcome) => Read (Game player state outcome)
+deriving instance (Show player, Show state, Show outcome) => Show (Game player state outcome)
+deriving instance (Data player, Data state, Data outcome) => Data (Game player state outcome)
+deriving instance Typeable3 Game
 
-instance Indexable (Game player state) where
+instance Indexable (Game player state outcome) where
     empty = ixSet [ ixFun $ \game -> [ _gameId game ]
                   , ixFun $ \game -> [ _lobbyId game ]
                   , ixFun $ \game -> [ _roomId game ]
                   , ixFun $ \game -> map fst (_players game)
                   ]
 
-data GameState player state = GameState
+data GameState player state outcome = GameState
     { _nextGameId   :: GameId
-    , _games        :: IxSet (Game player state)
+    , _games        :: IxSet (Game player state outcome)
     }
 
-deriving instance (Ord player, Ord state, Typeable player, Typeable state) => Ord (GameState player state)
-deriving instance (Eq player, Eq state, Ord player, Ord state, Typeable player, Typeable state) => Eq (GameState player state)
-deriving instance (Read player, Read state, Ord player, Ord state, Typeable player, Typeable state) => Read (GameState player state)
-deriving instance (Show player, Show state, Ord player, Ord state, Typeable player, Typeable state) => Show (GameState player state)
-deriving instance (Data player, Data state, Ord player, Ord state) => Data (GameState player state)
-deriving instance Typeable2 GameState
+deriving instance (Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Ord (GameState player state outcome)
+deriving instance (Eq player, Eq state, Eq outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Eq (GameState player state outcome)
+deriving instance (Read player, Read state, Read outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Read (GameState player state outcome)
+deriving instance (Show player, Show state, Show outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Show (GameState player state outcome)
+deriving instance (Data player, Data state, Data outcome, Ord player, Ord state, Ord outcome) => Data (GameState player state outcome)
+deriving instance Typeable3 GameState
