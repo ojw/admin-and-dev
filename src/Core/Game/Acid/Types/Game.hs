@@ -19,7 +19,8 @@ import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 import Util.HasAcidState
 import Core.Auth.Acid               ( UserId )
 import Core.Game.Acid.Types.Room    ( RoomId )
-import Core.Game.Acid.Types.Lobby   ( LobbyId)
+import Core.Game.Acid.Types.Lobby   ( LobbyId )
+import Core.Game.Acid.Types.Options ( Options )
 
 newtype GameId = GameId { unGameId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
@@ -139,7 +140,7 @@ clientNewGame json gameType client =
 -}
 data Game player state outcome = Game
     { _gameId   :: GameId
-    --, _options  :: Options
+    , _options  :: Options
     , _state    :: Either state outcome
     , _players  :: [(UserId,player)]
     , _roomId   :: RoomId
