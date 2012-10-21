@@ -3,6 +3,7 @@
 
 module Core.Game.Acid.Types.Game where
 
+import Control.Applicative
 import Data.Aeson       ( ToJSON, FromJSON )
 import Data.Functor
 import Data.Acid
@@ -12,7 +13,7 @@ import Data.Text hiding ( map )
 import Data.Lens
 import Data.IxSet
 import Happstack.Server -- ( Response )
-import Data.SafeCopy    ( SafeCopy )
+import Data.SafeCopy
 
 import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 
@@ -172,3 +173,13 @@ deriving instance (Read player, Read state, Read outcome, Ord player, Ord state,
 deriving instance (Show player, Show state, Show outcome, Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome) => Show (GameState player state outcome)
 deriving instance (Data player, Data state, Data outcome, Ord player, Ord state, Ord outcome) => Data (GameState player state outcome)
 deriving instance Typeable3 GameState
+
+instance (SafeCopy player, SafeCopy state, SafeCopy outcome) => SafeCopy (Game player state outcome) where
+    putCopy (Game gameId options state players roomId lobbyId) =
+        contain $ do safePut gameId; safePut options; safePut state; safePut players; safePut roomId; safePut lobbyId
+    getCopy = contain $ Game <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+
+instance (Ord player, Ord state, Ord outcome, Typeable player, Typeable state, Typeable outcome, SafeCopy (Game player state outcome)) => SafeCopy (GameState player state outcome) where
+    putCopy (GameState nextGameId game) =
+        contain $ do safePut nextGameId; safePut game
+    getCopy = contain $ GameState <$> safeGet <*> safeGet
