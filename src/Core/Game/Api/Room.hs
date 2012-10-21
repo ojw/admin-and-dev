@@ -36,7 +36,7 @@ processRoomRequest
     ::  ( Happstack m, MonadIO m
         , Typeable p, Typeable s, Typeable o
         , SafeCopy p, SafeCopy s, SafeCopy o
-        , Ord s, Ord p
+        , Ord s, Ord p, Ord o
         )
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 processRoomRequest userId gameAcid json =
@@ -51,7 +51,7 @@ processRoomRequest userId gameAcid json =
 data RoomAPIRequest
     = RequestSend Text
     | RequestReceive
-    | RequestLook
+--    | RequestLook
     deriving (Ord, Eq, Data, Typeable, Read, Show)
 
 instance FromJSON RoomAPIRequest where
@@ -61,7 +61,7 @@ instance FromJSON RoomAPIRequest where
             case rqType of
                 "send"      -> o .: "message" >>= \msg -> return $ RequestSend msg
                 "receive"   -> return RequestReceive
-                "look"      -> return RequestLook
+--                "look"      -> return RequestLook
     parseJSON _ = mzero
 
 runRoomAPI 
@@ -76,5 +76,5 @@ runRoomAPI userId roomId request gameAcid =
                                        ok $ toResponse $ ("Success" :: Text)    -- so dumb
             RequestReceive       -> do chat <- query'  gameAcid (Receive userId roomId)
                                        ok $ toResponse $ encode chat            -- good for now
-            RequestLook          -> do rooms <- query'  gameAcid (LookRooms)
-                                       ok $ toResponse $ encode rooms
+--            RequestLook          -> do rooms <- query'  gameAcid (LookRooms)
+--                                       ok $ toResponse $ encode rooms

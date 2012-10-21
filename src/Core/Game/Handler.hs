@@ -42,7 +42,7 @@ getDomain :: ByteString -> Maybe Domain
 getDomain = decode
 
 gameRouter 
-    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s)
+    ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s, Ord o)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 gameRouter userId gameAcid body =
     case getDomain body of
