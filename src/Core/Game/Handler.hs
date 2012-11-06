@@ -6,19 +6,13 @@ module Core.Game.Handler
 
 where
 
-import Control.Applicative hiding (empty)
-import Control.Monad.Reader 
-import Data.Maybe       ( fromJust )
-import Data.IxSet
-import Data.Acid hiding ( query )
-import Data.Acid.Advanced
+import Control.Monad ( mzero )
+import Data.Acid
 import Data.SafeCopy
 import Data.Data
-import Data.Lens
-import Data.Lens.Template
 import Data.Aeson
-import Data.Text hiding (empty)
-import Data.ByteString.Lazy as L hiding (empty)
+import Data.Text
+import Data.ByteString.Lazy as L
 import Happstack.Server
 
 import Util.HasAcidState
