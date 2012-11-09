@@ -30,7 +30,10 @@ instance FromJSON Domain where
     parseJSON (Object o) =
         do  domain <- o .: "domain"
             case domain of
-                ("room" :: Text)  -> return DomRoom
+                ("room" :: Text)        -> return DomRoom
+                ("lobby" :: Text)       -> return DomLobby
+                ("game" :: Text)        -> return DomGame
+                ("matchmaker" :: Text)  -> return DomMatchmaker
                 _       -> mzero
     parseJSON _ = mzero
 
