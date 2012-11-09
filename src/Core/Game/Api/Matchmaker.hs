@@ -15,6 +15,7 @@ import Data.Text as Text
 import Data.Text.Encoding   ( decodeUtf8 )
 
 import Happstack.Server -- ( Happstack, Response )
+import Happstack.Server.Response
 import Web.Routes.Happstack
 
 import Text.Boomerang.TH
@@ -62,7 +63,7 @@ processMatchmakerRequest
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 processMatchmakerRequest userId gameAcid json =
     case decode json :: Maybe MatchmakerRequest of
-        Nothing         -> ok $ toResponse $ ("That request body didn't have the right stuff." :: Text)
+        Nothing         -> badRequest $ toResponse $ ("That request body didn't have the right stuff." :: Text)
         Just request    -> runMatchmakerAPI userId gameAcid request
 
 runMatchmakerAPI 
