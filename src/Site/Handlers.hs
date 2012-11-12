@@ -40,9 +40,9 @@ import           Data.Set         (Set)
 import qualified Data.Set         as Set
 
 import Util.HasAcidState
-import Core.Auth.Auth
-import Core.Room.Html
-import Core.Lobby.Html
+import Server.Auth.Auth
+import Server.Room.Html
+import Server.Lobby.Html
 import Acid
 import App
 import Site.Sitemap
@@ -129,7 +129,7 @@ createPage =
            (profileStateH :: AcidState ProfileState) <- lift getAcidState
            actionURL <- showURL Create
            onAuthURL <- showURL Home
-           e <- happstackEitherForm (R.form actionURL) "naf" (Core.Auth.Auth.newAccountForm authStateH profileStateH)
+           e <- happstackEitherForm (R.form actionURL) "naf" (Server.Auth.Auth.newAccountForm authStateH profileStateH)
            case e of
              (Left formHtml) ->
                  do r <- appTemplate "Create New Account" mempty $

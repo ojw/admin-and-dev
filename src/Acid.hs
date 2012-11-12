@@ -22,12 +22,12 @@ import System.FilePath              ( (</>) )
 import Control.Exception            ( bracket )
 
 import Util.HasAcidState
-import Core.Auth.Acid
-import Core.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
-import Core.Location.Acid
-import Core.Game.Acid.Lobby
-import Core.Game.Acid.Matchmaker
-import Core.Game.Acid.Acid
+import Server.Auth.Acid
+import Server.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
+import Server.Location.Acid
+import Server.Game.Acid.Lobby
+import Server.Game.Acid.Matchmaker
+import Server.Game.Acid.Acid
 
 data Games = Dummy
 
@@ -40,7 +40,7 @@ data Acid = Acid
     { acidAuth          :: AcidState AuthState
     , acidProfile       :: AcidState ProfileState
     , acidRoom          :: AcidState RoomState  
-    , acidLocation      :: AcidState (Core.Location.Acid.LocationState Games)
+    , acidLocation      :: AcidState (Server.Location.Acid.LocationState Games)
 --    , acidLobby         :: AcidState (LobbyState Games)
 --    , acidMatchmaker    :: AcidState MatchmakerState
 --    , acidGameHolder    :: AcidState GameHolder

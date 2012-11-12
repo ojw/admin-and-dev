@@ -18,13 +18,13 @@ import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
 import Site.Sitemap
-import Core.Auth.Auth
+import Server.Auth.Auth
 import Acid
 import App
 import Service
 import Site.Handlers
 
-import Core.Room.Api
+import Server.Room.Api
 
 route :: Sitemap -> RouteT Sitemap App Response
 route url =
@@ -42,8 +42,8 @@ app baseURL =
         msum [ dir "favicon.ico" $ serveFile (asContentType "image") "favicon.ico"
              , dir "api" $ routeService
              , dir "foo" $ ok $ toResponse ("Bar." :: Text)
-             , dir "js" $ serveFile (asContentType "text/javascript") "Core/Room/Scripts/room.js"
-             , dir "css" $ serveFile (asContentType "text/css") "Core/Room/Scripts/room.css"
+             , dir "js" $ serveFile (asContentType "text/javascript") "Server/Room/Scripts/room.js"
+             , dir "css" $ serveFile (asContentType "text/css") "Server/Room/Scripts/room.css"
              , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())
              ] 
