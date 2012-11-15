@@ -23,11 +23,11 @@ import Control.Exception            ( bracket )
 
 import Util.HasAcidState
 import Server.Auth.Acid
-import Server.Room.Acid            ( RoomState, initialRoomState, RoomId(..) )
+import Server.Game.Acid.Types.Room ( RoomState, initialRoomState, RoomId(..) )
 import Server.Location.Acid
-import Server.Game.Acid.Lobby
-import Server.Game.Acid.Matchmaker
-import Server.Game.Acid.Acid
+import Server.Game.Acid.Types.Lobby
+import Server.Game.Acid.Types.Matchmaker
+import Server.Game.Acid.GameAcid
 
 data Games = Dummy
 
@@ -39,7 +39,7 @@ $(deriveSafeCopy 0 'base ''Games)
 data Acid = Acid
     { acidAuth          :: AcidState AuthState
     , acidProfile       :: AcidState ProfileState
-    , acidRoom          :: AcidState RoomState  
+--    , acidRoom          :: AcidState RoomState  
     , acidLocation      :: AcidState (Server.Location.Acid.LocationState Games)
 --    , acidLobby         :: AcidState (LobbyState Games)
 --    , acidMatchmaker    :: AcidState MatchmakerState
@@ -53,9 +53,9 @@ withAcid mBasePath f =
     let basePath = fromMaybe ".state" mBasePath in
     bracket (openLocalStateFrom (basePath </> "auth")       initialAuthState)       (createCheckpointAndClose) $ \auth ->
     bracket (openLocalStateFrom (basePath </> "profile")    initialProfileState)    (createCheckpointAndClose) $ \profile ->
-    bracket (openLocalStateFrom (basePath </> "room")       initialRoomState)       (createCheckpointAndClose) $ \room ->
+ --   bracket (openLocalStateFrom (basePath </> "room")       initialRoomState)       (createCheckpointAndClose) $ \room ->
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
 --    bracket (openLocalStateFrom (basePath </> "lobby")      initialLobbyState)      (createCheckpointAndClose) $ \lobby ->
 --    bracket (openLocalStateFrom (basePath </> "matchmaker") initialMatchmakerState) (createCheckpointAndClose) $ \matchmaker ->
 --    bracket (openLocalStateFrom (basePath </> "gameholder") initialGameHolder)      (createCheckpointAndClose) $ \gameHolder ->
-        f (Acid auth profile room location {-lobby matchmaker gameHolder-})
+        f (Acid auth profile {-room-} location {-lobby matchmaker gameHolder-})

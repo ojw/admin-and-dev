@@ -14,16 +14,15 @@ import Data.Maybe ( fromMaybe )
 import Data.Acid hiding (query)
 import Data.Acid.Advanced
 
-import Server.Room.Api
 import Util.GetBody
 import Acid
 import App
-import Server.Room.Acid
+import Server.Game.Acid.Types.Room
 import Server.Auth.Auth
 import Server.Location.Acid
-import Server.Lobby.Acid
-import Server.GameHolder.Handler
-import Server.GameHolder.Acid
+import Server.Game.Acid.Types.Lobby
+import Server.Game.Handler
+import Server.Game.Acid.GameAcid
 
 routeService :: App Response
 routeService =
@@ -31,11 +30,9 @@ routeService =
         body <- getBody
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
-            Just uid -> do  locationState :: AcidState (LocationState Games) <- getAcidState
-                            lobbyState :: AcidState (LobbyState Games) <- getAcidState
-                            game :: Maybe Games <- query' locationState $  Server.Location.Acid.GetGame uid
-                            location :: Maybe Location <- query' locationState $ Server.Location.Acid.GetLocation uid
+            Just uid -> do  locationState :: AcidState (Server.Location.Acid.LocationState Games) <- getAcidState
+                            game :: Maybe Games <- query' locationState $  Server.Location.Acid.GetLocation uid
                             case fromMaybe Dummy game of -- should remove fromMaybe; Nothing means player is at game selecting menu
                                 Dummy           ->
                                     do  gameAcid :: AcidState GameHolder <- getAcidState
-                                        gameRouter uid location gameAcid lobbyState body
+                                        gameRouter uid gameAcid body

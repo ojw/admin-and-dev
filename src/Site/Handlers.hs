@@ -41,8 +41,8 @@ import qualified Data.Set         as Set
 
 import Util.HasAcidState
 import Server.Auth.Auth
-import Server.Room.Html
-import Server.Lobby.Html
+import Server.Game.Html.Room
+import Server.Game.Html.Lobby
 import Acid
 import App
 import Site.Sitemap
