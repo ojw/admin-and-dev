@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main 
+module Example.Main 
 
 where
 
 import Happstack.Server ( simpleHTTP, nullConf )
 import Data.Text        ( Text )
 
-import Acid             ( Acid, withAcid )
-import App              ( App, runApp )
-import Site.Routes      ( app )
+import Example.Acid             ( Acid, withAcid )
+import Example.App              ( App, runApp )
+import Example.Site.Routes      ( app )
 
 
 

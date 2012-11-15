@@ -1,6 +1,6 @@
 {-# LANGUAGE Rank2Types, OverloadedStrings, ScopedTypeVariables #-}
 
-module Service where
+module Example.Service where
 
 import Control.Monad.Trans
 import Control.Monad
@@ -15,8 +15,8 @@ import Data.Acid hiding (query)
 import Data.Acid.Advanced
 
 import Util.GetBody
-import Acid
-import App
+import Example.Acid
+import Example.App
 import Server.Game.Acid.Types.Room
 import Server.Auth.Auth
 import Server.Location.Acid

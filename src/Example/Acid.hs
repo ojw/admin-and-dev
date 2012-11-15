@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators, StandaloneDeriving #-}
 
-module Acid 
+module Example.Acid 
 
 ( Acid(..)
 , withAcid

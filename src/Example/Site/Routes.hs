@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Site.Routes 
+module Example.Site.Routes 
 
 where
 
@@ -17,12 +17,12 @@ import Web.Routes.Boomerang         ( boomerangSite )
 import Web.Routes.Happstack         ( implSite )
 
 import Util.HasAcidState
-import Site.Sitemap
+import Example.Site.Sitemap
 import Server.Auth.Auth
-import Acid
-import App
-import Service
-import Site.Handlers
+import Example.Acid
+import Example.App
+import Example.Service
+import Example.Site.Handlers
 
 --import Server.Room.Api
 

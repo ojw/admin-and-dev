@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Site.Handlers 
+module Example.Site.Handlers 
 
 where
 
@@ -43,9 +43,9 @@ import Util.HasAcidState
 import Server.Auth.Auth
 import Server.Game.Html.Room
 import Server.Game.Html.Lobby
-import Acid
-import App
-import Site.Sitemap
+import Example.Acid
+import Example.App
+import Example.Site.Sitemap
 
 jQueryUI = "//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"
 jQuery = "//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"

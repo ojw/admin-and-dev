@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, TemplateHaskell, TypeOperators, OverloadedStrings #-}
 
-module Site.Sitemap 
+module Example.Site.Sitemap 
 
 where
 

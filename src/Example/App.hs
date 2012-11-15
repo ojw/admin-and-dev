@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module App 
+module Example.App 
 
 ( App(..)
 , runApp
@@ -25,7 +25,7 @@ import Server.Game.Acid.Types.Room  ( RoomState )
 import Server.Location.Acid
 import Util.HasAcidState
 import Server.Game.Acid.GameAcid
-import Acid
+import Example.Acid
 
 newtype App a = App { unApp :: ServerPartT (ReaderT Acid IO) a }
     deriving ( Functor, Alternative, Applicative, Monad, MonadPlus, MonadIO
