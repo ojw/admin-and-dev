@@ -34,5 +34,6 @@ routeService =
                             game :: Maybe Games <- query' locationState $  Server.Location.Acid.GetLocation uid
                             case fromMaybe Dummy game of -- should remove fromMaybe; Nothing means player is at game selecting menu
                                 Dummy           ->
-                                    do  gameAcid :: AcidState GameHolder <- getAcidState
-                                        gameRouter uid gameAcid body
+                                    --do  gameAcid :: AcidState GameHolder <- getAcidState
+                                    --    gameRouter uid gameAcid body
+                                    ok $ toResponse $ ("Hey there, things are commented out right now." :: Text)
