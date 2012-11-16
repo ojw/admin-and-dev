@@ -7,7 +7,7 @@ import Prelude hiding ( div )
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 
-import Server.Game.Html.Room
+import Client.Html.Room
 
 newGameButton :: Html
 newGameButton = button ! class_ "lobby create" $ "New Game"

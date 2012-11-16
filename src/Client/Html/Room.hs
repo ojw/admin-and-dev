@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
-module Server.Game.Html.Room where
+module Client.Html.Room where
 
 
 import Prelude hiding               ( div )
