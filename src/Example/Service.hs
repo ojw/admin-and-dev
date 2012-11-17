@@ -32,8 +32,10 @@ routeService =
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
             Just uid -> do  locationState :: AcidState (Server.Location.Acid.LocationState Games) <- getAcidState
                             game :: Maybe Games <- query' locationState $  Server.Location.Acid.GetLocation uid
-                            case fromMaybe Dummy game of -- should remove fromMaybe; Nothing means player is at game selecting menu
-                                Dummy           ->
+                            case game of
+                                Just Dummy  ->
                                     --do  gameAcid :: AcidState GameHolder <- getAcidState
                                     --    gameRouter uid gameAcid body
-                                    ok $ toResponse $ ("Hey there, things are commented out right now." :: Text)
+                                    ok $ toResponse $ ("Hey there, things are commented out right now.  You are in a dummy game or something." :: Text)
+                                Nothing     -> do
+                                    ok $ toResponse $ ("You are not in a game yet.  There will be a game selection screen here." :: Text)
