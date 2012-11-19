@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Server.Game.Html.Matchmaker where
+module Client.Html.Matchmaker where
 
 import Prelude hiding ( div )
 
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 
-import Server.Game.Html.Room
+import Client.Html.Room
 
 leaveMatchmakerButton :: Html
 leaveMatchmakerButton = button ! class_ "matchmaker leave" $ "Back to Lobby"

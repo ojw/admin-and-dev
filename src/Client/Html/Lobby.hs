@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Server.Game.Html.Lobby where
+module Client.Html.Lobby where
 
 import Prelude hiding ( div )
 
