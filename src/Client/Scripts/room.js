@@ -1,20 +1,21 @@
 var AdminAndDev = {};
 
+AdminAndDev.Text = (function() {
+    return  { test: function(){ alert("FOO"); }
+            , foop: 2
+            };
+           
+})();
+
 AdminAndDev.Room = (function() {
-    var look;
-    var create;
-    var join;
-    var leave;
+
     var send;
     var receive;
 
-    var initCreateButton;
-    var initChatWindow;
-    var initRoomWindow;
     var initSendButton;
+    var initChatWindow;
 
-    var chatRefreshRate = 500
-    var roomListRefreshRate = 2000;
+    var chatRefreshDelay = 500
     var url = "http://localhost:8000/api/";
 
     var getJson;
@@ -28,42 +29,6 @@ AdminAndDev.Room = (function() {
                 });
     };
         
-
-    look = function(fn) {
-        getJson( JSON.stringify({ domain: "room"
-                                , type: "look"})
-               , function(data){fn(data)}
-               );
-    };
-
-    create = function(capacity) {
-        $.post( url
-              , JSON.stringify( { domain: "room"
-                                , type: "create"
-                                , capacity: capacity
-                                } )
-              , function(data){}
-              )
-    };
-
-    join = function(roomId) {
-        $.post( url
-              , JSON.stringify( { domain: "room"
-                                , type: "join"
-                                , roomId: roomId
-                                } )
-              , function(data){}
-              )
-    };
-
-    leave = function() {
-        $.post( url
-              , JSON.stringify( { domain: "room"
-                                , type: "leave" } )
-              , function(data){}
-              )
-    };
-
     send = function(message) {
         getJson( JSON.stringify( { domain: "room"
                                  , type: "send"
@@ -95,10 +60,6 @@ AdminAndDev.Room = (function() {
         return rtn;
     };
 
-    initCreateButton = function(str) {
-        $(str).click( function(){ Room.create("1")} );
-    }
-
     initSendButton = function(sendButton, chatInput) {
         $(chatInput).focus( function() {this.select()}  );
         $(sendButton).click( function(){ 
@@ -108,19 +69,6 @@ AdminAndDev.Room = (function() {
             $(chatInput).focus();
             return false;
             } );
-    }
-
-    initRoomWindow = function(str) {
-        var roomWindow = $(str)
-        setInterval( function(){ 
-                        Room.look( 
-                            function(data){
-                                roomWindow.html(JSON.stringify(data))
-                            } 
-                        ) 
-                     }
-                   , roomListRefreshRate
-        )
     }
 
     initChatWindow = function(str) {
@@ -136,19 +84,13 @@ AdminAndDev.Room = (function() {
                             }
                         )
                      }
-                   , chatRefreshRate
+                   , chatRefreshDelay
         )
     }
 
-    return  { look: look
-            , create: create
-            , join: join
-            , leave: leave
-            , send: send
+    return  { send: send
             , receive: receive
-            , initCreateButton: initCreateButton
             , initChatWindow: initChatWindow
-            , initRoomWindow: initRoomWindow
             , initSendButton: initSendButton
             };
 
@@ -157,8 +99,6 @@ AdminAndDev.Room = (function() {
 var Room = AdminAndDev.Room
 
 $(document).ready( function() {  
-        Room.initCreateButton(".create_room_button");
         Room.initChatWindow(".chat_display");
-        Room.initRoomWindow(".room_list");
         Room.initSendButton(".chat_send", "input.chat_input");
 });
