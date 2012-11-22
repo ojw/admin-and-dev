@@ -1,6 +1,12 @@
-
+{-# LANGUAGE OverloadedStrings #-}
 
 module RockPaperScissors where
+
+import Control.Monad            ( mzero )
+import Data.Aeson               ( FromJSON, parseJSON, (.:), decode )
+import Data.Aeson.Types
+import Data.Text                ( Text )
+import Data.ByteString.Lazy
 
 data RPSPlayer = Player1 | Player2 deriving (Ord, Eq, Read, Show)
 
@@ -50,5 +56,16 @@ checkOutcome (Right state)  =
 processCommand :: RPSPlayer -> RPSThrow -> Either RPSGameOutcome RPSGameState -> Either RPSGameOutcome RPSGameState
 processCommand player throw state = checkOutcome $ addThrow player throw state
 
+processRawCommand :: RPSPlayer -> ByteString -> Either RPSGameOutcome RPSGameState -> Either RPSGameOutcome RPSGameState
+processRawCommand player rawThrow state = 
+    case decode rawThrow :: Maybe RPSThrow of
+        Just throw  -> processCommand player throw state
+        Nothing     -> state
+
 newGame :: RPSGameState
 newGame = RPSGameState Nothing Nothing
+
+instance FromJSON RPSThrow where
+    parseJSON (Object o) = do   throw <- o .: "Throw"
+                                return $ (read throw :: RPSThrow)
+    parseJSON _ = mzero
