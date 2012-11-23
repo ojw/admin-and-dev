@@ -42,7 +42,7 @@ app baseURL =
         msum [ dir "favicon.ico" $ serveFile (asContentType "image") "favicon.ico"
              , dir "api" $ routeService
              , dir "foo" $ ok $ toResponse ("Bar." :: Text)
-             , dir "js" $ serveFile (asContentType "text/javascript") "Client/Scripts/room.js"
+             , dir "js" $ serveFile (asContentType "text/javascript") "Client/Scripts/api.js"
              , dir "css" $ serveFile (asContentType "text/css") "Client/Scripts/room.css"
              , decodeBody (defaultBodyPolicy "/tmp/" 0 1000 1000) >> implSite baseURL "" site
              , seeOther ("" :: String) (toResponse ())

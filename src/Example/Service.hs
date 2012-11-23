@@ -28,6 +28,7 @@ routeService :: App Response
 routeService =
     do  mUserId <- getUserId'
         body <- getBody
+        liftIO $ Data.ByteString.Lazy.putStrLn body
         case mUserId of
             Nothing  -> ok $ toResponse ("Not logged in!" :: Text) -- should not be ok
             Just uid -> do  locationState :: AcidState (Server.Location.Acid.LocationState Games) <- getAcidState
