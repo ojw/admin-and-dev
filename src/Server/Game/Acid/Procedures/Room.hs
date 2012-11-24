@@ -62,11 +62,4 @@ receive roomId =
     do  gameAcid <- ask
         case getOne $ (rooms . roomState ^$ gameAcid) @= roomId of
              Nothing    -> return []
-             Just rm    -> return $ chat ^$ rm
-
-{-
-lookRooms :: Query (GameAcid p s o) [Room]
-lookRooms =
-    do  gameAcid <- ask
-        return $ toList $ rooms . roomState ^$ gameAcid 
--}
+             Just rm    -> return $ chat ^$ rm 

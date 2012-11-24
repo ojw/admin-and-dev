@@ -16,7 +16,7 @@ import Data.Lens.Template
 import Server.Auth.Acid        ( UserId )
 import Server.Game.Acid.Types.Room  ( RoomId )
 
-newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy)
+newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy, Enum)
 
 data Lobby = Lobby
     { _lobbyId  :: LobbyId

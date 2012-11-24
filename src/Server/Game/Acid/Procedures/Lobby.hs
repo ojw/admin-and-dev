@@ -8,6 +8,7 @@ where
 import Prelude hiding ( (.) )
 import Control.Category     ( (.) )
 import Control.Monad.Reader
+import Control.Monad.State      ( get )
 import Data.IxSet
 import Data.SafeCopy
 import Data.Acid
@@ -20,6 +21,7 @@ import Server.Auth.Acid        ( UserId )
 import Server.Game.Acid.Types.Lobby
 import Server.Game.Acid.Types.Location
 import Server.Game.Acid.Types.Room              ( RoomId )
+import Server.Game.Acid.Procedures.Room         ( createRoom )
 import Server.Game.Acid.GameAcid
 
 getLobbyRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)
@@ -47,3 +49,13 @@ withLobby f lobbyId = do
 
 getLobbyName :: LobbyId -> Query (GameAcid p s o) (Maybe Text)
 getLobbyName = withLobby _name
+
+newLobby :: Text -> Update (GameAcid p s o) LobbyId
+newLobby name = do
+    gameAcid <- get
+    newRoomId <- createRoom
+    let ls = lobbyState ^$ gameAcid
+        newLobbyId = nextLobbyId ^$ ls
+    lobbyState %= (nextLobbyId ^%= succ)
+    lobbyState %= (lobbies ^%= updateIx newLobbyId (Lobby newLobbyId newRoomId name))
+    return newLobbyId
