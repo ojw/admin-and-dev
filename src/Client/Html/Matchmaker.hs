@@ -14,12 +14,11 @@ leaveMatchmakerButton = button ! class_ "matchmaker leave" $ "Back to Lobby"
 
 players :: Html
 players = div ! class_ "matchmaker players" $
-                div ! class_ "lobby label open" $ do
-                    p "Players:"
-                    div ! class_ "lobby players list" $ "[players will go here]"
+            p "Players:"
+            div ! class_ "matchmaker players list" $ "players go here"
 
 matchmaker :: Html
-matchmaker = div ! class_ "lobby" $ do
+matchmaker = div ! class_ "matchmaker" $ do
             players
             chatBox
             leaveMatchmakerButton            
