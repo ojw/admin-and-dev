@@ -13,7 +13,7 @@ import Data.Lens
 import Data.Lens.Template
 
 import Server.Auth.Acid               ( UserId )
-import Server.Game.Acid.Types.Room    ( RoomId )
+import Server.Game.Acid.Types.Room  --  ( RoomId )
 import Server.Game.Acid.Types.Lobby   ( LobbyId )
 
 newtype MatchmakerId = MatchmakerId { _unMatchmakerId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)
@@ -24,12 +24,16 @@ data Matchmaker = Matchmaker
     , _capacity     :: Int
     , _required     :: Int
     , _owner        :: UserId
-    , _roomId       :: RoomId
+    , _chatList     :: ChatList
     , _lobbyId      :: LobbyId -- the lobby that spawned the matchmaker, where to kick players if it closes
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''Matchmaker)
 $(deriveSafeCopy 0 'base ''Matchmaker)
+
+instance ChatRoom Matchmaker where
+    addChat chat = chatList ^%= addChat chat
+    getChats = getChats . _chatList
 
 newtype Owner = Owner { _unOwner :: UserId } deriving (Ord, Eq, Read, Show, Data, Typeable)
 

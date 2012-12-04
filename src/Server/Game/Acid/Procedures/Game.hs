@@ -11,7 +11,7 @@ import Data.IxSet
 import Data.SafeCopy    ( SafeCopy )
 
 import Server.Auth.Acid               ( UserId )
-import Server.Game.Acid.Types.Room    ( RoomId )
+import Server.Game.Acid.Types.Room
 import Server.Game.Acid.Types.Lobby   ( LobbyId)
 import Server.Game.Acid.Types.Game
 import Server.Game.Acid.GameAcid
@@ -27,11 +27,6 @@ withGame f gameId = do
     case getOne $ (_games (gameState ^$ gameAcid)) @= gameId of
         Nothing -> return Nothing
         Just g  -> return $ Just $ f g
-
-getGameRoomId 
-    ::  (Ord p, Ord s, Ord o, Typeable p, Typeable s, Typeable o)
-    =>  GameId -> Query (GameAcid p s o) (Maybe RoomId)
-getGameRoomId gameId = withGame _roomId gameId
 
 getGameLobbyId
     ::  (Ord p, Ord s, Ord o, Typeable p, Typeable s, Typeable o)

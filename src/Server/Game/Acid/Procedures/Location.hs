@@ -15,7 +15,6 @@ import Data.Lens
 
 import Server.Auth.Acid        ( UserId )
 import Server.Game.Acid.Types.Location
-import Server.Game.Acid.Types.Room
 import Server.Game.Acid.Types.Matchmaker
 import Server.Game.Acid.GameAcid
 import Server.Game.Acid.Procedures.Lobby
@@ -40,17 +39,6 @@ getLocation userId = do
 setLocation :: UserId -> Maybe Location -> Update (GameAcid p s o) LocationState
 setLocation userId mLocation = do
     locationState %= setLocation' userId mLocation
-
-getRoomId 
-    ::  (Ord s, Ord p, Ord o, Typeable s, Typeable p, Typeable o)
-    =>  UserId -> Query (GameAcid p s o) (Maybe RoomId)
-getRoomId userId = do
-    gameAcid <- ask
-    case getLocation' userId $ gameAcid ^. locationState of
-        Just (InGame gameId)    -> getGameRoomId gameId
-        Just (InMatchmaker mId) -> getMatchmakerRoomId mId
-        Just (InLobby lobbyId)  -> getLobbyRoomId lobbyId
-        _                       -> return Nothing
 
 -- this probably belongs in Matchmaker, but it pertains to leaving a Matchmaker and avoids circular imports by living here
 deleteMatchmaker :: MatchmakerId -> Update (GameAcid p s o) ()

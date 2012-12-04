@@ -14,22 +14,25 @@ import Data.Text hiding ( empty )
 import Data.Lens.Template
 
 import Server.Auth.Acid        ( UserId )
-import Server.Game.Acid.Types.Room  ( RoomId )
+import Server.Game.Acid.Types.Room -- ( ChatList, ChatRoom )
 
 newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy, Enum)
 
 data Lobby = Lobby
     { _lobbyId  :: LobbyId
-    , _roomId   :: RoomId
+    , _chatList :: ChatList
     , _name     :: Text
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''Lobby)
 $(deriveSafeCopy 0 'base ''Lobby)
 
+instance ChatRoom Lobby where
+    addChat chat = chatList ^%= addChat chat
+    getChats = getChats . _chatList
+
 instance Indexable Lobby where
     empty = ixSet [ ixFun $ \lobby -> [ lobbyId ^$ lobby ]
-                  , ixFun $ \lobby -> [ roomId ^$ lobby ]
                   ]
 
 data LobbyState = LobbyState

@@ -17,7 +17,6 @@ import Data.Lens.Template
 import Server.Auth.Acid   ( UserId )
 
 import Server.Game.Acid.Types.Matchmaker
-import Server.Game.Acid.Types.Room   ( RoomId )
 import Server.Game.Acid.GameAcid
 import Server.Game.Acid.Types.Location
 
@@ -66,9 +65,6 @@ matchmakerHasCapacity matchmakerId = do
 getMatchmakerOwner :: MatchmakerId -> Query (GameAcid p s o) (Maybe UserId)
 getMatchmakerOwner = withMatchmaker _owner
 
-getMatchmakerRoomId :: MatchmakerId -> Query (GameAcid p s o) (Maybe RoomId)
-getMatchmakerRoomId = withMatchmaker _roomId 
-
 getMatchmakerLobbyId :: MatchmakerId -> Query (GameAcid p s o) (Maybe LobbyId)
 getMatchmakerLobbyId = withMatchmaker _lobbyId
 
@@ -79,6 +75,9 @@ lookMatchmakers lobbyId = do
     gameAcid <- ask
     return $ toList $ ((gameAcid ^. matchmakerState) ^. matchmakers) @= lobbyId
 
+
+--UPDATE with changed chat handling
+{-
 createMatchmaker :: UserId -> Int -> Int -> RoomId -> LobbyId -> Update (GameAcid p s o) MatchmakerId
 createMatchmaker userId cap required roomId lobbyId = do
     gameAcid <- get
@@ -86,6 +85,7 @@ createMatchmaker userId cap required roomId lobbyId = do
         do  matchmakerState %= (nextMatchmaker ^%= succ)
             matchmakerState %= (matchmakers ^%= updateIx next (Matchmaker next cap required userId roomId lobbyId))
             return next
+-}
 
 getMatchmaker :: MatchmakerId -> Query (GameAcid p s o) (Maybe Matchmaker)
 getMatchmaker = withMatchmaker id

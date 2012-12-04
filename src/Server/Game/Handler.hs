@@ -18,19 +18,17 @@ import Happstack.Server
 import Util.HasAcidState
 import Server.Profile.Acid as Profile
 import Server.Auth.Acid        ( UserId )
-import Server.Game.Api.Room
-import Server.Game.Api.Lobby
 import Server.Game.Api.Matchmaker
+import Server.Game.Api.Lobby
 import Server.Game.Api.Game
 import Server.Game.Acid.GameAcid
 
-data Domain = DomRoom | DomLobby | DomGame | DomMatchmaker
+data Domain = DomLobby | DomGame | DomMatchmaker
 
 instance FromJSON Domain where
     parseJSON (Object o) =
         do  domain <- o .: "domain"
             case domain of
-                ("room" :: Text)        -> return DomRoom
                 ("lobby" :: Text)       -> return DomLobby
                 ("game" :: Text)        -> return DomGame
                 ("matchmaker" :: Text)  -> return DomMatchmaker
@@ -45,7 +43,6 @@ gameRouter
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
 gameRouter userId gameAcid body =
     case getDomain body of
-        Just DomRoom        -> processRoomRequest userId gameAcid body
         Just DomLobby       -> processLobbyRequest userId gameAcid body
         Just DomMatchmaker  -> processMatchmakerRequest userId gameAcid body
         Just DomGame        -> processGameRequest userId gameAcid body

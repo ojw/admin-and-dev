@@ -20,17 +20,8 @@ import Server.Auth.Acid        ( UserId )
 
 import Server.Game.Acid.Types.Lobby
 import Server.Game.Acid.Types.Location
-import Server.Game.Acid.Types.Room              ( RoomId )
-import Server.Game.Acid.Procedures.Room         ( createRoom )
+--import Server.Game.Acid.Types.Room              ( RoomId )
 import Server.Game.Acid.GameAcid
-
-getLobbyRoomId' :: LobbyId -> LobbyState -> (Maybe RoomId)
-getLobbyRoomId' lobbyId lobbyState = fmap _roomId $ getOne $ (lobbies ^$ lobbyState) @= lobbyId
-
-getLobbyRoomId :: LobbyId -> Query (GameAcid p s o) (Maybe RoomId)
-getLobbyRoomId lobbyId = do
-    gameAcid <- ask
-    return $ getLobbyRoomId' lobbyId (gameAcid ^. lobbyState)
 
 getLobbyMemberIds :: LobbyId -> Query (GameAcid p s o) [UserId]
 getLobbyMemberIds lobbyId = do
@@ -50,6 +41,8 @@ withLobby f lobbyId = do
 getLobbyName :: LobbyId -> Query (GameAcid p s o) (Maybe Text)
 getLobbyName = withLobby _name
 
+-- UPDATE with new rooms
+{-
 newLobby :: Text -> Update (GameAcid p s o) LobbyId
 newLobby name = do
     gameAcid <- get
@@ -59,3 +52,4 @@ newLobby name = do
     lobbyState %= (nextLobbyId ^%= succ)
     lobbyState %= (lobbies ^%= updateIx newLobbyId (Lobby newLobbyId newRoomId name))
     return newLobbyId
+-}

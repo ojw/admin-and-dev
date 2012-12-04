@@ -39,8 +39,8 @@ import Server.Game.Acid.Procedures
 import Server.Game.Json.Matchmaker
  
 data MatchmakerRequest
-    = RequestCreate Int Int
-    | RequestJoin MatchmakerId
+    -- = RequestCreate Int Int
+    = RequestJoin MatchmakerId
     | RequestLeave
     | RequestLook
     deriving (Ord, Eq, Data, Typeable, Read, Show)
@@ -50,9 +50,11 @@ instance FromJSON MatchmakerRequest where
         do
             (rqType :: Text) <- o .: "type"
             case rqType of
+                {-
                 "create"    -> do   cap <- o .: "capacity"
                                     required <- o .: "required"
                                     return $ RequestCreate (read cap :: Int) (read required :: Int)
+                -}
                 "join"      -> o .: "matchmaker" >>= \matchmakerId -> return $ RequestJoin (read matchmakerId :: MatchmakerId)
                 "leave"     -> return RequestLeave
                 "look"      -> return RequestLook
@@ -71,11 +73,13 @@ runMatchmakerAPI
     =>  UserId -> AcidState (GameAcid p s o) -> MatchmakerRequest -> m Response
 runMatchmakerAPI userId gameAcid request =
         case request of
-            RequestCreate cap required  -> handleRequestCreate userId gameAcid cap required
+            --RequestCreate cap required  -> handleRequestCreate userId gameAcid cap required
             RequestJoin mId             -> handleRequestJoin userId gameAcid mId
             RequestLeave                -> handleRequestLeave userId gameAcid
             RequestLook                 -> handleRequestLook userId gameAcid
- 
+
+-- UPDATE with new room 
+{-
 handleRequestCreate 
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)
     =>  UserId -> AcidState (GameAcid p s o) -> Int -> Int -> m Response
@@ -88,6 +92,7 @@ handleRequestCreate userId gameAcid cap required = do
             update' gameAcid (SetLocation userId (Just (InMatchmaker matchmakerId)))
             ok $ toResponse $ ("Success" :: Text) -- stupid, should return matchmaker data to display
         _                       -> ok $ toResponse $ ("You must be in a lobby." :: Text)
+-}
 
 handleRequestJoin
     ::  (MonadIO m, Happstack m, Typeable p, Typeable s, Typeable o, SafeCopy p, SafeCopy s, SafeCopy o)

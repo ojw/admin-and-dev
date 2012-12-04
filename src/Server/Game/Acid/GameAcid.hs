@@ -10,7 +10,7 @@ module Server.Game.Acid.GameAcid
 , LobbyId(..)
 , MatchmakerState(..)
 , GameState(..)
-, locationState, lobbyState, defaultLobby, matchmakerState, roomState, gameState
+, locationState, lobbyState, defaultLobby, matchmakerState, gameState
 )
 
 where
@@ -36,7 +36,6 @@ data GameAcid player state outcome = GameAcid
     , _lobbyState       :: LobbyState
     , _defaultLobby     :: Maybe LobbyId
     , _matchmakerState  :: MatchmakerState
-    , _roomState        :: RoomState
     , _gameState        :: GameState player state outcome
     }
 
@@ -50,6 +49,6 @@ deriving instance (Data player, Data state, Data outcome, Ord player, Ord state,
 deriving instance Typeable3 GameAcid
 
 instance (SafeCopy (GameState player state outcome)) => SafeCopy (GameAcid player state outcome) where
-    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState roomState gameState) = 
-        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut roomState; safePut gameState
-    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+    putCopy (GameAcid locationState lobbyState defaultLobby matchmakerState gameState) = 
+        contain $ do safePut locationState; safePut lobbyState; safePut defaultLobby; safePut matchmakerState; safePut gameState
+    getCopy = contain $ GameAcid <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet

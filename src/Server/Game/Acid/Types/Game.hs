@@ -19,7 +19,7 @@ import Data.ByteString.Lazy.Char8 as L ( ByteString, pack )
 
 import Util.HasAcidState
 import Server.Auth.Acid               ( UserId )
-import Server.Game.Acid.Types.Room    ( RoomId )
+import Server.Game.Acid.Types.Room
 import Server.Game.Acid.Types.Lobby   ( LobbyId )
 import Server.Game.Acid.Types.Options ( Options )
 
@@ -144,7 +144,7 @@ data Game player state outcome = Game
     , _options  :: Options
     , _state    :: Either state outcome
     , _players  :: [(UserId,player)]
-    , _roomId   :: RoomId
+    , _chatList :: ChatList
     , _lobbyId  :: LobbyId
     }
 
@@ -155,10 +155,13 @@ deriving instance (Show player, Show state, Show outcome) => Show (Game player s
 deriving instance (Data player, Data state, Data outcome) => Data (Game player state outcome)
 deriving instance Typeable3 Game
 
+instance ChatRoom (Game player state outcome) where
+    addChat chat game = game { _chatList = addChat chat (_chatList game) }
+    getChats = getChats . _chatList
+
 instance Indexable (Game player state outcome) where
     empty = ixSet [ ixFun $ \game -> [ _gameId game ]
                   , ixFun $ \game -> [ _lobbyId game ]
-                  , ixFun $ \game -> [ _roomId game ]
                   , ixFun $ \game -> map fst (_players game)
                   ]
 

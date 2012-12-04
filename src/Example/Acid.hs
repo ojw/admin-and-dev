@@ -23,7 +23,6 @@ import Control.Exception            ( bracket )
 
 import Util.HasAcidState
 import Server.Auth.Acid
-import Server.Game.Acid.Types.Room ( RoomState, initialRoomState, RoomId(..) )
 import Server.Location.Acid
 import Server.Game.Acid.GameAcid hiding ( LocationState )
 

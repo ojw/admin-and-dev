@@ -21,10 +21,10 @@ import Data.Text as Text
 
 import Server.Profile.Acid            ( UserName(..) )
 import Server.Auth.Auth               ( UserId(..) )
-import Server.Game.Acid.Types.Room    ( Room(..), RoomId(..), Chat(..) )
+import Server.Game.Acid.Types.Room
 
 instance ToJSON Chat where
     toJSON (Chat ((UserName sender), message)) = object [ "sender" .= sender, "message" .= message ]
 
-instance ToJSON Room where
-    toJSON Room{..} = object [ "id" .= _unRoomId _roomId ] 
+instance ToJSON ChatList where
+    toJSON (ChatList chats) = object [ "chat" .= chats ]
