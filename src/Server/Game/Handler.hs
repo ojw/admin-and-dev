@@ -7,6 +7,7 @@ module Server.Game.Handler
 where
 
 import Control.Monad ( mzero )
+import Control.Monad.Trans ( liftIO )
 import Data.Acid
 import Data.SafeCopy
 import Data.Data
@@ -43,10 +44,12 @@ getDomain = decode
 gameRouter 
     ::  (Happstack m, SafeCopy p, SafeCopy s, SafeCopy o, Typeable p, Typeable s, Typeable o, Ord p, Ord s, Ord o, HasAcidState m Profile.ProfileState)
     =>  UserId -> AcidState (GameAcid p s o) -> ByteString -> m Response
-gameRouter userId gameAcid body =
-    case getDomain body of
+gameRouter userId gameAcid body = do
+    response <- case getDomain body of
         Just DomRoom        -> processRoomRequest userId gameAcid body
         Just DomLobby       -> processLobbyRequest userId gameAcid body
         Just DomMatchmaker  -> processMatchmakerRequest userId gameAcid body
         Just DomGame        -> processGameRequest userId gameAcid body
         Nothing             -> ok $ toResponse $ ("Request lacks domain." :: Text)
+    liftIO $ Prelude.putStrLn $ show response
+    return response

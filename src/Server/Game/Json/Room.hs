@@ -27,4 +27,5 @@ instance ToJSON Chat where
     toJSON (Chat ((UserName sender), message)) = object [ "sender" .= sender, "message" .= message ]
 
 instance ToJSON Room where
-    toJSON Room{..} = object [ "id" .= _unRoomId _roomId ] 
+    toJSON Room{..} = object [ "id" .= _unRoomId _roomId
+                             , "chat" .= _chat ] 

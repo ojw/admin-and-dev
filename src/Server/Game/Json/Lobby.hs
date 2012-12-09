@@ -31,12 +31,13 @@ import Server.Game.Acid.Types.Matchmaker ( Matchmaker, MatchmakerId(..) )
 import Server.Game.Acid.Procedures
 
 instance ToJSON LobbyDisplay where
-    toJSON lobby = object [ "id" .= (_unLobbyId $ _LobbyId lobby)
+    toJSON lobby = object [ "id" .= (_unLobbyId $ _lobbyId lobby)
+                          , "name" .= (_name lobby)
                           , "members" .= map _unUserName (_members lobby)
                           ]
 
 data LobbyDisplay = LobbyDisplay
-    { _LobbyId      :: LobbyId
+    { _lobbyId      :: LobbyId
     , _members      :: [UserName]
     , _name         :: Text
     }
