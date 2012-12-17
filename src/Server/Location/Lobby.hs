@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs, TemplateHaskell, GeneralizedNewtypeDeriving,
     OverloadedStrings, StandaloneDeriving, TypeFamilies, ScopedTypeVariables #-}
 
-module Server.Game.Acid.Types.Lobby
+module Server.Location.Lobby
 
 where
 
@@ -14,7 +14,7 @@ import Data.Text hiding ( empty )
 import Data.Lens.Template
 
 import Server.Auth.Acid        ( UserId )
-import Server.Game.Acid.Types.Room -- ( ChatList, ChatRoom )
+import Server.Location.Chat -- ( ChatList, ChatRoom )
 
 newtype LobbyId = LobbyId { _unLobbyId :: Int } deriving (Eq, Ord, Read, Show, Data, Typeable, SafeCopy, Enum)
 
@@ -23,6 +23,8 @@ data Lobby = Lobby
     , _chatList :: ChatList
     , _name     :: Text
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
+
+type LobbyView = Lobby
 
 $(makeLens ''Lobby)
 $(deriveSafeCopy 0 'base ''Lobby)

@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators #-}
 
-module Server.Game.Acid.Types.Room
+module Server.Location.Chat
 
 where
 

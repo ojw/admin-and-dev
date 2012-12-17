@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell, DeriveDataTypeable, GeneralizedNewtypeDeriving, TypeFamilies #-}
 
-module Server.Game.Acid.Types.Matchmaker where
+module Server.Location.Matchmaker where
 
 import Data.Data
 import Data.Functor         ( (<$>) )
@@ -13,8 +13,8 @@ import Data.Lens
 import Data.Lens.Template
 
 import Server.Auth.Acid               ( UserId )
-import Server.Game.Acid.Types.Room  --  ( RoomId )
-import Server.Game.Acid.Types.Lobby   ( LobbyId )
+import Server.Location.Chat
+import Server.Location.Lobby   ( LobbyId )
 
 newtype MatchmakerId = MatchmakerId { _unMatchmakerId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)
 $(makeLens ''MatchmakerId)
