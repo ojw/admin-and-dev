@@ -4,7 +4,7 @@
 
 module Server.Location.Location where
 
-import Control.Monad.State
+import Control.Monad.State hiding ( join )
 import Data.Functor
 
 import Data.IxSet hiding ( delete )
@@ -13,11 +13,12 @@ import Data.SafeCopy
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
+import Data.ByteString.Lazy.Char8 hiding ( map, length )
 
 import Server.Auth.Acid             ( UserId )
-import Server.Location.Lobby        ( LobbyState(..), LobbyId )
-import Server.Location.Matchmaker   ( MatchmakerState, MatchmakerId )
-import Server.Location.Game         ( GameState, GameId )
+import Server.Location.Lobby        --( LobbyState(..), LobbyId )
+import Server.Location.Matchmaker   --( MatchmakerState, MatchmakerId )
+import Server.Location.Game         --( GameState, GameId )
 import Server.Location.Chat         ( ChatRoom )
 
 data LocationId = Nowhere | InLobby LobbyId | InMatchmaker MatchmakerId | InGame GameId
@@ -55,7 +56,7 @@ data LocationState = LocationState
 $(makeLens ''LocationState)
 $(deriveSafeCopy 0 'base ''LocationState)
 
-newtype LocationAction a = LocationAction { _unLocationAction :: State LocationState a } deriving (Monad, MonadState LocationState)
+newtype LocationAction a = LocationAction { _unLocationAction :: State LocationState a } deriving (Functor, Monad, MonadState LocationState)
 
 -- the internal API for getting / setting users' location data
 
@@ -89,40 +90,69 @@ getMembers locationId = do
     locationState <- get
     LocationAction $ return $ getMembers' locationId (_locations locationState)
 
+doNothing :: LocationAction ()
+doNothing = LocationAction $ return ()
+
+returnLocationAction :: a -> LocationAction a
+returnLocationAction = LocationAction . return
+
+lookupLobby :: LobbyId -> LocationAction (Maybe Lobby)
+lookupLobby lobbyId = do
+    lobbyState <- gets _lobbyState
+    LocationAction $ return $ getOne $ (_lobbies lobbyState) @= lobbyId
+
+lookupMatchmaker :: MatchmakerId -> LocationAction (Maybe Matchmaker)
+lookupMatchmaker matchmakerId = do
+    matchmakerState <- gets _matchmakerState
+    LocationAction $ return $ getOne $ (_matchmakers matchmakerState) @= matchmakerId
+
+lookupGame :: GameId -> LocationAction (Maybe Game)
+lookupGame gameId = do
+    gameState <- gets _gameState
+    LocationAction $ return $ getOne $ (_games gameState) @= gameId
+
 -- internal API for manipulating individual locations
 
-class (ChatRoom location) => Location location view where
-    join    :: UserId -> location -> LocationAction Bool -- True to join, False to prevent join
-    leave   :: UserId -> location -> LocationAction Bool -- not even sure what the Bool here is
-    look    :: location -> view
+class (ChatRoom location) => Location location where
+    join    :: UserId -> location -> LocationAction ()
+    leave   :: UserId -> location -> LocationAction ()
+    look    :: location -> String
     blank   :: location
-    delete  :: location -> LocationAction Bool -- True to delete, False to prevent deletion
+    delete  :: location -> LocationAction Bool
 
-    join _ _ = return True
-    leave _ _ = return True
-    delete _ = return True
+instance Location Lobby where
+    join userId lobby = setLocation userId $ InLobby $ Server.Location.Lobby._lobbyId lobby
+    leave userId lobby = setLocation userId Nowhere
+    look lobby = "FOO"
+    blank = emptyLobby "New Lobby"
+    delete lobby = returnLocationAction True
 
-class (Location location view) => LocationHolder locationHolder location locationId view where
-    lookup  :: locationId -> locationHolder -> Maybe location
-    insert  :: location -> locationHolder -> locationHolder
-    update  :: locationId -> location -> locationHolder -> locationHolder
-    nextId  :: locationHolder -> locationId
-    incId   :: locationHolder -> locationHolder
-
-{-
-deleteLocation :: LocationId -> LocationAction Bool
-deleteLocation locationId@(InLobby lobbyId) = do
-    locationState <- get
-    shouldDelete <- delete locationId
-    if shouldDelete 
-        then do
-            lobbyState %= \(LobbyState u lobbies) -> (LobbyState u (deleteIx lobbyId lobbies))
-            LocationAction $ return shouldDelete
-        else
-            LocationAction $ return shouldDelete
--}
-
--- provided by library based on Loc definition:
--- get, put, modify, create, delete
--- modify  :: locId -> (loc -> loc) -> LocationAction loc -- this is provided by framework for any Loc
--- create  :: LocationAction locId -- calls blank, stores that
+instance Location Matchmaker where
+    join userId matchmaker = do
+        let newLocation = InMatchmaker (_matchmakerId matchmaker)
+        members <- getMembers newLocation
+        if length members >= (_capacity matchmaker)
+            then doNothing
+            else setLocation userId newLocation
+    leave userId matchmaker = do
+        let currentLocation = InMatchmaker (_matchmakerId matchmaker)
+            owner = _owner matchmaker
+        mExitLobby <- lookupLobby (Server.Location.Matchmaker._lobbyId matchmaker)
+        case mExitLobby of
+            Nothing -> setLocation userId Nowhere -- something has gone wrong, this is reasonable fallback
+            Just exitLobby ->
+                if userId /= owner
+                    then do
+                        join userId exitLobby
+                    else do
+                        members <- getMembers currentLocation
+                        mapM_ (\uid -> join uid exitLobby) members
+    look matchmaker = "BAR"
+    blank = stupidEmptyMatchmaker
+    delete matchmaker = do
+        mExitLobby <- lookupLobby (Server.Location.Matchmaker._lobbyId matchmaker)
+        members <- getMembers (InMatchmaker (_matchmakerId matchmaker))
+        case mExitLobby of
+            Nothing -> mapM_ (\uid -> setLocation uid Nowhere) members
+            Just exitLobby -> mapM_ (\uid -> join uid exitLobby) members
+        returnLocationAction True

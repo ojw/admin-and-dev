@@ -20,7 +20,17 @@ data Game = Game
     , _gameId    :: GameId
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-type GameState = Game
-
 $(makeLens ''Game)
 $(deriveSafeCopy 0 'base ''Game)
+
+instance Indexable Game where
+    empty = ixSet [ ixFun $ \game -> [ gameId ^$ game ]
+                  ]
+
+data GameState = GameState
+    { _nextGameId   :: GameId
+    , _games        :: IxSet Game
+    } deriving (Ord, Eq, Read, Show, Data, Typeable)
+
+$(makeLens ''GameState)
+$(deriveSafeCopy 0 'base ''GameState)

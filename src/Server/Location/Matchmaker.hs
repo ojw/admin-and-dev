@@ -12,9 +12,9 @@ import Data.IxSet
 import Data.Lens
 import Data.Lens.Template
 
-import Server.Auth.Acid               ( UserId )
+import Server.Auth.Acid               ( UserId(..) )
 import Server.Location.Chat
-import Server.Location.Lobby   ( LobbyId )
+import Server.Location.Lobby   ( LobbyId(..) )
 
 newtype MatchmakerId = MatchmakerId { _unMatchmakerId :: Int } deriving (Ord, Eq, Read, Show, Data, Typeable, Enum, SafeCopy)
 $(makeLens ''MatchmakerId)
@@ -27,6 +27,9 @@ data Matchmaker = Matchmaker
     , _chatList     :: ChatList
     , _lobbyId      :: LobbyId -- the lobby that spawned the matchmaker, where to kick players if it closes
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
+
+stupidEmptyMatchmaker :: Matchmaker
+stupidEmptyMatchmaker = Matchmaker (MatchmakerId 0) 2 2 (UserId 0) emptyChatList (LobbyId 0)
 
 $(makeLens ''Matchmaker)
 $(deriveSafeCopy 0 'base ''Matchmaker)

@@ -45,5 +45,8 @@ data LobbyState = LobbyState
 initialLobbyState :: LobbyState
 initialLobbyState = LobbyState (LobbyId 1) empty
 
+emptyLobby :: Text -> Lobby 
+emptyLobby name = Lobby (LobbyId 0) emptyChatList name
+
 $(makeLens ''LobbyState)
 $(deriveSafeCopy 0 'base ''LobbyState) 
