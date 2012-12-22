@@ -16,9 +16,9 @@ import Data.Lens.Template
 import Data.ByteString.Lazy.Char8 hiding ( map, length )
 
 import Server.Auth.Acid             ( UserId )
-import Server.Location.Lobby        --( LobbyState(..), LobbyId )
-import Server.Location.Matchmaker   --( MatchmakerState, MatchmakerId )
-import Server.Location.Game         --( GameState, GameId )
+import Server.Location.Lobby as Lobby --( LobbyState(..), LobbyId )
+import Server.Location.Matchmaker as Matchmaker  --( MatchmakerState, MatchmakerId )
+import Server.Location.Game as Game        --( GameState, GameId )
 import Server.Location.Chat         ( ChatRoom )
 
 data LocationId = Nowhere | InLobby LobbyId | InMatchmaker MatchmakerId | InGame GameId
@@ -116,12 +116,12 @@ lookupGame gameId = do
 class (ChatRoom location) => Location location where
     join    :: UserId -> location -> LocationAction ()
     leave   :: UserId -> location -> LocationAction ()
-    look    :: location -> String
+    look    :: location -> ByteString
     blank   :: location
     delete  :: location -> LocationAction Bool
 
 instance Location Lobby where
-    join userId lobby = setLocation userId $ InLobby $ Server.Location.Lobby._lobbyId lobby
+    join userId lobby = setLocation userId $ InLobby $ Lobby._lobbyId lobby
     leave userId lobby = setLocation userId Nowhere
     look lobby = "FOO"
     blank = emptyLobby "New Lobby"
@@ -129,15 +129,15 @@ instance Location Lobby where
 
 instance Location Matchmaker where
     join userId matchmaker = do
-        let newLocation = InMatchmaker (_matchmakerId matchmaker)
+        let newLocation = InMatchmaker (Matchmaker._matchmakerId matchmaker)
         members <- getMembers newLocation
         if length members >= (_capacity matchmaker)
             then doNothing
             else setLocation userId newLocation
     leave userId matchmaker = do
-        let currentLocation = InMatchmaker (_matchmakerId matchmaker)
-            owner = _owner matchmaker
-        mExitLobby <- lookupLobby (Server.Location.Matchmaker._lobbyId matchmaker)
+        let currentLocation = InMatchmaker (Matchmaker._matchmakerId matchmaker)
+            owner = Matchmaker._owner matchmaker
+        mExitLobby <- lookupLobby (Matchmaker._lobbyId matchmaker)
         case mExitLobby of
             Nothing -> setLocation userId Nowhere -- something has gone wrong, this is reasonable fallback
             Just exitLobby ->
@@ -150,8 +150,24 @@ instance Location Matchmaker where
     look matchmaker = "BAR"
     blank = stupidEmptyMatchmaker
     delete matchmaker = do
-        mExitLobby <- lookupLobby (Server.Location.Matchmaker._lobbyId matchmaker)
-        members <- getMembers (InMatchmaker (_matchmakerId matchmaker))
+        mExitLobby <- lookupLobby (Matchmaker._lobbyId matchmaker)
+        members <- getMembers (InMatchmaker (Matchmaker._matchmakerId matchmaker))
+        case mExitLobby of
+            Nothing -> mapM_ (\uid -> setLocation uid Nowhere) members
+            Just exitLobby -> mapM_ (\uid -> join uid exitLobby) members
+        returnLocationAction True
+
+instance Location Game where
+    join userId game = do -- joining isn't the same as starting, doesn't mean you're PLAYING the game
+        setLocation userId (InGame (_gameId game))        
+    leave userId game = do
+        -- something has to happen outside of location
+        setLocation userId (InLobby (Game._lobbyId game))
+    look game = "BLA!"
+    blank = stupidEmptyGame
+    delete game = do
+        mExitLobby <- lookupLobby (Game._lobbyId game)
+        members <- getMembers (InMatchmaker (Game._matchmakerId game))
         case mExitLobby of
             Nothing -> mapM_ (\uid -> setLocation uid Nowhere) members
             Just exitLobby -> mapM_ (\uid -> join uid exitLobby) members
