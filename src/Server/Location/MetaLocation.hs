@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types, StandaloneDeriving, DeriveDataTypeable, TypeFamilies #-}
 
-module Server.Location.Acid where
+module Server.Location.MetaLocation where
 
 import Control.Monad.State  ( get )
 import Control.Monad.Reader ( ask )
