@@ -114,15 +114,19 @@ lookupGame gameId = do
 -- internal API for manipulating individual locations
 
 class (ChatRoom location) => Location location where
-    join    :: UserId -> location -> LocationAction ()
-    leave   :: UserId -> location -> LocationAction ()
+    join    :: UserId -> location -> LocationAction Bool -- whether join was successful
+    leave   :: UserId -> location -> LocationAction Bool -- whether leave was successful
     look    :: location -> ByteString
     blank   :: location
-    delete  :: location -> LocationAction Bool
+    delete  :: location -> LocationAction Bool -- whether or not to actually delete location
 
 instance Location Lobby where
-    join userId lobby = setLocation userId $ InLobby $ Lobby._lobbyId lobby
-    leave userId lobby = setLocation userId Nowhere
+    join userId lobby = do
+        setLocation userId $ InLobby $ Lobby._lobbyId lobby
+        returnLocationAction True
+    leave userId lobby = do
+        setLocation userId Nowhere
+        returnLocationAction True
     look lobby = "FOO"
     blank = emptyLobby "New Lobby"
     delete lobby = returnLocationAction True
@@ -134,12 +138,15 @@ instance Location Matchmaker where
         if length members >= (_capacity matchmaker)
             then doNothing
             else setLocation userId newLocation
+        returnLocationAction True
     leave userId matchmaker = do
         let currentLocation = InMatchmaker (Matchmaker._matchmakerId matchmaker)
             owner = Matchmaker._owner matchmaker
         mExitLobby <- lookupLobby (Matchmaker._lobbyId matchmaker)
         case mExitLobby of
-            Nothing -> setLocation userId Nowhere -- something has gone wrong, this is reasonable fallback
+            Nothing -> do 
+                setLocation userId Nowhere -- something has gone wrong, this is reasonable fallback
+                returnLocationAction True
             Just exitLobby ->
                 if userId /= owner
                     then do
@@ -147,6 +154,7 @@ instance Location Matchmaker where
                     else do
                         members <- getMembers currentLocation
                         mapM_ (\uid -> join uid exitLobby) members
+                        returnLocationAction True
     look matchmaker = "BAR"
     blank = stupidEmptyMatchmaker
     delete matchmaker = do
@@ -160,9 +168,11 @@ instance Location Matchmaker where
 instance Location Game where
     join userId game = do -- joining isn't the same as starting, doesn't mean you're PLAYING the game
         setLocation userId (InGame (_gameId game))        
+        returnLocationAction True
     leave userId game = do
         -- something has to happen outside of location
         setLocation userId (InLobby (Game._lobbyId game))
+        returnLocationAction True
     look game = "BLA!"
     blank = stupidEmptyGame
     delete game = do
