@@ -13,16 +13,18 @@ import Data.SafeCopy
 import Data.Data
 import Data.Lens
 import Data.Lens.Template
-import Data.ByteString.Lazy.Char8 hiding ( map, length )
+import Data.ByteString.Lazy.Char8 hiding ( map, length, filter )
 
 import Server.Auth.Acid             ( UserId )
 import Server.Location.Lobby as Lobby --( LobbyState(..), LobbyId )
 import Server.Location.Matchmaker as Matchmaker  --( MatchmakerState, MatchmakerId )
 import Server.Location.Game as Game        --( GameState, GameId )
-import Server.Location.Chat         ( ChatRoom )
+import Server.Location.Chat
 
 data LocationId = Nowhere | InLobby LobbyId | InMatchmaker MatchmakerId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)
+
+data NoLocation = NoLocation
 
 $(deriveSafeCopy 0 'base ''LocationId)
 
@@ -41,8 +43,6 @@ instance Indexable UserLocation where
 
 newtype UserLocations = UserLocations { _userLocations :: IxSet UserLocation }
     deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
-
--- add lookup function that turns Nothing into Nowhere, Just loc to loc
 
 $(makeLens ''UserLocations)
 
@@ -113,50 +113,61 @@ lookupGame gameId = do
 
 -- internal API for manipulating individual locations
 
-class (ChatRoom location) => Location location where
-    join    :: UserId -> location -> LocationAction Bool -- whether join was successful
-    leave   :: UserId -> location -> LocationAction Bool -- whether leave was successful
-    look    :: location -> ByteString
-    blank   :: location
+class Location location where
+    join    :: UserId -> location -> LocationAction Bool -- whether join is allowed
+    leave   :: UserId -> location -> LocationAction Bool -- whether leave is allowed
+    look    :: location -> LocationAction ByteString
+    blank   :: LocationAction location
     delete  :: location -> LocationAction Bool -- whether or not to actually delete location
+    exit    :: location -> LocationAction LocationId
+
+instance ChatRoom NoLocation where
+    addChat chat NoLocation = NoLocation
+    getChats NoLocation = []
+
+instance Location NoLocation where
+    join userId NoLocation = do
+        returnLocationAction True
+    leave userId NoLocation = returnLocationAction True
+    look NoLocation = returnLocationAction "Quux"
+    blank = returnLocationAction NoLocation
+    delete NoLocation = returnLocationAction False
+    exit _ = returnLocationAction Nowhere
 
 instance Location Lobby where
     join userId lobby = do
-        setLocation userId $ InLobby $ Lobby._lobbyId lobby
         returnLocationAction True
     leave userId lobby = do
-        setLocation userId Nowhere
         returnLocationAction True
-    look lobby = "FOO"
-    blank = emptyLobby "New Lobby"
+    look lobby = returnLocationAction "FOO"
+    blank = returnLocationAction $ emptyLobby "New Lobby"
     delete lobby = returnLocationAction True
+    exit _ = returnLocationAction Nowhere
 
 instance Location Matchmaker where
     join userId matchmaker = do
         let newLocation = InMatchmaker (Matchmaker._matchmakerId matchmaker)
         members <- getMembers newLocation
         if length members >= (_capacity matchmaker)
-            then doNothing
-            else setLocation userId newLocation
-        returnLocationAction True
+            then returnLocationAction False
+            else returnLocationAction True
     leave userId matchmaker = do
         let currentLocation = InMatchmaker (Matchmaker._matchmakerId matchmaker)
             owner = Matchmaker._owner matchmaker
         mExitLobby <- lookupLobby (Matchmaker._lobbyId matchmaker)
         case mExitLobby of
             Nothing -> do 
-                setLocation userId Nowhere -- something has gone wrong, this is reasonable fallback
-                returnLocationAction True
+                returnLocationAction True -- something has gone wrong, this is reasonable fallback
             Just exitLobby ->
                 if userId /= owner
                     then do
-                        join userId exitLobby
+                        returnLocationAction True
                     else do
                         members <- getMembers currentLocation
-                        mapM_ (\uid -> join uid exitLobby) members
+                        mapM_ (\uid -> leave uid matchmaker) $ filter (/= userId) members
                         returnLocationAction True
-    look matchmaker = "BAR"
-    blank = stupidEmptyMatchmaker
+    look matchmaker = returnLocationAction "BAR"
+    blank = returnLocationAction stupidEmptyMatchmaker
     delete matchmaker = do
         mExitLobby <- lookupLobby (Matchmaker._lobbyId matchmaker)
         members <- getMembers (InMatchmaker (Matchmaker._matchmakerId matchmaker))
@@ -164,17 +175,19 @@ instance Location Matchmaker where
             Nothing -> mapM_ (\uid -> setLocation uid Nowhere) members
             Just exitLobby -> mapM_ (\uid -> join uid exitLobby) members
         returnLocationAction True
+    exit = returnLocationAction . InLobby . Matchmaker._lobbyId
 
 instance Location Game where
     join userId game = do -- joining isn't the same as starting, doesn't mean you're PLAYING the game
-        setLocation userId (InGame (_gameId game))        
         returnLocationAction True
     leave userId game = do
-        -- something has to happen outside of location
-        setLocation userId (InLobby (Game._lobbyId game))
+        -- only a spectator can just "leave"
+        -- a player has to "quit"
+        -- this needs to look somewhere outside the scope of LocationAction
+        -- so revision is needed here
         returnLocationAction True
-    look game = "BLA!"
-    blank = stupidEmptyGame
+    look game = returnLocationAction "BLA!"
+    blank = returnLocationAction stupidEmptyGame
     delete game = do
         mExitLobby <- lookupLobby (Game._lobbyId game)
         members <- getMembers (InMatchmaker (Game._matchmakerId game))
@@ -182,3 +195,114 @@ instance Location Game where
             Nothing -> mapM_ (\uid -> setLocation uid Nowhere) members
             Just exitLobby -> mapM_ (\uid -> join uid exitLobby) members
         returnLocationAction True
+    exit = returnLocationAction . InLobby . Game._lobbyId
+
+instance Location LocationId where
+    join userId locationId =
+        case locationId of
+            Nowhere -> join userId NoLocation
+            InLobby lobbyId -> do
+                mLobby <- lookupLobby lobbyId
+                case mLobby of
+                    Nothing -> returnLocationAction False
+                    Just lobby -> join userId lobby
+            InMatchmaker matchmakerId -> do
+                mMatchmaker <- lookupMatchmaker matchmakerId
+                case mMatchmaker of
+                    Nothing -> returnLocationAction False
+                    Just matchmaker -> join userId matchmaker
+            InGame gameId -> do
+                mGame <- lookupGame gameId
+                case mGame of
+                    Nothing -> returnLocationAction False
+                    Just game -> join userId game
+    leave userId locationId =
+        case locationId of
+            Nowhere -> leave userId NoLocation
+            InLobby lobbyId -> do
+                mLobby <- lookupLobby lobbyId
+                case mLobby of
+                    Nothing -> returnLocationAction False
+                    Just lobby -> leave userId lobby
+            InMatchmaker matchmakerId -> do
+                mMatchmaker <- lookupMatchmaker matchmakerId
+                case mMatchmaker of
+                    Nothing -> returnLocationAction False
+                    Just matchmaker -> leave userId matchmaker
+            InGame gameId -> do
+                mGame <- lookupGame gameId
+                case mGame of
+                    Nothing -> returnLocationAction False
+                    Just game -> leave userId game
+    look locationId =
+        case locationId of
+            Nowhere -> look NoLocation
+            InLobby lobbyId -> do
+                mLobby <- lookupLobby lobbyId
+                case mLobby of
+                    Nothing -> returnLocationAction "Nothing."
+                    Just lobby -> look lobby
+            InMatchmaker matchmakerId -> do
+                mMatchmaker <- lookupMatchmaker matchmakerId
+                case mMatchmaker of
+                    Nothing -> returnLocationAction "Nothing."
+                    Just matchmaker -> look matchmaker
+            InGame gameId -> do
+                mGame <- lookupGame gameId
+                case mGame of
+                    Nothing -> returnLocationAction "Nothing."
+                    Just game -> look game
+    blank = returnLocationAction Nowhere
+    delete locationId =
+        case locationId of
+            Nowhere -> delete NoLocation
+            InLobby lobbyId -> do
+                mLobby <- lookupLobby lobbyId
+                case mLobby of
+                    Nothing -> returnLocationAction False
+                    Just lobby -> delete lobby
+            InMatchmaker matchmakerId -> do
+                mMatchmaker <- lookupMatchmaker matchmakerId
+                case mMatchmaker of
+                    Nothing -> returnLocationAction False
+                    Just matchmaker -> delete matchmaker
+            InGame gameId -> do
+                mGame <- lookupGame gameId
+                case mGame of
+                    Nothing -> returnLocationAction False
+                    Just game -> delete game
+    exit locationId =
+        case locationId of
+            Nowhere -> exit NoLocation
+            InLobby lobbyId -> do
+                mLobby <- lookupLobby lobbyId
+                case mLobby of
+                    Nothing -> returnLocationAction Nowhere
+                    Just lobby -> exit lobby
+            InMatchmaker matchmakerId -> do
+                mMatchmaker <- lookupMatchmaker matchmakerId
+                case mMatchmaker of
+                    Nothing -> returnLocationAction Nowhere
+                    Just matchmaker -> exit matchmaker
+            InGame gameId -> do
+                mGame <- lookupGame gameId
+                case mGame of
+                    Nothing -> returnLocationAction Nowhere
+                    Just game -> exit game
+    
+
+data LocationApi
+    = Join UserId LocationId
+    | Leave UserId LocationId
+    | Create UserId LocationId
+    | Delete UserId LocationId
+    | Look UserId LocationId
+    | Send UserId Chat
+    | Receive UserId 
+
+runLocationApi :: LocationApi -> LocationAction ()
+runLocationApi api = 
+    case api of
+        Join userId locationId -> join userId locationId >> doNothing
+        Leave userId locationId -> leave userId locationId >> doNothing
+        Look userId locationId -> look locationId >> doNothing
