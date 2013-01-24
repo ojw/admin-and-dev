@@ -7,6 +7,7 @@ import Control.Monad hiding ( join )
 import Data.Functor
 import Control.Monad.State hiding ( join )
 import Control.Monad.Reader hiding ( join )
+import Control.Monad.Error hiding ( join )
 import Data.SafeCopy
 import Data.Data
 import Data.Acid
@@ -45,15 +46,17 @@ data LocationState = LocationState
 
 $(makeLens ''LocationState)
 
-class (Profile p, Functor m, MonadState LocationState m, MonadReader p m) => LocationAction p m
+data LocationError = LocationDoesNotExist
+
+class (Profile p, MonadError LocationError m, Functor m, MonadState LocationState m, MonadReader p m) => LocationAction p m
 
 setLocation :: MonadState LocationState m => LocationId -> UserId -> m ()
 setLocation locationId userId = do
     userLocations %= updateIx userId (UserLocation userId locationId)
     return ()
 
-getLocation :: MonadState LocationState m => UserId -> m LocationId
-getLocation userId = do
+getUserLocation :: MonadState LocationState m => UserId -> m LocationId
+getUserLocation userId = do
     userLocations <- gets _userLocations
     case _locationId <$> (getOne $ userLocations @= userId) of
         Nothing -> do 
@@ -68,12 +71,11 @@ getUsers locationId = do
 
 inGame :: MonadState LocationState m => UserId -> m Bool
 inGame userId = do
-    userLocation <- getLocation userId
+    userLocation <- getUserLocation userId
     case userLocation of
         InGame _    -> return True
         _           -> return False
 
--- these are obviously totally wrong and temporary
 class (LocationAction p m) => Location l p m where
     canJoin     :: l -> m Bool
     onJoin      :: l -> m ()
@@ -81,12 +83,27 @@ class (LocationAction p m) => Location l p m where
     onLeave     :: l -> m ()
     exit        :: l -> m LocationId
 
+getLobby :: (LocationAction p m) => LobbyId -> m (Maybe Lobby)
+getLobby lobbyId = do
+    lobbies <- _lobbies <$> gets _lobbyState
+    return $ getOne $ lobbies @= lobbyId
+
+getMatchmaker :: (LocationAction p m) => MatchmakerId -> m (Maybe Matchmaker)
+getMatchmaker matchmakerId = do
+    matchmakers <- _matchmakers <$> gets _matchmakerState
+    return $ getOne $ matchmakers @= matchmakerId
+
+getGame :: (LocationAction p m) => GameId -> m (Maybe Game)
+getGame gameId = do
+    games <- _games <$> gets _gameState
+    return $ getOne $ games @= gameId
+
 instance (LocationAction p m) => Location Lobby p m where
     canJoin _ = return True
     onJoin _ = return ()
     canLeave _ = return True
     onLeave _ = return ()
-    exit = return . InLobby . Lobby._lobbyId
+    exit _ = InLobby <$> gets _defaultLobbyId
 
 instance (LocationAction p m) => Location Matchmaker p m where
     canJoin matchmaker = do
@@ -121,41 +138,37 @@ data LocationApi
     | Delete LocationId
 
 instance (LocationAction p m) => Location LocationId p m where
-    canJoin locationId = return True
-    onJoin locationId = return ()
-    canLeave locationId = return True
-    onLeave locationId = return ()
-    exit (InLobby lobbyId) = do
-        lobbies <- _lobbies <$> gets _lobbyState
-        case getOne $ lobbies @= lobbyId of
-            Nothing -> InLobby <$> gets _defaultLobbyId
-            Just lobby -> exit lobby
-    exit (InMatchmaker matchmakerId) = do
-        matchmakers <- _matchmakers <$> gets _matchmakerState
-        case getOne $ matchmakers @= matchmakerId of
-            Nothing -> InLobby <$> gets _defaultLobbyId
-            Just lobby -> exit lobby
-    exit (InGame gameId) = do
-        games <- _games <$> gets _gameState
-        case getOne $ games @= gameId of
-            Nothing -> InLobby <$> gets _defaultLobbyId
-            Just game -> exit game
-    exit (WatchingGame gameId) = do
-        games <- _games <$> gets _gameState
-        case getOne $ games @= gameId of
-            Nothing -> InLobby <$> gets _defaultLobbyId
-            Just game -> exit game
+    canJoin (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) canJoin
+    canJoin (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) canJoin
+    canJoin (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) canJoin
+    canJoin (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) canJoin
+    onJoin (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) onJoin
+    onJoin (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) onJoin
+    onJoin (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) onJoin
+    onJoin (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) onJoin
+    canLeave (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) canLeave
+    canLeave (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) canLeave
+    canLeave (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) canLeave
+    canLeave (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) canLeave
+    onLeave (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) onLeave
+    onLeave (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) onLeave
+    onLeave (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) onLeave
+    onLeave (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) onLeave
+    exit (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) exit
+    exit (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) exit
+    exit (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) exit
+    exit (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) exit
 
 join :: (LocationAction p m) => LocationId -> m ()
 join locationId = do
     userId <- asks Profile.userId
-    oldLocationId <- getLocation userId
-    canLeave <- canLeave locationId
+    oldLocationId <- getUserLocation userId
+    canLeave <- canLeave oldLocationId
     canJoin <- canJoin locationId
     if canJoin && canLeave then setLocation locationId userId >> onLeave oldLocationId >> onJoin locationId else return () 
 
 leave :: (LocationAction p m) => m ()
 leave = do
     userId <- asks Profile.userId
-    locationId <- getLocation userId
+    locationId <- getUserLocation userId
     join locationId
