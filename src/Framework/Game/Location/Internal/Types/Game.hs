@@ -1,15 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell #-}
 
-module Framework.Game.Location.Game where
+module Framework.Game.Location.Internal.Types.Game where
 
 import Data.SafeCopy
 import Data.Data
 import Data.Lens.Template
 import Data.IxSet
 
-import Framework.Game.Location.Chat
-import Framework.Game.Location.Lobby        ( LobbyId )
-import Framework.Game.Location.Matchmaker   ( MatchmakerId )
+import Framework.Game.Location.Internal.Types.Chat
+import Framework.Game.Location.Internal.Types.Lobby        ( LobbyId )
+import Framework.Game.Location.Internal.Types.Matchmaker   ( MatchmakerId )
 
 newtype GameId = GameId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 
@@ -17,7 +17,7 @@ data Game = Game
     { _gameId        :: GameId
     , _matchmakerId  :: MatchmakerId
     , _lobbyId       :: LobbyId
-    , _chat          :: ChatHolder
+    , _chats         :: ChatHolder
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''Game)

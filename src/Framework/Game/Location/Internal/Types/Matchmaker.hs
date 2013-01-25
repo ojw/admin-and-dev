@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell #-}
 
-module Framework.Game.Location.Matchmaker where
+module Framework.Game.Location.Internal.Types.Matchmaker where
 
 import Data.SafeCopy
 import Data.Data
@@ -8,14 +8,14 @@ import Data.Lens.Template
 import Data.IxSet
 
 import Framework.Auth.Auth              ( UserId )
-import Framework.Game.Location.Lobby
-import Framework.Game.Location.Chat
+import Framework.Game.Location.Internal.Types.Lobby
+import Framework.Game.Location.Internal.Types.Chat
 
 newtype MatchmakerId = MatchmakerId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 
 data Matchmaker = Matchmaker
     { _matchmakerId  :: MatchmakerId
-    , _chat          :: ChatHolder
+    , _chats         :: ChatHolder
     , _capacity      :: (Int, Int) -- (min, max)
     , _owner         :: UserId
     , _lobbyId       :: LobbyId
