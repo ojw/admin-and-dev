@@ -128,15 +128,6 @@ instance (LocationAction p m) => Location Game p m where
     onLeave _ = return ()
     exit = return . InLobby . Game._lobbyId
 
--- removed UserId since these will run with MonadReader Profile m
-data LocationApi
-    = Join LocationId
-    | Leave 
-    | Look LocationId -- will include data previously requested with ReceiveChat
-    | Chat Text LocationId
-    | Create LocationId -- will probably patern match on LocationId to determine type of location, ignore id
-    | Delete LocationId
-
 instance (LocationAction p m) => Location LocationId p m where
     canJoin (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) canJoin
     canJoin (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= maybe (throwError LocationDoesNotExist) canJoin
@@ -159,16 +150,39 @@ instance (LocationAction p m) => Location LocationId p m where
     exit (InGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) exit
     exit (WatchingGame gameId) = getGame gameId >>= maybe (throwError LocationDoesNotExist) exit
 
+-- removed UserId since these will run with MonadReader Profile m
+data LocationApi
+    = Join LocationId
+    | Leave 
+    | Look LocationId -- will include data previously requested with ReceiveChat
+    | Chat Text LocationId
+    | Create LocationId -- will probably patern match on LocationId to determine type of location, ignore id
+    | Delete LocationId
+
 join :: (LocationAction p m) => LocationId -> m ()
 join locationId = do
     userId <- asks Profile.userId
     oldLocationId <- getUserLocation userId
+    setLocation locationId userId
+    onLeave oldLocationId
+    onJoin locationId 
+
+tryJoin :: (LocationAction p m) => LocationId -> m ()
+tryJoin locationId = do
+    userId <- asks Profile.userId
+    oldLocationId <- getUserLocation userId
     canLeave <- canLeave oldLocationId
     canJoin <- canJoin locationId
-    if canJoin && canLeave then setLocation locationId userId >> onLeave oldLocationId >> onJoin locationId else return () 
+    if canJoin && canLeave then join locationId else return ()
 
 leave :: (LocationAction p m) => m ()
 leave = do
     userId <- asks Profile.userId
     locationId <- getUserLocation userId
-    join locationId
+    tryJoin locationId
+
+-- need to decide on return type
+runLocationApi :: (LocationAction p m) => LocationApi -> m ()
+runLocationApi (Join locationId) = tryJoin locationId
+runLocationApi Leave = leave
+runLocationApi _ = return ()
