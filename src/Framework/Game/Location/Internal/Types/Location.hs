@@ -101,11 +101,3 @@ modGame f gameId = do
 
 getGame :: (LocationAction p m) => GameId -> m (Maybe Game)
 getGame = modGame id
-
-class (LocationAction p m) => Location l p m where
-    canJoin     :: l -> m Bool
-    onJoin      :: l -> m ()
-    canLeave    :: l -> m Bool
-    onLeave     :: l -> m ()
-    exit        :: l -> m LocationId
-    chat        :: Chat -> l -> m ()

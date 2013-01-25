@@ -9,6 +9,7 @@ import Data.Lens
 import Framework.Game.Location.Internal.Types.Chat
 import Framework.Game.Location.Internal.Types.Lobby
 import Framework.Game.Location.Internal.Types.Location
+import Framework.Game.Location.Internal.Classes.Location
 
 instance (LocationAction p m) => Location Lobby p m where
     canJoin _ = return True

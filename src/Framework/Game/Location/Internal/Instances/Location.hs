@@ -24,6 +24,7 @@ import Framework.Game.Location.Internal.Instances.Matchmaker as Matchmaker
 import Framework.Game.Location.Internal.Instances.Game as Game
 import Framework.Game.Location.Internal.Types.Chat hiding ( addChat )
 import Framework.Game.Location.Internal.Types.Location
+import Framework.Game.Location.Internal.Classes.Location
 
 instance (LocationAction p m) => Location LocationId p m where
     canJoin (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) canJoin

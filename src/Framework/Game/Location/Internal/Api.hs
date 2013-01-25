@@ -8,6 +8,7 @@ import Control.Monad.Reader hiding ( join )
 import Framework.Profile.Profile as Profile
 import Framework.Game.Location.Internal.Types.Location
 import Framework.Game.Location.Internal.Instances.Location
+import Framework.Game.Location.Internal.Classes.Location
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi

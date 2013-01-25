@@ -10,6 +10,7 @@ import Framework.Profile.Profile as Profile
 import Framework.Game.Location.Internal.Types.Chat
 import Framework.Game.Location.Internal.Types.Matchmaker
 import Framework.Game.Location.Internal.Types.Location
+import Framework.Game.Location.Internal.Classes.Location
 
 instance (LocationAction p m) => Location Matchmaker p m where
     canJoin matchmaker = do
