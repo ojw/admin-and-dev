@@ -27,5 +27,4 @@ instance (LocationAction p m) => Location Matchmaker p m where
             mapM_ (setLocation exit) users
         else return ()
     exit = return . InLobby . _lobbyId
-    chat c matchmaker = modMatchmaker (chats ^%= (addChat c)) (_matchmakerId matchmaker) >> return ()
-
+    chat c matchmaker = modMatchmaker (chats ^%= addChat c) (_matchmakerId matchmaker) >> return ()

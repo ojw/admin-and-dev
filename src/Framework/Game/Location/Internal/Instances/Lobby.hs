@@ -17,4 +17,4 @@ instance (LocationAction p m) => Location Lobby p m where
     canLeave _ = return True
     onLeave _ = return ()
     exit _ = InLobby <$> gets _defaultLobbyId
-    chat c lobby = modLobby (chats ^%= (addChat c)) (_lobbyId lobby) >> return () 
+    chat c lobby = modLobby (chats ^%= addChat c) (_lobbyId lobby) >> return () 
