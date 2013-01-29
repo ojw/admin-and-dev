@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
-module Framework.Game.Location.Internal.Instances.Location where
+module Framework.Location.Internal.Instances.Location where
 
 import Control.Monad hiding ( join )
 import Data.Functor
@@ -18,13 +18,13 @@ import Data.Text                            ( Text )
 
 import Framework.Auth.Auth                  ( UserId )
 import Framework.Profile.Profile as Profile
-import Framework.Game.Location.Internal.Instances.Lobby as Lobby
-import Framework.Game.Location.Internal.Instances.Matchmaker as Matchmaker
-import Framework.Game.Location.Internal.Instances.Matchmaker as Matchmaker
-import Framework.Game.Location.Internal.Instances.Game as Game
-import Framework.Game.Location.Internal.Types.Chat hiding ( addChat )
-import Framework.Game.Location.Internal.Types.Location
-import Framework.Game.Location.Internal.Classes.Location
+import Framework.Location.Internal.Instances.Lobby as Lobby
+import Framework.Location.Internal.Instances.Matchmaker as Matchmaker
+import Framework.Location.Internal.Instances.Matchmaker as Matchmaker
+import Framework.Location.Internal.Instances.Game as Game
+import Framework.Location.Internal.Types.Chat hiding ( addChat )
+import Framework.Location.Internal.Types.Location
+import Framework.Location.Internal.Classes.Location
 
 instance (LocationAction p m) => Location LocationId p m where
     canJoin (InLobby lobbyId) = getLobby lobbyId >>= maybe (throwError LocationDoesNotExist) canJoin

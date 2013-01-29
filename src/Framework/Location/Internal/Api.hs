@@ -1,14 +1,14 @@
 
 
-module Framework.Game.Location.Internal.Api where
+module Framework.Location.Internal.Api where
 
 import Data.Text
 import Control.Monad.Reader hiding ( join )
 
 import Framework.Profile.Profile as Profile
-import Framework.Game.Location.Internal.Types.Location
-import Framework.Game.Location.Internal.Instances.Location
-import Framework.Game.Location.Internal.Classes.Location
+import Framework.Location.Internal.Types.Location
+import Framework.Location.Internal.Instances.Location
+import Framework.Location.Internal.Classes.Location
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi

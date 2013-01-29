@@ -1,15 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell #-}
 
-module Framework.Game.Location.Internal.Types.Game where
+module Framework.Location.Internal.Types.Game where
 
 import Data.SafeCopy
 import Data.Data
 import Data.Lens.Template
 import Data.IxSet
 
-import Framework.Game.Location.Internal.Types.Chat
-import Framework.Game.Location.Internal.Types.Lobby        ( LobbyId )
-import Framework.Game.Location.Internal.Types.Matchmaker   ( MatchmakerId )
+import Framework.Location.Internal.Types.Chat
+import Framework.Location.Internal.Types.Lobby        ( LobbyId )
+import Framework.Location.Internal.Types.Matchmaker   ( MatchmakerId )
 
 newtype GameId = GameId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 

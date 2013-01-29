@@ -1,13 +1,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell #-}
 
-module Framework.Game.Location.Internal.Types.Lobby where
+module Framework.Location.Internal.Types.Lobby where
 
 import Data.SafeCopy
 import Data.Data
 import Data.Lens.Template
 import Data.IxSet
 
-import Framework.Game.Location.Internal.Types.Chat     ( ChatHolder )
+import Framework.Location.Internal.Types.Chat     ( ChatHolder )
 
 newtype LobbyId = LobbyId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 

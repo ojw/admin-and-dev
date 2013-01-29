@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
-module Framework.Game.Location.Internal.Types.Location where
+module Framework.Location.Internal.Types.Location where
 
 import Control.Monad hiding ( join )
 import Data.Functor
@@ -18,11 +18,11 @@ import Data.Text                            ( Text )
 
 import Framework.Auth.Auth                  ( UserId )
 import Framework.Profile.Profile as Profile
-import Framework.Game.Location.Internal.Types.Lobby as Lobby
-import Framework.Game.Location.Internal.Types.Matchmaker as Matchmaker
-import Framework.Game.Location.Internal.Types.Matchmaker as Matchmaker
-import Framework.Game.Location.Internal.Types.Game as Game
-import Framework.Game.Location.Internal.Types.Chat hiding ( addChat )
+import Framework.Location.Internal.Types.Lobby as Lobby
+import Framework.Location.Internal.Types.Matchmaker as Matchmaker
+import Framework.Location.Internal.Types.Matchmaker as Matchmaker
+import Framework.Location.Internal.Types.Game as Game
+import Framework.Location.Internal.Types.Chat hiding ( addChat )
 
 data LocationId = InLobby LobbyId | InMatchmaker MatchmakerId | WatchingGame GameId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)

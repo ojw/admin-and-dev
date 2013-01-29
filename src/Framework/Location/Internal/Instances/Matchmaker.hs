@@ -1,16 +1,16 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 
-module Framework.Game.Location.Internal.Instances.Matchmaker where
+module Framework.Location.Internal.Instances.Matchmaker where
 
 import Control.Monad.Reader
 import Data.Functor
 import Data.Lens
 
 import Framework.Profile.Profile as Profile
-import Framework.Game.Location.Internal.Types.Chat
-import Framework.Game.Location.Internal.Types.Matchmaker
-import Framework.Game.Location.Internal.Types.Location
-import Framework.Game.Location.Internal.Classes.Location
+import Framework.Location.Internal.Types.Chat
+import Framework.Location.Internal.Types.Matchmaker
+import Framework.Location.Internal.Types.Location
+import Framework.Location.Internal.Classes.Location
 
 instance (LocationAction p m) => Location Matchmaker p m where
     canJoin matchmaker = do

@@ -1,5 +1,5 @@
 
-module Framework.Game.Location.Internal.Types.Chat where
+module Framework.Location.Internal.Types.Chat where
 
 import Data.Text                    ( Text )
 import Framework.Profile.Profile    ( UserName )
