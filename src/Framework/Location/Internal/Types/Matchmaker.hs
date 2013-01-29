@@ -7,7 +7,7 @@ import Data.Data
 import Data.Lens.Template
 import Data.IxSet
 
-import Framework.Auth.Auth              ( UserId )
+import Framework.Auth              ( UserId )
 import Framework.Location.Internal.Types.Lobby
 import Framework.Location.Internal.Types.Chat
 

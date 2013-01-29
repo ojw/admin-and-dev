@@ -6,7 +6,7 @@ import Control.Monad.Reader
 import Data.Functor
 import Data.Lens
 
-import Framework.Profile.Profile as Profile
+import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Chat
 import Framework.Location.Internal.Types.Matchmaker
 import Framework.Location.Internal.Types.Location

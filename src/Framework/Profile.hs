@@ -1,7 +1,7 @@
-module Framework.Profile.Profile where
+module Framework.Profile where
 
 import Data.Text            ( Text )
-import Framework.Auth.Auth  ( UserId )
+import Framework.Auth  ( UserId )
 
 type UserName = Text
 

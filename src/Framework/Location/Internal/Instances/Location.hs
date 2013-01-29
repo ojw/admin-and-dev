@@ -16,8 +16,8 @@ import Data.Lens.Template
 import Data.IxSet
 import Data.Text                            ( Text )
 
-import Framework.Auth.Auth                  ( UserId )
-import Framework.Profile.Profile as Profile
+import Framework.Auth                  ( UserId )
+import Framework.Profile as Profile
 import Framework.Location.Internal.Instances.Lobby as Lobby
 import Framework.Location.Internal.Instances.Matchmaker as Matchmaker
 import Framework.Location.Internal.Instances.Matchmaker as Matchmaker

@@ -2,7 +2,7 @@
 module Framework.Location.Internal.Types.Chat where
 
 import Data.Text                    ( Text )
-import Framework.Profile.Profile    ( UserName )
+import Framework.Profile    ( UserName )
 
 type Chat = (UserName, Text)
 

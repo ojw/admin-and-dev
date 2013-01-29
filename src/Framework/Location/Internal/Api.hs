@@ -5,7 +5,7 @@ module Framework.Location.Internal.Api where
 import Data.Text
 import Control.Monad.Reader hiding ( join )
 
-import Framework.Profile.Profile as Profile
+import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location

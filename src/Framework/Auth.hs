@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell #-}
 
-module Framework.Auth.Auth where
+module Framework.Auth where
 
 import Data.Lens.Template
 import Data.SafeCopy

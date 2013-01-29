@@ -6,7 +6,7 @@ import Data.Functor
 import Data.Lens
 import Control.Monad.Reader ( asks )
 
-import Framework.Profile.Profile
+import Framework.Profile
 import Framework.Location.Internal.Types.Chat
 import Framework.Location.Internal.Types.Game
 import Framework.Location.Internal.Types.Location hiding ( userId )
