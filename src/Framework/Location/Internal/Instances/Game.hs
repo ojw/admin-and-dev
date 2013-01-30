@@ -12,7 +12,7 @@ import Framework.Location.Internal.Types.Game
 import Framework.Location.Internal.Types.Location hiding ( userId )
 import Framework.Location.Internal.Classes.Location
 
-instance (LocationAction p m) => Location Game p m where
+instance Location Game where
     canJoin _ = asks userId >>= fmap not . inGame
     onJoin _ = return ()
     canLeave _ = asks userId >>= fmap not . inGame
