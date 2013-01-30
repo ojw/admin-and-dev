@@ -13,9 +13,9 @@ import Framework.Location.Internal.Types.Location hiding ( userId )
 import Framework.Location.Internal.Classes.Location
 
 instance Location Game where
-    canJoin _ = asks userId >>= fmap not . inGame
+    canJoin _ = currentUserId >>= fmap not . inGame
     onJoin _ = return ()
-    canLeave _ = asks userId >>= fmap not . inGame
+    canLeave _ = currentUserId >>= fmap not . inGame
     onLeave _ = return ()
     exit = return . InLobby . _lobbyId
     chat c game = modGame (chats ^%= addChat c) (_gameId game) >> return () 

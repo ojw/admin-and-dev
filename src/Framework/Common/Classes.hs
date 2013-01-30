@@ -15,4 +15,4 @@ class Persistent val key holder where
     delete  :: key -> holder -> holder 
 
 class Create obj options where
-    new     :: options -> obj 
+    new     :: options -> FrameworkReader obj 

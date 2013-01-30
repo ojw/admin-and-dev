@@ -16,8 +16,8 @@ import Data.Lens.Template
 import Data.IxSet
 import Data.Text                            ( Text )
 
-import Framework.Auth                  ( UserId )
-import Framework.Profile as Profile
+import Framework.Auth                   ( UserId )
+import Framework.Profile                ( Profile, ProfileState )
 import Framework.Location.Internal.Types.Lobby as Lobby
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
@@ -50,7 +50,7 @@ $(makeLens ''LocationState)
 
 data LocationError = LocationDoesNotExist
 
-class (Profile p, MonadError LocationError m, Functor m, MonadState LocationState m, MonadReader p m) => LocationAction p m
+class (MonadReader Profile m, MonadReader ProfileState m, MonadError LocationError m, Functor m, MonadState LocationState m) => LocationAction m
 
 setLocation :: MonadState LocationState m => LocationId -> UserId -> m ()
 setLocation locationId userId = do
@@ -78,26 +78,26 @@ inGame userId = do
         InGame _    -> return True
         _           -> return False
 
-modLobby :: (LocationAction p m) => (Lobby -> Lobby) -> LobbyId -> m (Maybe Lobby)
+modLobby :: (LocationAction m) => (Lobby -> Lobby) -> LobbyId -> m (Maybe Lobby)
 modLobby f lobbyId = do
     lobbies <- _lobbies <$> gets _lobbyState
     return $ f <$> (getOne $ lobbies @= lobbyId)
 
-getLobby :: (LocationAction p m) => LobbyId -> m (Maybe Lobby)
+getLobby :: (LocationAction m) => LobbyId -> m (Maybe Lobby)
 getLobby = modLobby id
 
-modMatchmaker :: (LocationAction p m) => (Matchmaker -> Matchmaker) -> MatchmakerId -> m (Maybe Matchmaker)
+modMatchmaker :: (LocationAction m) => (Matchmaker -> Matchmaker) -> MatchmakerId -> m (Maybe Matchmaker)
 modMatchmaker f matchmakerId = do
     matchmakers <- _matchmakers <$> gets _matchmakerState
     return $ f <$> (getOne $ matchmakers @= matchmakerId)
 
-getMatchmaker :: (LocationAction p m) => MatchmakerId -> m (Maybe Matchmaker)
+getMatchmaker :: (LocationAction m) => MatchmakerId -> m (Maybe Matchmaker)
 getMatchmaker = modMatchmaker id
 
-modGame :: (LocationAction p m) => (Game -> Game) -> GameId -> m (Maybe Game)
+modGame :: (LocationAction m) => (Game -> Game) -> GameId -> m (Maybe Game)
 modGame f gameId = do
     games <- _games <$> gets _gameState
     return $ f <$> (getOne $ games @= gameId)
 
-getGame :: (LocationAction p m) => GameId -> m (Maybe Game)
+getGame :: (LocationAction m) => GameId -> m (Maybe Game)
 getGame = modGame id

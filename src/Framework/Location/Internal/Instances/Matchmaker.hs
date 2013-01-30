@@ -19,7 +19,7 @@ instance Location Matchmaker where
     onJoin _ = return ()
     canLeave _ = return True
     onLeave matchmaker = do
-        userId <- asks Profile.userId
+        userId <- currentUserId
         if userId == _owner matchmaker
         then do
             users <- getUsers $ InMatchmaker $ _matchmakerId matchmaker

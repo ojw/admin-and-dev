@@ -8,9 +8,9 @@ import Framework.Location.Internal.Types.Chat      ( Chat )
 import Framework.Location.Internal.Types.Location  ( LocationId, LocationAction )
 
 class Location l where
-    canJoin     :: (LocationAction p m) => l -> m Bool
-    onJoin      :: (LocationAction p m) => l -> m ()
-    canLeave    :: (LocationAction p m) => l -> m Bool
-    onLeave     :: (LocationAction p m) => l -> m ()
-    exit        :: (LocationAction p m) => l -> m LocationId
-    chat        :: (LocationAction p m) => Chat -> l -> m ()
+    canJoin     :: (LocationAction m) => l -> m Bool
+    onJoin      :: (LocationAction m) => l -> m ()
+    canLeave    :: (LocationAction m) => l -> m Bool
+    onLeave     :: (LocationAction m) => l -> m ()
+    exit        :: (LocationAction m) => l -> m LocationId
+    chat        :: (LocationAction m) => Chat -> l -> m ()
