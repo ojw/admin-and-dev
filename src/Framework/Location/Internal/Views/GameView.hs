@@ -1,12 +1,16 @@
-
+{-# LANGUAGE RecordWildCards, MultiParamTypeClasses #-}
 
 module Framework.Location.Internal.Views.GameView where
 
+import Data.Maybe                                   ( catMaybes, fromJust )
+import Data.Functor                                 ( (<$>) )
 import Data.Text                                    ( Text )
-import Framework.Profile                            ( UserName )
+import Framework.Profile                            ( UserName, lookupUserName )
 import Framework.Location.Internal.Types.Chat       ( ChatHolder )
 import Framework.Location.Internal.Types.Lobby      ( LobbyId )
-import Framework.Location.Internal.Types.Game ( GameId )
+import Framework.Location.Internal.Types.Game       ( GameId, Game(..) )
+import Framework.Location.Internal.Classes.View     ( View(..) )
+import Framework.Location.Internal.Types.Location
 
 data GameView = GameView
     { gameId        :: GameId
@@ -15,3 +19,13 @@ data GameView = GameView
     , members       :: [UserName]
     } deriving (Ord, Eq, Read, Show)
 
+instance View Game GameView where
+    view game@Game{..} = do
+        memberIds <- getUsers $ InGame _gameId
+        memberNames <- catMaybes <$> mapM lookupUserName memberIds
+        return $ GameView
+            { gameId = _gameId
+            , lobbyId = _lobbyId
+            , chats = _chats
+            , members = memberNames
+            }
