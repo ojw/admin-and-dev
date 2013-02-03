@@ -11,7 +11,7 @@ import Framework.Location.Internal.Types.Location
 class LocationAction m => FrameworkAction m
 
 class View obj view where
-    view    :: FrameworkAction m => obj -> m view
+    view    :: obj -> m view
 
 class Holder val key holder where
     add     :: val -> holder -> (key, holder)

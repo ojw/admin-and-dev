@@ -9,6 +9,8 @@ import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location
+import Framework.Location.Internal.Classes.View
+import Framework.Location.Internal.Views.LocationView
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi
@@ -19,37 +21,38 @@ data LocationApi
     | Create LocationId -- will probably patern match on LocationId to determine type of location, ignore id
     | Delete LocationId
 
-join :: (LocationAction m) => LocationId -> m ()
+join :: (LocationAction m) => LocationId -> m LocationView
 join locationId = do
     userId <- currentUserId
     oldLocationId <- getUserLocation userId
     setLocation locationId userId
     onLeave oldLocationId
     onJoin locationId 
+    view locationId
 
-tryJoin :: (LocationAction m) => LocationId -> m ()
+tryJoin :: (LocationAction m) => LocationId -> m LocationView
 tryJoin locationId = do
     userId <- currentUserId
     oldLocationId <- getUserLocation userId
     canLeave <- canLeave oldLocationId
     canJoin <- canJoin locationId
-    if canJoin && canLeave then join locationId else return ()
+    if canJoin && canLeave then join locationId else view oldLocationId
 
-tryLeave :: (LocationAction m) => m ()
+tryLeave :: (LocationAction m) => m LocationView
 tryLeave = do
     userId <- currentUserId
     currentLocationId <- getUserLocation userId
     exit <- exit currentLocationId
     tryJoin exit
 
-leave :: (LocationAction m) => m ()
+leave :: (LocationAction m) => m LocationView
 leave = do
     userId <- currentUserId
     locationId <- getUserLocation userId
     join locationId
 
 -- need to decide on return type
-runLocationApi :: (LocationAction m) => LocationApi -> m ()
+runLocationApi :: (LocationAction m) => LocationApi -> m LocationView
 runLocationApi (Join locationId) = tryJoin locationId
 runLocationApi Leave = tryLeave
-runLocationApi _ = return ()
+--runLocationApi _ = return ()

@@ -7,7 +7,7 @@ import Framework.Location.Internal.Views.LobbyView
 import Framework.Location.Internal.Views.MatchmakerView
 import Framework.Location.Internal.Views.GameView
 import Framework.Location.Internal.Types.Location
-import Framework.Common.Classes ( View(..) )
+import Framework.Location.Internal.Classes.View ( View(..) )
 
 data LocationView
     = LVLobbyView LobbyView

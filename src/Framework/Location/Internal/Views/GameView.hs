@@ -10,7 +10,7 @@ import Framework.Location.Internal.Types.Chat       ( ChatHolder )
 import Framework.Location.Internal.Types.Lobby      ( LobbyId )
 import Framework.Location.Internal.Types.Game       ( GameId, Game(..) )
 import Framework.Location.Internal.Types.Location
-import Framework.Common.Classes ( View(..) )
+import Framework.Location.Internal.Classes.View ( View(..) )
 
 data GameView = GameView
     { gameId        :: GameId
