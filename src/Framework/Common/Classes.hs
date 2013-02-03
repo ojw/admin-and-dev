@@ -13,7 +13,7 @@ class LocationAction m => FrameworkAction m
 class View obj view where
     view    :: FrameworkAction m => obj -> m view
 
-class Persistent val key holder where
+class Holder val key holder where
     add     :: val -> holder -> (key, holder)
     modify  :: key -> (val -> val) -> holder -> holder
     delete  :: key -> holder -> holder 
