@@ -6,8 +6,7 @@ import Data.Maybe                               ( catMaybes )
 import Data.Text                                ( Text )
 import Data.Functor                             ( (<$>) )
 
-import Framework.Auth                           ( UserId )
-import Framework.Profile                        ( UserName, lookupUserName )
+import Framework.Profile                        ( UserId, UserName, lookupUserName )
 import Framework.Location.Internal.Types.Lobby  ( Lobby(..), LobbyId )
 import Framework.Location.Internal.Types.Chat   ( ChatHolder )
 import Framework.Location.Internal.Types.Location

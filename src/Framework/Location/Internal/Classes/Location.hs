@@ -7,7 +7,7 @@ module Framework.Location.Internal.Classes.Location where
 import Framework.Location.Internal.Types.Chat      ( Chat )
 import Framework.Location.Internal.Types.Location  ( LocationId, LocationAction )
 
-class Location l where
+class Loc l where
     canJoin     :: (LocationAction m) => l -> m Bool
     onJoin      :: (LocationAction m) => l -> m ()
     canLeave    :: (LocationAction m) => l -> m Bool

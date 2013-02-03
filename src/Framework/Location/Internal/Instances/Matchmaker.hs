@@ -12,7 +12,7 @@ import Framework.Location.Internal.Types.Matchmaker
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Classes.Location
 
-instance Location Matchmaker where
+instance Loc Matchmaker where
     canJoin matchmaker = do
         users <- getUsers $ InMatchmaker $ _matchmakerId matchmaker
         return $ length users < snd (_capacity matchmaker)

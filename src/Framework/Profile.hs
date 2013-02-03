@@ -1,15 +1,16 @@
-{-# LANGUAGE DeriveDataTypeable, TemplateHaskell, FlexibleContexts  #-}
+{-# LANGUAGE DeriveDataTypeable, TemplateHaskell, FlexibleContexts, GeneralizedNewtypeDeriving  #-}
 
 module Framework.Profile where
 
 import Control.Monad.Reader
 import Data.Data
 import Data.Text            ( Text )
-import Framework.Auth       ( UserId )
 import Data.IxSet
 import Data.Lens
 import Data.Lens.Template
 import Data.SafeCopy
+
+newtype UserId = UserId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
 type UserName = Text
 

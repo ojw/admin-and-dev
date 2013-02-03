@@ -16,8 +16,7 @@ import Data.Lens.Template
 import Data.IxSet
 import Data.Text                            ( Text )
 
-import Framework.Auth                   ( UserId )
-import Framework.Profile                ( Profile, ProfileState )
+import Framework.Profile                ( UserId, Profile, ProfileState )
 import Framework.Location.Internal.Types.Lobby as Lobby
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
@@ -49,6 +48,12 @@ data LocationState = LocationState
 $(makeLens ''LocationState)
 
 data LocationError = LocationDoesNotExist
+
+data Location
+    = LocLobby Lobby
+    | LocMatchmaker Matchmaker
+    | LocGame Game
+    deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 class (MonadReader Profile m, MonadReader ProfileState m, MonadError LocationError m, Functor m, MonadState LocationState m) => LocationAction m
 
@@ -101,3 +106,9 @@ modGame f gameId = do
 
 getGame :: (LocationAction m) => GameId -> m (Maybe Game)
 getGame = modGame id
+
+getLocation :: (LocationAction m) => LocationId -> m (Maybe Location)
+getLocation (InLobby lobbyId) = getLobby lobbyId >>= return . fmap LocLobby
+getLocation (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= return . fmap LocMatchmaker
+getLocation (InGame gameId) = getGame gameId >>= return . fmap LocGame
+getLocation (WatchingGame gameId) = getGame gameId >>= return . fmap LocGame

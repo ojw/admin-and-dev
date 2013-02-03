@@ -11,7 +11,7 @@ import Framework.Location.Internal.Types.Lobby
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Classes.Location
 
-instance Location Lobby where
+instance Loc Lobby where
     canJoin _ = return True
     onJoin _ = return ()
     canLeave _ = return True
