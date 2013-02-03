@@ -24,15 +24,6 @@ $(makeLens ''Profile)
 $(deriveSafeCopy 0 'base ''Profile)
 $(inferIxSet "Profiles" ''Profile 'noCalcs [''UserId, ''UserName, ''Bool])
 
-currentUserId :: (MonadReader Profile m) => m UserId
-currentUserId = asks _userId
-
-currentUserName :: (MonadReader Profile m) => m UserName
-currentUserName = asks _userName
-
-isCurrentUserAdmin :: (MonadReader Profile m) => m Bool
-isCurrentUserAdmin = asks _isAdmin
-
 data ProfileState = ProfileState
     { _nextUserId    :: UserId
     , _profiles      :: Profiles
@@ -41,7 +32,18 @@ data ProfileState = ProfileState
 $(makeLens ''ProfileState)
 $(deriveSafeCopy 0 'base ''ProfileState)
 
-lookupUserName :: (MonadReader ProfileState m) => UserId -> m (Maybe UserName)
+type ProfileInfo = (Profile, ProfileState)
+
+currentUserId :: (MonadReader ProfileInfo m) => m UserId
+currentUserId = asks (_userId . fst)
+
+currentUserName :: (MonadReader ProfileInfo m) => m UserName
+currentUserName = asks (_userName . fst)
+
+isCurrentUserAdmin :: (MonadReader ProfileInfo m) => m Bool
+isCurrentUserAdmin = asks (_isAdmin . fst)
+
+lookupUserName :: (MonadReader ProfileInfo m) => UserId -> m (Maybe UserName)
 lookupUserName userId = do
-    profiles <- asks _profiles
+    profiles <- asks (_profiles . snd)
     return $ fmap _userName $ getOne $ profiles @= userId

@@ -8,7 +8,7 @@ module Framework.Common.Classes where
 
 import Framework.Location.Internal.Types.Location
 
-class LocationAction m => FrameworkAction m
+class MonadLocationAction m => FrameworkAction m
 
 class View obj view where
     view    :: obj -> m view

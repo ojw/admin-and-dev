@@ -5,12 +5,12 @@
 module Framework.Location.Internal.Classes.Location where
 
 import Framework.Location.Internal.Types.Chat      ( Chat )
-import Framework.Location.Internal.Types.Location  ( LocationId, LocationAction )
+import Framework.Location.Internal.Types.Location  ( LocationId, MonadLocationAction )
 
 class Loc l where
-    canJoin     :: (LocationAction m) => l -> m Bool
-    onJoin      :: (LocationAction m) => l -> m ()
-    canLeave    :: (LocationAction m) => l -> m Bool
-    onLeave     :: (LocationAction m) => l -> m ()
-    exit        :: (LocationAction m) => l -> m LocationId
-    chat        :: (LocationAction m) => Chat -> l -> m ()
+    canJoin     :: (MonadLocationAction m) => l -> m Bool
+    onJoin      :: (MonadLocationAction m) => l -> m ()
+    canLeave    :: (MonadLocationAction m) => l -> m Bool
+    onLeave     :: (MonadLocationAction m) => l -> m ()
+    exit        :: (MonadLocationAction m) => l -> m LocationId
+    chat        :: (MonadLocationAction m) => Chat -> l -> m ()
