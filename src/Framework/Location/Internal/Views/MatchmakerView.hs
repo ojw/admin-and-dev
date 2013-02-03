@@ -9,8 +9,8 @@ import Framework.Profile                            ( UserName, lookupUserName )
 import Framework.Location.Internal.Types.Chat       ( ChatHolder )
 import Framework.Location.Internal.Types.Lobby      ( LobbyId )
 import Framework.Location.Internal.Types.Matchmaker ( MatchmakerId, Matchmaker(..) )
-import Framework.Location.Internal.Classes.View     ( View(..) )
 import Framework.Location.Internal.Types.Location
+import Framework.Common.Classes ( View(..) )
 
 data MatchmakerView = MatchmakerView
     { matchmakerId  :: MatchmakerId

@@ -10,7 +10,7 @@ import Framework.Profile                        ( UserId, UserName, lookupUserNa
 import Framework.Location.Internal.Types.Lobby  ( Lobby(..), LobbyId )
 import Framework.Location.Internal.Types.Chat   ( ChatHolder )
 import Framework.Location.Internal.Types.Location
-import Framework.Location.Internal.Classes.View
+import Framework.Common.Classes ( View(..) )
 
 data LobbyView = LobbyView
     { name         :: Text

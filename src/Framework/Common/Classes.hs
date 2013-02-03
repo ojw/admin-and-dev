@@ -4,10 +4,14 @@ module Framework.Common.Classes where
 
 -- many types (+ecosystems) will implement these three classes
 -- locations, games, and profiles at least
--- (and that's the entire framework minus auth)
+-- maybe auth?
+
+import Framework.Location.Internal.Types.Location
+
+class LocationAction m => FrameworkAction m
 
 class View obj view where
-    view    :: obj -> view
+    view    :: FrameworkAction m => obj -> m view
 
 class Persistent val key holder where
     add     :: val -> holder -> (key, holder)
