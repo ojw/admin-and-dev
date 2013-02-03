@@ -2,6 +2,7 @@
 
 module Framework.Location.Internal.Views.MatchmakerView where
 
+import Control.Monad.Error
 import Data.Maybe                                   ( catMaybes, fromJust )
 import Data.Functor                                 ( (<$>) )
 import Data.Text                                    ( Text )
@@ -21,17 +22,18 @@ data MatchmakerView = MatchmakerView
     , lobbyId       :: LobbyId
     } deriving (Ord, Eq, Read, Show)
 
--- fromJust is bad... should notice missing username and throw an error probably
+-- Probably should have used case instead of maybe... this looks a li'l silly.
 instance View Matchmaker MatchmakerView where
     view matchmaker@Matchmaker{..} = do
-        ownerName <- lookupUserName _owner
+        mOwnerName <- lookupUserName _owner
         memberIds <- getUsers $ InMatchmaker _matchmakerId
         memberNames <- catMaybes <$> mapM lookupUserName memberIds
-        return $ MatchmakerView
-            { matchmakerId = _matchmakerId
-            , chats = _chats
-            , capacity = _capacity
-            , owner = fromJust ownerName
-            , members = memberNames
-            , lobbyId = _lobbyId
-            }
+        maybe (throwError OtherLocationError)   (\ownerName -> return $ MatchmakerView
+                { matchmakerId = _matchmakerId
+                , chats = _chats
+                , capacity = _capacity
+                , owner = ownerName
+                , members = memberNames
+                , lobbyId = _lobbyId
+                }
+                                                ) mOwnerName
