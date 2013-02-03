@@ -11,18 +11,20 @@ import Data.Lens.Template
 import Data.SafeCopy
 
 newtype UserId = UserId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
+newtype Email = Email Text deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
 type UserName = Text
 
 data Profile = Profile
     { _userId   :: UserId
     , _userName :: UserName
+    , _email    :: Email
     , _isAdmin  :: Bool
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''Profile)
 $(deriveSafeCopy 0 'base ''Profile)
-$(inferIxSet "Profiles" ''Profile 'noCalcs [''UserId, ''UserName, ''Bool])
+$(inferIxSet "Profiles" ''Profile 'noCalcs [''UserId, ''UserName, ''Email, ''Bool])
 
 data ProfileState = ProfileState
     { _nextUserId    :: UserId
