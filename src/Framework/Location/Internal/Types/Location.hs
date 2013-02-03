@@ -18,7 +18,7 @@ import Data.Lens.Template
 import Data.IxSet
 import Data.Text                            ( Text )
 
-import Framework.Profile                ( UserId, Profile, ProfileState )
+import Framework.Profile                ( UserId, Profile, ProfileState, ProfileInfo )
 import Framework.Location.Internal.Types.Lobby as Lobby
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
@@ -64,8 +64,8 @@ data Location
 
 class (MonadReader (Profile, ProfileState) m, MonadError LocationError m, Functor m, MonadState LocationState m) => MonadLocationAction m
 
-newtype LocationAction a = LocationAction (RWST (Profile, ProfileState) Text LocationState (ErrorT LocationError Identity) a)
-    deriving (Monad, MonadError LocationError, Functor, MonadState LocationState, MonadReader (Profile, ProfileState))
+newtype LocationAction a = LocationAction (RWST ProfileInfo Text LocationState (ErrorT LocationError Identity) a)
+    deriving (Monad, MonadError LocationError, Functor, MonadState LocationState, MonadReader ProfileInfo)
 
 instance MonadLocationAction LocationAction
 
