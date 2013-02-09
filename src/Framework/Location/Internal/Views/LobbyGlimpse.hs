@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards, MultiParamTypeClasses #-}
 
-module Framework.Location.Internal.Views.LobbyView where
+module Framework.Location.Internal.Views.LobbyGlimpse where
 
 import Data.Maybe                               ( catMaybes )
 import Control.Monad.State                      ( gets )
@@ -16,27 +16,23 @@ import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Views.MatchmakerGlimpse
 import Framework.Location.Internal.Classes.View ( View(..) )
 
-data LobbyView = LobbyView
-    { name          :: Text
-    , description   :: Text
-    , lobbyId       :: LobbyId
-    , chats         :: ChatHolder
-    , members       :: [UserName]
-    , matchmakers   :: [MatchmakerGlimpse]
+data LobbyGlimpse = LobbyGlimpse
+    { name              :: Text
+    , description       :: Text
+    , lobbyId           :: LobbyId
+    , memberCount       :: Int
+    , matchmakerCount   :: Int
     } deriving (Ord, Eq, Read, Show) 
 
-instance View Lobby LobbyView where
+instance View Lobby LobbyGlimpse where
     view lobby@Lobby{..} = do
-        memberIds <- getUsers $ InLobby _lobbyId
-        members <- catMaybes <$> mapM lookupUserName memberIds
+        memberCount <- fmap length $ getUsers $ InLobby _lobbyId
         matchmakerIx <- _matchmakers <$> gets _matchmakerState
-        let matchmakerList = toList $ matchmakerIx @= _lobbyId
-        matchmakerGlimpses <- mapM view matchmakerList
-        return $ LobbyView
+        let matchmakerCount = length $ toList $ matchmakerIx @= _lobbyId
+        return $ LobbyGlimpse
             { name = _name
             , description = _description
             , lobbyId = _lobbyId
-            , chats = _chats
-            , members = members
-            , matchmakers = matchmakerGlimpses
+            , memberCount = memberCount
+            , matchmakerCount = matchmakerCount
             }
