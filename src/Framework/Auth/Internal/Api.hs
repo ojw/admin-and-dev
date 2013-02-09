@@ -16,6 +16,8 @@ import Framework.Auth.Internal.Types.UserPassword
 import Framework.Auth.Internal.Types.UserToken
 import Framework.Auth.Internal.Types.AuthState
 import Crypto.BCrypt
+import System.Entropy
+import Data.Monoid
 
 newtype PlainPass = PlainPass { unPlainPass :: ByteString } deriving (Ord, Eq, Read, Show)
 
@@ -23,7 +25,7 @@ data AuthApi
     = Register UserName Email PlainPass
     | LogIn Text PlainPass
     | UpdatePassword Text PlainPass PlainPass
-    | LogOut
+    | LogOut Text
 
 data AuthError
     = UserNameNotAvailable
@@ -40,7 +42,9 @@ class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthState m, M
 
 runAuthApi :: (MonadIO m, AuthAction m, MonadState ProfileState m) => AuthApi -> m AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
+runAuthApi (LogIn text plainPass) = logIn text plainPass >> return (AuthViewSuccess True)
 runAuthApi (UpdatePassword text oldPass newPass) = updatePassword text oldPass newPass >> return (AuthViewSuccess True)
+runAuthApi (LogOut text) = logOut text >> return (AuthViewSuccess True)
 
 isUserNameAvailable :: (Functor m, MonadReader ProfileState m) => UserName -> m Bool
 isUserNameAvailable email = (not . isJust) <$> lookupUserIdByUserName email
@@ -83,22 +87,22 @@ setPassword userId (PlainPass plainPass) = do
             userPasswords %= updateIx userId (UserPassword userId (HashedPass hashedPass))
             return ()
 
-getAuthToken :: AuthAction m => UserId -> m (Maybe AuthToken)
-getAuthToken userId = do
-    userTokens <- gets _userTokens
-    let mUserToken = getOne $ userTokens @= userId
-    case mUserToken of
-        Nothing -> return Nothing
-        Just userToken -> return $ _authToken userToken
+logOut :: AuthAction m => Text -> m ()
+logOut text = do
+    userId <- getUserIdByEmailOrUserName text
+    deleteAuthToken userId
 
--- prooooooobably could make this more random
-generateAuthToken :: MonadIO m => m AuthToken
-generateAuthToken = return $ AuthToken "FOO"
-
-setAuthToken :: AuthAction m => UserId -> m ()
-setAuthToken userId = do
-    userTokens %= updateIx userId (UserToken userId Nothing)
-    return ()
+logIn :: (AuthAction m, MonadIO m) => Text -> PlainPass -> m AuthToken
+logIn emailOrName password = do
+    userId <- getUserIdByEmailOrUserName emailOrName
+    isAuthenticated <- authenticate userId password
+    if not isAuthenticated 
+    then do
+        throwError IncorrectUserNameOrPassword
+    else do
+        newToken <- generateAuthToken
+        setAuthToken userId (Just newToken)
+        return newToken
 
 updatePassword :: (AuthAction m, MonadIO m) => Text -> PlainPass -> PlainPass -> m ()
 updatePassword userEmailOrName (PlainPass oldPass) (PlainPass newPass) = do
