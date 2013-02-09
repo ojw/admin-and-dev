@@ -12,13 +12,14 @@ newtype PlainPass = PlainPass Text  deriving (Ord, Eq, Read, Show)
 
 data AuthApi
     = Register UserName Email PlainPass
-    | Authenticate (Either UserName Email) PlainPass
-    | UpdatePassword (Either UserName Email) PlainPass PlainPass
+    | Authenticate Text PlainPass
+    | UpdatePassword Text PlainPass PlainPass
 
 data AuthError
     = UserNameNotAvailable
     | EmailNotAvailable
     | IncorrectUserNameOrPassword
+    | UserDoesNotExist
 
 data AuthView
     = AuthTokenView AuthToken

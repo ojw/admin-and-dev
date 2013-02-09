@@ -3,6 +3,7 @@
 module Framework.Profile where
 
 import Control.Monad.Reader
+import Data.Monoid
 import Data.Data
 import Data.Text            ( Text )
 import Data.IxSet
@@ -49,3 +50,20 @@ lookupUserName :: (MonadReader ProfileInfo m) => UserId -> m (Maybe UserName)
 lookupUserName userId = do
     profiles <- asks (_profiles . snd)
     return $ fmap _userName $ getOne $ profiles @= userId
+
+lookupUserIdByEmail :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
+lookupUserIdByEmail text = do
+    profiles <- asks _profiles
+    return $ fmap _userId $ getOne $ profiles @= (Email text)
+
+lookupUserIdByUserName :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
+lookupUserIdByUserName text = do
+    profiles <- asks _profiles
+    return $ fmap _userId $ getOne $ profiles @= text
+
+lookupUserIdByEmailOrUserName :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
+lookupUserIdByEmailOrUserName text = do
+    profiles <- asks _profiles
+    byEmail <- lookupUserIdByEmail text
+    byName <- lookupUserIdByUserName text
+    return $ mplus byEmail byName
