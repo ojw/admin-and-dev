@@ -1,7 +1,10 @@
-
+{-# LANGUAGE FlexibleContexts #-}
 
 module Framework.Auth.Internal.Api where
 
+import Data.Functor ( (<$>) )
+import Data.Maybe ( isJust )
+import Control.Monad.Reader
 import Data.Text ( Text )
 import Data.ByteString.Char8 ( ByteString )
 import Framework.Profile
@@ -23,3 +26,9 @@ data AuthError
 
 data AuthView
     = AuthTokenView AuthToken
+
+isUserNameAvailable :: (Functor m, MonadReader ProfileState m) => Text -> m Bool
+isUserNameAvailable text = (not . isJust) <$> lookupUserIdByUserName text
+
+isEmailAvailable :: (Functor m, MonadReader ProfileState m) => Text -> m Bool
+isEmailAvailable text = (not . isJust) <$> lookupUserIdByEmail text
