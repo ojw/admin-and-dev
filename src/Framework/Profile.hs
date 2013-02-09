@@ -36,6 +36,9 @@ data ProfileState = ProfileState
 $(makeLens ''ProfileState)
 $(deriveSafeCopy 0 'base ''ProfileState)
 
+data ProfileView = ProfileView
+data ProfileApi = ProfileApi
+
 type ProfileInfo = (Profile, ProfileState)
 
 currentUserId :: (MonadReader ProfileInfo m) => m UserId

@@ -19,7 +19,6 @@ import Crypto.BCrypt
 import System.Entropy
 import Data.Monoid
 
-newtype PlainPass = PlainPass { unPlainPass :: ByteString } deriving (Ord, Eq, Read, Show)
 
 data AuthApi
     = Register UserName Email PlainPass
@@ -60,8 +59,14 @@ register userName email plainPass = do
     setPassword userId plainPass
     return ()
 
-authenticate :: AuthAction m => UserId -> PlainPass -> m Bool
+authenticate :: AuthAction m => UserId -> PlainPass -> m ()
 authenticate userId (PlainPass plainPass) = do
+    userPasswords <- gets _userPasswords
+    hashedPass <- getHashedPass userId
+    if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
+
+tryAuthenticate :: AuthAction m => UserId -> PlainPass -> m Bool
+tryAuthenticate userId (PlainPass plainPass) = do
     userPasswords <- gets _userPasswords
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
@@ -95,19 +100,14 @@ logOut text = do
 logIn :: (AuthAction m, MonadIO m) => Text -> PlainPass -> m AuthToken
 logIn emailOrName password = do
     userId <- getUserIdByEmailOrUserName emailOrName
-    isAuthenticated <- authenticate userId password
-    if not isAuthenticated 
-    then do
-        throwError IncorrectUserNameOrPassword
-    else do
-        newToken <- generateAuthToken
-        setAuthToken userId (Just newToken)
-        return newToken
+    authenticate userId password
+    newToken <- generateAuthToken
+    setAuthToken userId (Just newToken)
+    return newToken
 
 updatePassword :: (AuthAction m, MonadIO m) => Text -> PlainPass -> PlainPass -> m ()
 updatePassword userEmailOrName (PlainPass oldPass) (PlainPass newPass) = do
     userId <- getUserIdByEmailOrUserName userEmailOrName
-    isAuthenticated <- authenticate userId (PlainPass oldPass)
-    if not isAuthenticated then throwError IncorrectUserNameOrPassword else do
-        setPassword userId (PlainPass newPass)
-        return ()
+    authenticate userId (PlainPass oldPass)
+    setPassword userId (PlainPass newPass)
+    return ()
