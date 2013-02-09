@@ -3,6 +3,7 @@
 module Framework.Profile where
 
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.Monoid
 import Data.Data
 import Data.Text            ( Text )
@@ -11,7 +12,7 @@ import Data.Lens
 import Data.Lens.Template
 import Data.SafeCopy
 
-newtype UserId = UserId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
+newtype UserId = UserId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 newtype Email = Email Text deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
 type UserName = Text
@@ -51,19 +52,26 @@ lookupUserName userId = do
     profiles <- asks (_profiles . snd)
     return $ fmap _userName $ getOne $ profiles @= userId
 
-lookupUserIdByEmail :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
-lookupUserIdByEmail text = do
+lookupUserIdByEmail :: (MonadReader ProfileState m) => Email -> m (Maybe UserId)
+lookupUserIdByEmail email = do
     profiles <- asks _profiles
-    return $ fmap _userId $ getOne $ profiles @= (Email text)
+    return $ fmap _userId $ getOne $ profiles @= email
 
-lookupUserIdByUserName :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
-lookupUserIdByUserName text = do
+lookupUserIdByUserName :: (MonadReader ProfileState m) => UserName -> m (Maybe UserId)
+lookupUserIdByUserName userName = do
     profiles <- asks _profiles
-    return $ fmap _userId $ getOne $ profiles @= text
+    return $ fmap _userId $ getOne $ profiles @= userName
 
 lookupUserIdByEmailOrUserName :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
 lookupUserIdByEmailOrUserName text = do
     profiles <- asks _profiles
-    byEmail <- lookupUserIdByEmail text
+    byEmail <- lookupUserIdByEmail (Email text)
     byName <- lookupUserIdByUserName text
     return $ mplus byEmail byName
+
+addNewProfile :: (MonadState ProfileState m) => UserName -> Email -> Bool -> m UserId
+addNewProfile userName email admin = do
+    userId <- gets _nextUserId
+    nextUserId %= succ
+    profiles %= updateIx userId (Profile userId userName email admin)
+    return userId

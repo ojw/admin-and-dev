@@ -15,7 +15,7 @@ newtype AuthToken = AuthToken ByteString deriving (Ord, Eq, Read, Show, Data, Ty
 
 data UserToken = UserToken
     { _userId       :: UserId
-    , _authToken    :: AuthToken
+    , _authToken    :: Maybe AuthToken
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 $(makeLens ''UserToken)

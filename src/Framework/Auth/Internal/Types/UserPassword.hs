@@ -10,7 +10,7 @@ import Data.IxSet
 import Data.ByteString.Char8 ( ByteString )
 import Framework.Profile ( UserId )
 
-newtype HashedPass = HashedPass ByteString deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
+newtype HashedPass = HashedPass { unHashedPass :: ByteString } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
 data UserPassword = UserPassword
     { _userId   :: UserId
