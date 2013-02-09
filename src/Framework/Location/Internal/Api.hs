@@ -4,6 +4,7 @@ module Framework.Location.Internal.Api where
 
 import Data.Text
 import Control.Monad.Reader hiding ( join )
+import Control.Monad.Error ( throwError )
 
 import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Location
@@ -55,4 +56,9 @@ leave = do
 runLocationApi :: (MonadLocationAction m) => LocationApi -> m LocationView
 runLocationApi (Join locationId) = tryJoin locationId
 runLocationApi Leave = tryLeave
+runLocationApi (Look locationId) = view locationId
+runLocationApi (Chat text locationId) = do
+    userName <- currentUserName
+    chat (userName, text) locationId
+    view locationId
 --runLocationApi _ = return ()
