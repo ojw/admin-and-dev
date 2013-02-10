@@ -12,30 +12,13 @@ import Data.Text
 import Framework.Location
 import Framework.Auth
 import Framework.Profile
+import Framework.Error
+import Framework.View
+import Framework.Acid
 
 data FrameworkApi
     = FWLocApi LocationApi
     | FWAuthApi AuthApi
-
-data Acid = Acid
-    { authState :: AuthState
-    , profileState :: ProfileState
-    , locationState :: LocationState
-    }
-
-data FrameworkError
-    = FWLocError LocationError
-    | FWAuthError AuthError
-    | DefaultError
-    | UserNotLoggedIn
-
-instance Error FrameworkError where
-    noMsg = DefaultError
-
-data FrameworkView
-    = FrameworkView 
-    | FWLocView LocationView
-    | FWAuthView AuthView
 
 class (Functor m, Monad m, MonadState Acid m) => MonadFrameworkAction m
 
@@ -47,6 +30,7 @@ getProfile = ask >>= maybe (throwError UserNotLoggedIn) return
 
 runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Acid, Text))
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST action) profile acid 
+
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- get
