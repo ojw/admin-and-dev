@@ -57,6 +57,7 @@ getProfile = ask >>= maybe (throwError UserNotLoggedIn) return
 runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Acid, Text))
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST action) profile acid 
 
+-- This will probably be rewritten to work with smaller acid handles rather than entire object.
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- get
