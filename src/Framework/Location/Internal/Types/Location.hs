@@ -64,10 +64,14 @@ data Location
 
 class (MonadReader (Profile, ProfileState) m, MonadError LocationError m, Functor m, MonadState LocationState m) => MonadLocationAction m
 
-newtype LocationAction a = LocationAction (RWST ProfileInfo Text LocationState (ErrorT LocationError Identity) a)
+newtype LocationAction a = LocationAction { unLocationAction :: (RWST ProfileInfo Text LocationState (ErrorT LocationError Identity) a) }
     deriving (Monad, MonadError LocationError, Functor, MonadState LocationState, MonadReader ProfileInfo)
 
 instance MonadLocationAction LocationAction
+
+
+runLocationAction (LocationAction locationAction) profileInfo locationState = do
+    runIdentity $ runErrorT $ (runRWST locationAction) profileInfo locationState
 
 setLocation :: MonadState LocationState m => LocationId -> UserId -> m ()
 setLocation locationId userId = do
@@ -95,31 +99,31 @@ inGame userId = do
         InGame _    -> return True
         _           -> return False
 
-modLobby :: (MonadLocationAction m) => (Lobby -> Lobby) -> LobbyId -> m (Maybe Lobby)
+modLobby :: (Functor m, MonadState LocationState m) => (Lobby -> Lobby) -> LobbyId -> m (Maybe Lobby)
 modLobby f lobbyId = do
     lobbies <- _lobbies <$> gets _lobbyState
     return $ f <$> (getOne $ lobbies @= lobbyId)
 
-getLobby :: (MonadLocationAction m) => LobbyId -> m (Maybe Lobby)
+getLobby :: (Functor m, MonadState LocationState m) => LobbyId -> m (Maybe Lobby)
 getLobby = modLobby id
 
-modMatchmaker :: (MonadLocationAction m) => (Matchmaker -> Matchmaker) -> MatchmakerId -> m (Maybe Matchmaker)
+modMatchmaker :: (Functor m, MonadState LocationState m) => (Matchmaker -> Matchmaker) -> MatchmakerId -> m (Maybe Matchmaker)
 modMatchmaker f matchmakerId = do
     matchmakers <- _matchmakers <$> gets _matchmakerState
     return $ f <$> (getOne $ matchmakers @= matchmakerId)
 
-getMatchmaker :: (MonadLocationAction m) => MatchmakerId -> m (Maybe Matchmaker)
+getMatchmaker :: (Functor m, MonadState LocationState m) => MatchmakerId -> m (Maybe Matchmaker)
 getMatchmaker = modMatchmaker id
 
-modGame :: (MonadLocationAction m) => (Game -> Game) -> GameId -> m (Maybe Game)
+modGame :: (Functor m, MonadState LocationState m) => (Game -> Game) -> GameId -> m (Maybe Game)
 modGame f gameId = do
     games <- _games <$> gets _gameState
     return $ f <$> (getOne $ games @= gameId)
 
-getGame :: (MonadLocationAction m) => GameId -> m (Maybe Game)
+getGame :: (Functor m, MonadState LocationState m) => GameId -> m (Maybe Game)
 getGame = modGame id
 
-getLocation :: (MonadLocationAction m) => LocationId -> m (Maybe Location)
+getLocation :: (Functor m, MonadState LocationState m) => LocationId -> m (Maybe Location)
 getLocation (InLobby lobbyId) = getLobby lobbyId >>= return . fmap LocLobby
 getLocation (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= return . fmap LocMatchmaker
 getLocation (InGame gameId) = getGame gameId >>= return . fmap LocGame

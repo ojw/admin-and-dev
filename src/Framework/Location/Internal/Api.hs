@@ -52,8 +52,7 @@ leave = do
     locationId <- getUserLocation userId
     join locationId
 
--- need to decide on return type
-runLocationApi :: (MonadLocationAction m) => LocationApi -> m LocationView
+runLocationApi :: LocationApi -> LocationAction LocationView
 runLocationApi (Join locationId) = tryJoin locationId
 runLocationApi Leave = tryLeave
 runLocationApi (Look locationId) = view locationId
@@ -61,4 +60,3 @@ runLocationApi (Chat text locationId) = do
     userName <- currentUserName
     chat (userName, text) locationId
     view locationId
---runLocationApi _ = return ()
