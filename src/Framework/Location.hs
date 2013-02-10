@@ -1,10 +1,15 @@
 module Framework.Location 
 
-( module Api
+( LocationApi(..)
 , LocationState(..)
+, LocationView(..)
+, LocationError(..)
+, runLocationApi
+, runLocationAction
 )
 
 where
 
-import Framework.Location.Internal.Api as Api
+import Framework.Location.Api as Api
 import Framework.Location.Internal.Types.Location
+import Framework.Location.Internal.Views.LocationView

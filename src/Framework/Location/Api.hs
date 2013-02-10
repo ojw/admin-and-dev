@@ -1,6 +1,6 @@
 
 
-module Framework.Location.Internal.Api where
+module Framework.Location.Api where
 
 import Data.Text
 import Control.Monad.Reader hiding ( join )

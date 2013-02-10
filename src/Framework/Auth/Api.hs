@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, OverloadedStrings, GeneralizedNewtypeDeriving #-}
 
-module Framework.Auth.Internal.Api where
+module Framework.Auth.Api where
 
 import Control.Monad.Reader
 import Control.Monad.State
