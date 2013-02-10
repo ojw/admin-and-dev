@@ -102,11 +102,19 @@ setPassword userId (PlainPass plainPass) = do
     return ()
 
 -- Will be called by the Framework to set up Location, Game, and Profile actions.
+{-
 getUserProfile :: MonadAuthAction m => AuthToken -> m Profile
 getUserProfile authToken = do
     userTokens <- _userTokens <$> gets _authState
-    case getOne $ userTokens @= AuthToken of
+    case getOne $ userTokens @= authToken of
         Nothing -> throwError InvalidAuthToken
         Just userToken -> do
             mProfile <- lookupProfileByUserId $ Framework.Auth.Internal.Types.UserToken._userId userToken
             maybe (throwError UserDoesNotExist) return mProfile
+-}
+getUserProfile :: ProfileState -> AuthState -> AuthToken -> Maybe Profile
+getUserProfile profileState authState authToken = do
+    case getOne $ _userTokens authState @= authToken of
+        Nothing -> Nothing
+        Just userToken -> do
+            runReader (lookupProfileByUserId (Framework.Auth.Internal.Types.UserToken._userId userToken)) profileState

@@ -15,6 +15,21 @@ import Framework.Profile
 import Framework.Error
 import Framework.View
 import Framework.Acid
+import Framework.Auth.Internal.Types.AuthState
+
+data ExternalApi = ExternalApi
+    { token :: Maybe AuthToken
+    , api   :: FrameworkApi
+    }
+
+runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Acid, Text))
+runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
+runExternalApi (ExternalApi Nothing _) acid = runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
+runExternalApi (ExternalApi (Just authToken) api) acid@Acid{..} = do
+    case getUserProfile profileState authState authToken of
+        Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
+        profile -> runFrameworkAction (runApi api) profile acid
+    
 
 data FrameworkApi
     = FWLocApi LocationApi
