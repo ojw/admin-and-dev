@@ -35,13 +35,11 @@ instance Error FrameworkError where
 data FrameworkApi
     = FWLocApi LocationApi
     | FWAuthApi AuthApi
-    | FWProfileApi ProfileApi
 
 data FrameworkView
     = FrameworkView 
     | FWLocView LocationView
     | FWAuthView AuthView
-    | FWProfileView ProfileView
 
 class (Functor m, Monad m, MonadState Acid m) => MonadFrameworkAction m
 
@@ -55,7 +53,6 @@ runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either F
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST action) profile acid
 
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
-runApi (FWProfileApi profileApi) = return FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- get
     let authSlice = AuthSlice {_authState = authState, _profileState = profileState}
