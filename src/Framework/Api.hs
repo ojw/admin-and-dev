@@ -22,6 +22,17 @@ data ExternalApi = ExternalApi
     , api   :: FrameworkApi
     }
 
+fancyRun :: (MonadIO m, MonadState Acid m, MonadWriter Text m) => ExternalApi -> m (Either FrameworkError FrameworkView)
+fancyRun externalApi = do
+    acid <- get
+    result <- liftIO $ runExternalApi externalApi acid
+    case result of
+        Left frameworkError -> return $ Left frameworkError
+        Right (frameworkView, acid, text) -> do
+            put acid
+            tell text
+            return $ Right frameworkView
+
 runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Acid, Text))
 runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
 runExternalApi (ExternalApi Nothing _) acid = return $ Left UserNotLoggedIn
