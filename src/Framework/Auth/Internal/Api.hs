@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings, GeneralizedNewtypeDeriving #-}
 
 module Framework.Auth.Internal.Api where
 
@@ -7,6 +7,7 @@ import Data.Maybe ( isJust, fromJust )
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Error
+import Control.Monad.RWS
 import Data.Text ( Text )
 import Data.Lens
 import Data.IxSet
@@ -32,14 +33,27 @@ data AuthError
     | IncorrectUserNameOrPassword
     | UserDoesNotExist
     | PasswordHashFailed
+    | DefaultAuthError
+
+instance Error AuthError where
+    noMsg = DefaultAuthError
 
 data AuthView
     = AuthTokenView AuthToken
     | AuthViewSuccess Bool
 
-class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthState m, MonadError AuthError m) => AuthAction m
+class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthState m, MonadError AuthError m) => MonadAuthAction m
 
-runAuthApi :: (MonadIO m, AuthAction m, MonadState ProfileState m) => AuthApi -> m AuthView
+newtype AuthAction a = AuthAction { unAuthAction :: RWST ProfileState Text AuthState (ErrorT AuthError IO) a}
+    deriving (Functor, Monad, MonadReader ProfileState, MonadState AuthState, MonadError AuthError)
+
+instance MonadAuthAction AuthAction
+
+runAuthAction :: AuthAction a -> ProfileState -> AuthState -> IO (Either AuthError (a, AuthState, Text))
+runAuthAction (AuthAction action) profileState authState = do
+    runErrorT $ (runRWST action) profileState authState
+
+runAuthApi :: (MonadIO m, MonadAuthAction m, MonadState ProfileState m) => AuthApi -> m AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
 runAuthApi (LogIn text plainPass) = logIn text plainPass >> return (AuthViewSuccess True)
 runAuthApi (UpdatePassword text oldPass newPass) = updatePassword text oldPass newPass >> return (AuthViewSuccess True)
@@ -51,7 +65,7 @@ isUserNameAvailable email = (not . isJust) <$> lookupUserIdByUserName email
 isEmailAvailable :: (Functor m, MonadReader ProfileState m) => Email -> m Bool
 isEmailAvailable email = (not . isJust) <$> lookupUserIdByEmail email
 
-register :: (MonadState ProfileState m, AuthAction m, MonadIO m) => UserName -> Email -> PlainPass -> m ()
+register :: (MonadState ProfileState m, MonadAuthAction m, MonadIO m) => UserName -> Email -> PlainPass -> m ()
 register userName email plainPass = do
     userNameIsAvailable <- isUserNameAvailable userName
     emailIsAvialable <- isEmailAvailable email
@@ -59,23 +73,23 @@ register userName email plainPass = do
     setPassword userId plainPass
     return ()
 
-authenticate :: AuthAction m => UserId -> PlainPass -> m ()
+authenticate :: MonadAuthAction m => UserId -> PlainPass -> m ()
 authenticate userId (PlainPass plainPass) = do
     userPasswords <- gets _userPasswords
     hashedPass <- getHashedPass userId
     if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
 
-tryAuthenticate :: AuthAction m => UserId -> PlainPass -> m Bool
+tryAuthenticate :: MonadAuthAction m => UserId -> PlainPass -> m Bool
 tryAuthenticate userId (PlainPass plainPass) = do
     userPasswords <- gets _userPasswords
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
 
-getUserIdByEmailOrUserName :: AuthAction m => Text -> m UserId
+getUserIdByEmailOrUserName :: MonadAuthAction m => Text -> m UserId
 getUserIdByEmailOrUserName text = do
     lookupUserIdByEmailOrUserName text >>= maybe (throwError UserDoesNotExist) return
 
-getHashedPass :: AuthAction m =>  UserId -> m HashedPass
+getHashedPass :: MonadAuthAction m =>  UserId -> m HashedPass
 getHashedPass userId = do
     userPasswords <- gets _userPasswords
     case fmap _password $ getOne $ userPasswords @= userId of
@@ -83,7 +97,7 @@ getHashedPass userId = do
         Just hashedPass -> return hashedPass
     
 
-setPassword :: (MonadIO m, AuthAction m) => UserId -> PlainPass -> m ()
+setPassword :: (MonadIO m, MonadAuthAction m) => UserId -> PlainPass -> m ()
 setPassword userId (PlainPass plainPass) = do
     mHashedPass <- liftIO $ hashPasswordUsingPolicy slowerBcryptHashingPolicy plainPass
     case mHashedPass of
@@ -92,12 +106,12 @@ setPassword userId (PlainPass plainPass) = do
             userPasswords %= updateIx userId (UserPassword userId (HashedPass hashedPass))
             return ()
 
-logOut :: AuthAction m => Text -> m ()
+logOut :: MonadAuthAction m => Text -> m ()
 logOut text = do
     userId <- getUserIdByEmailOrUserName text
     deleteAuthToken userId
 
-logIn :: (AuthAction m, MonadIO m) => Text -> PlainPass -> m AuthToken
+logIn :: (MonadAuthAction m, MonadIO m) => Text -> PlainPass -> m AuthToken
 logIn emailOrName password = do
     userId <- getUserIdByEmailOrUserName emailOrName
     authenticate userId password
@@ -105,7 +119,7 @@ logIn emailOrName password = do
     setAuthToken userId (Just newToken)
     return newToken
 
-updatePassword :: (AuthAction m, MonadIO m) => Text -> PlainPass -> PlainPass -> m ()
+updatePassword :: (MonadAuthAction m, MonadIO m) => Text -> PlainPass -> PlainPass -> m ()
 updatePassword userEmailOrName (PlainPass oldPass) (PlainPass newPass) = do
     userId <- getUserIdByEmailOrUserName userEmailOrName
     authenticate userId (PlainPass oldPass)

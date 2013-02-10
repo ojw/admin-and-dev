@@ -26,6 +26,7 @@ data FrameworkError
     = FWLocError LocationError
     | FWAuthError AuthError
     | DefaultError
+    | UserNotLoggedIn
 
 instance Error FrameworkError where
     noMsg = DefaultError
@@ -46,23 +47,31 @@ class (Functor m, Monad m, MonadState Acid m) => MonadFrameworkAction m
 newtype FrameworkAction a = FrameworkAction { unFrameworkAction :: RWST (Maybe Profile) Text Acid (ErrorT FrameworkError IO) a }
     deriving (Monad, Functor, MonadState Acid, MonadWriter Text, MonadError FrameworkError, MonadIO, MonadReader (Maybe Profile))
 
+getProfile :: FrameworkAction Profile
+getProfile = ask >>= maybe (throwError UserNotLoggedIn) return
+
 runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Acid, Text))
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST action) profile acid
 
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
-runApi (FWAuthApi authApi) = return FrameworkView
 runApi (FWProfileApi profileApi) = return FrameworkView
+{-
+runApi (FWAuthApi authApi) = do
+    acid@Acid{..} <- get
+    case (runAuthAction $ runAuthApi authApi) profileState authState of
+        Left e -> throwError $ FWAuthError e
+        Right (v, s, w) -> do   
+            put $ Acid s profileState locationState
+            tell w
+            return $ FWAuthView v
+-}
+runApi (FWAuthApi authApi) = return FrameworkView
 runApi (FWLocApi locationApi) = do
     acid@Acid{..} <- get
-    mProfile <- ask
-    case mProfile of
-        Nothing -> throwError DefaultError
-        Just profile -> do
-            let locationAction = runLocationApi locationApi
-                locationValue = (runLocationAction locationAction) (profile, profileState) locationState
-            case locationValue of
-                Left e -> throwError $ FWLocError e
-                Right (v, s, w) -> do
-                    put $ Acid authState profileState s
-                    tell w
-                    return $ FWLocView v
+    profile <- getProfile
+    case (runLocationAction $ runLocationApi locationApi) (profile, profileState) locationState of
+        Left e -> throwError $ FWLocError e
+        Right (v, s, w) -> do
+            put $ Acid authState profileState s
+            tell w
+            return $ FWLocView v
