@@ -4,6 +4,8 @@ module Framework.Profile where
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Functor
+import Data.Maybe
 import Data.Monoid
 import Data.Data
 import Data.Text            ( Text )
@@ -83,3 +85,9 @@ addNewProfile userName email admin = do
     nextUserId %= succ
     profiles %= updateIx userId (Profile userId userName email admin)
     return userId
+
+isUserNameAvailable :: (Functor m, MonadReader ProfileState m) => UserName -> m Bool
+isUserNameAvailable email = (not . isJust) <$> lookupUserIdByUserName email
+
+isEmailAvailable :: (Functor m, MonadReader ProfileState m) => Email -> m Bool
+isEmailAvailable email = (not . isJust) <$> lookupUserIdByEmail email

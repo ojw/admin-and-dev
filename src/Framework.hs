@@ -14,6 +14,7 @@ import Framework.Location.Internal.Views.LocationView
 import Framework.Location.Internal.Types.Location
 import Framework.Auth
 import Framework.Auth.Internal.Types.AuthState
+import Framework.Auth.Internal.Types.Error
 import Framework.Profile
 
 data Acid = Acid
