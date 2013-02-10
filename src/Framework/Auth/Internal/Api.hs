@@ -7,6 +7,7 @@ import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.RWS
 import Data.Text ( Text )
+import Data.Lens
 import Framework.Profile
 import Framework.Auth.Internal.Types.UserPassword
 import Framework.Auth.Internal.Types.UserToken
@@ -19,21 +20,23 @@ data AuthApi
     | UpdatePassword Text PlainPass PlainPass
     | LogOut Text
 
-runAuthAction :: AuthAction a -> ProfileState -> AuthState -> IO (Either AuthError (a, AuthState, Text))
-runAuthAction (AuthAction action) profileState authState = do
-    runErrorT $ (runRWST action) profileState authState
+runAuthAction :: AuthAction a -> ProfileState -> AuthSlice -> IO (Either AuthError (a, AuthSlice, Text))
+runAuthAction (AuthAction action) profileState authSlice = do
+    runErrorT $ (runRWST action) profileState authSlice
 
-runAuthApi :: (MonadIO m, MonadAuthAction m, MonadState ProfileState m) => AuthApi -> m AuthView
+runAuthApi :: (MonadIO m, MonadAuthAction m) => AuthApi -> m AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
 runAuthApi (LogIn text plainPass) = logIn text plainPass >> return (AuthViewSuccess True)
 runAuthApi (UpdatePassword text oldPass newPass) = updatePassword text oldPass newPass >> return (AuthViewSuccess True)
 runAuthApi (LogOut text) = logOut text >> return (AuthViewSuccess True)
 
-register :: (MonadState ProfileState m, MonadAuthAction m, MonadIO m) => UserName -> Email -> PlainPass -> m ()
+register :: (MonadAuthAction m, MonadIO m) => UserName -> Email -> PlainPass -> m ()
 register userName email plainPass = do
     userNameIsAvailable <- isUserNameAvailable userName
     emailIsAvialable <- isEmailAvailable email
-    userId <- addNewProfile userName email False
+    oldProfileState <- gets _profileState
+    let (userId, newProfileState) = runState (addNewProfile userName email False) oldProfileState
+    profileState != newProfileState
     setPassword userId plainPass
     return ()
 

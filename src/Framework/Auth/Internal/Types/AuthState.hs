@@ -6,6 +6,7 @@ module Framework.Auth.Internal.Types.AuthState where
 import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.RWS
+import Data.Functor
 import Data.Text
 import Data.SafeCopy
 import Data.Lens
@@ -36,24 +37,31 @@ data AuthView
     = AuthTokenView AuthToken
     | AuthViewSuccess Bool
 
-class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthState m, MonadError AuthError m) => MonadAuthAction m
+data AuthSlice = AuthSlice
+    { _authState :: AuthState
+    , _profileState :: ProfileState
+    }
 
-newtype AuthAction a = AuthAction { unAuthAction :: RWST ProfileState Text AuthState (ErrorT AuthError IO) a}
-    deriving (Functor, Monad, MonadReader ProfileState, MonadState AuthState, MonadError AuthError)
+$(makeLens ''AuthSlice)
+
+class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthSlice m, MonadError AuthError m) => MonadAuthAction m
+
+newtype AuthAction a = AuthAction { unAuthAction :: RWST ProfileState Text AuthSlice (ErrorT AuthError IO) a}
+    deriving (Functor, Monad, MonadReader ProfileState, MonadState AuthSlice, MonadError AuthError, MonadIO)
 
 instance MonadAuthAction AuthAction 
 
-deleteAuthToken :: MonadState AuthState m => UserId -> m ()
+deleteAuthToken :: MonadAuthAction m => UserId -> m ()
 deleteAuthToken userId = setAuthToken userId Nothing
 
-setAuthToken :: MonadState AuthState m => UserId -> Maybe AuthToken -> m ()
+setAuthToken :: MonadAuthAction m => UserId -> Maybe AuthToken -> m ()
 setAuthToken userId authToken = do
-    userTokens %= updateIx userId (UserToken userId authToken)
+    authState %= (userTokens ^%= updateIx userId (UserToken userId authToken))
     return () 
 
-getAuthToken :: MonadState AuthState m => UserId -> m (Maybe AuthToken)
+getAuthToken :: MonadAuthAction m => UserId -> m (Maybe AuthToken)
 getAuthToken userId = do
-    userTokens <- gets _userTokens
+    userTokens <- _userTokens <$> gets _authState
     let mUserToken = getOne $ userTokens @= userId
     case mUserToken of
         Nothing -> return Nothing
@@ -66,13 +74,13 @@ generateAuthToken = do
 
 authenticate :: MonadAuthAction m => UserId -> PlainPass -> m ()
 authenticate userId (PlainPass plainPass) = do
-    userPasswords <- gets _userPasswords
+    userPasswords <- _userPasswords <$> gets _authState
     hashedPass <- getHashedPass userId
     if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
 
 tryAuthenticate :: MonadAuthAction m => UserId -> PlainPass -> m Bool
 tryAuthenticate userId (PlainPass plainPass) = do
-    userPasswords <- gets _userPasswords
+    userPasswords <- _userPasswords <$> gets _authState
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
 
@@ -82,21 +90,21 @@ getUserIdByEmailOrUserName text = do
 
 getHashedPass :: MonadAuthAction m =>  UserId -> m HashedPass
 getHashedPass userId = do
-    userPasswords <- gets _userPasswords
+    userPasswords <- _userPasswords <$> gets _authState
     getHashedPass' userPasswords userId
     
 
 setPassword :: (MonadIO m, MonadAuthAction m) => UserId -> PlainPass -> m ()
 setPassword userId (PlainPass plainPass) = do
-    oldUserPasswords <- gets _userPasswords
+    oldUserPasswords <- _userPasswords <$> gets _authState
     newUserPasswords <- setPassword' oldUserPasswords userId (PlainPass plainPass)
-    userPasswords != newUserPasswords
+    authState %= (userPasswords ^!= newUserPasswords)
     return ()
 
 -- Will be called by the Framework to set up Location, Game, and Profile actions.
 getUserProfile :: MonadAuthAction m => AuthToken -> m Profile
 getUserProfile authToken = do
-    userTokens <- gets _userTokens
+    userTokens <- _userTokens <$> gets _authState
     case getOne $ userTokens @= AuthToken of
         Nothing -> throwError InvalidAuthToken
         Just userToken -> do
