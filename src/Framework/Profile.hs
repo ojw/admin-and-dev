@@ -72,6 +72,11 @@ lookupUserIdByEmailOrUserName text = do
     byName <- lookupUserIdByUserName text
     return $ mplus byEmail byName
 
+lookupProfileByUserId :: (MonadReader ProfileState m) => UserId -> m (Maybe Profile)
+lookupProfileByUserId userId = do
+    profiles <- asks _profiles
+    return $ getOne $ profiles @= userId    
+
 addNewProfile :: (MonadState ProfileState m) => UserName -> Email -> Bool -> m UserId
 addNewProfile userName email admin = do
     userId <- gets _nextUserId

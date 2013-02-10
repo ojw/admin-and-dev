@@ -16,27 +16,16 @@ import Framework.Profile
 import Framework.Auth.Internal.Types.UserPassword
 import Framework.Auth.Internal.Types.UserToken
 import Framework.Auth.Internal.Types.AuthState
+import Framework.Auth.Internal.Types.Error
 import Crypto.BCrypt
 import System.Entropy
 import Data.Monoid
-
 
 data AuthApi
     = Register UserName Email PlainPass
     | LogIn Text PlainPass
     | UpdatePassword Text PlainPass PlainPass
     | LogOut Text
-
-data AuthError
-    = UserNameNotAvailable
-    | EmailNotAvailable
-    | IncorrectUserNameOrPassword
-    | UserDoesNotExist
-    | PasswordHashFailed
-    | DefaultAuthError
-
-instance Error AuthError where
-    noMsg = DefaultAuthError
 
 data AuthView
     = AuthTokenView AuthToken
@@ -92,19 +81,15 @@ getUserIdByEmailOrUserName text = do
 getHashedPass :: MonadAuthAction m =>  UserId -> m HashedPass
 getHashedPass userId = do
     userPasswords <- gets _userPasswords
-    case fmap _password $ getOne $ userPasswords @= userId of
-        Nothing -> throwError UserDoesNotExist
-        Just hashedPass -> return hashedPass
+    getHashedPass' userPasswords userId
     
 
 setPassword :: (MonadIO m, MonadAuthAction m) => UserId -> PlainPass -> m ()
 setPassword userId (PlainPass plainPass) = do
-    mHashedPass <- liftIO $ hashPasswordUsingPolicy slowerBcryptHashingPolicy plainPass
-    case mHashedPass of
-        Nothing -> throwError PasswordHashFailed
-        Just hashedPass -> do
-            userPasswords %= updateIx userId (UserPassword userId (HashedPass hashedPass))
-            return ()
+    oldUserPasswords <- gets _userPasswords
+    newUserPasswords <- setPassword' oldUserPasswords userId (PlainPass plainPass)
+    userPasswords != newUserPasswords
+    return ()
 
 logOut :: MonadAuthAction m => Text -> m ()
 logOut text = do
@@ -125,3 +110,13 @@ updatePassword userEmailOrName (PlainPass oldPass) (PlainPass newPass) = do
     authenticate userId (PlainPass oldPass)
     setPassword userId (PlainPass newPass)
     return ()
+
+-- Will be called by the Framework to set up Location, Game, and Profile actions.
+getUserProfile :: MonadAuthAction m => AuthToken -> m Profile
+getUserProfile authToken = do
+    userTokens <- gets _userTokens
+    case getOne $ userTokens @= AuthToken of
+        Nothing -> throwError InvalidAuthToken
+        Just userToken -> do
+            mProfile <- lookupProfileByUserId $ Framework.Auth.Internal.Types.UserToken._userId userToken
+            maybe (throwError UserDoesNotExist) return mProfile

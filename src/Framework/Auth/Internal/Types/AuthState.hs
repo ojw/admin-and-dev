@@ -16,7 +16,6 @@ import Framework.Profile
 import Framework.Auth.Internal.Types.UserPassword
 import Framework.Auth.Internal.Types.UserToken
 
-newtype PlainPass = PlainPass { unPlainPass :: ByteString } deriving (Ord, Eq, Read, Show)
 
 data AuthState = AuthState
     { _userPasswords    :: UserPasswords
