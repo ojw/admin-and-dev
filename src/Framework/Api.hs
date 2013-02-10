@@ -24,7 +24,7 @@ data ExternalApi = ExternalApi
 
 runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Acid, Text))
 runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
-runExternalApi (ExternalApi Nothing _) acid = runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
+runExternalApi (ExternalApi Nothing _) acid = return $ Left UserNotLoggedIn
 runExternalApi (ExternalApi (Just authToken) api) acid@Acid{..} = do
     case getUserProfile profileState authState authToken of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
