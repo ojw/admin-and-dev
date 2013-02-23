@@ -57,9 +57,9 @@ instance Error LocationError where
 --type LocationErrorMonad = Either LocationError
 
 data Location
-    = LocLobby Lobby
-    | LocMatchmaker Matchmaker
-    | LocGame Game
+    = LocLobby { unLocLobby :: Lobby }
+    | LocMatchmaker { unLocMatchmaker :: Matchmaker }
+    | LocGame { unLocGame :: Game }
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 class (MonadReader (Profile, ProfileState) m, MonadError LocationError m, Functor m, MonadState LocationState m) => MonadLocationAction m

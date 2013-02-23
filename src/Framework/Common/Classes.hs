@@ -9,7 +9,7 @@ class View obj view m | obj -> m where
 
 class IndexedContainer index value container | container -> index value where
     add     :: value -> container -> (index, container)
-    modify  :: index -> (value -> value) -> container -> (value, container)
+    modify  :: index -> (value -> value) -> container -> (Maybe value, container)
     delete  :: index -> container -> container 
 
 add' :: (IndexedContainer index value container, MonadState container m) => value -> m index
@@ -19,7 +19,7 @@ add' value = do
     put container'
     return index
 
-modify' :: (IndexedContainer index value container, MonadState container m) => index -> (value -> value) -> m value
+modify' :: (IndexedContainer index value container, MonadState container m) => index -> (value -> value) -> m (Maybe value)
 modify' index f = do
     container <- get
     let (value, container') = modify index f container
@@ -30,6 +30,15 @@ delete' :: (IndexedContainer index value container, MonadState container m) => i
 delete' index = do
     container <- get
     put $ delete index container
+
+add'' :: IndexedContainer index value container => value -> container -> container
+add'' value container = snd $ add value container
+
+modify'' :: IndexedContainer index value container => index -> (value -> value) -> container -> container
+modify'' index f container = snd $ modify index f container
+
+delete'' :: IndexedContainer index value container => index -> container -> container
+delete'' = delete
 
 class Create obj options where
     new     :: options -> obj 
