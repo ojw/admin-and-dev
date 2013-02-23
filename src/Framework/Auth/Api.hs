@@ -24,13 +24,13 @@ runAuthAction :: AuthAction a -> ProfileState -> AuthSlice -> IO (Either AuthErr
 runAuthAction (AuthAction action) profileState authSlice = do
     runErrorT $ (runRWST action) profileState authSlice
 
-runAuthApi :: (MonadIO m, MonadAuthAction m) => AuthApi -> m AuthView
+runAuthApi :: AuthApi -> AuthAction AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
 runAuthApi (LogIn text plainPass) = logIn text plainPass >> return (AuthViewSuccess True)
 runAuthApi (UpdatePassword text oldPass newPass) = updatePassword text oldPass newPass >> return (AuthViewSuccess True)
 runAuthApi (LogOut text) = logOut text >> return (AuthViewSuccess True)
 
-register :: (MonadAuthAction m, MonadIO m) => UserName -> Email -> PlainPass -> m ()
+register :: UserName -> Email -> PlainPass -> AuthAction ()
 register userName email plainPass = do
     userNameIsAvailable <- isUserNameAvailable userName
     emailIsAvialable <- isEmailAvailable email
@@ -40,12 +40,12 @@ register userName email plainPass = do
     setPassword userId plainPass
     return ()
 
-logOut :: MonadAuthAction m => Text -> m ()
+logOut :: Text -> AuthAction ()
 logOut text = do
     userId <- getUserIdByEmailOrUserName text
     deleteAuthToken userId
 
-logIn :: (MonadAuthAction m, MonadIO m) => Text -> PlainPass -> m AuthToken
+logIn :: Text -> PlainPass -> AuthAction AuthToken
 logIn emailOrName password = do
     userId <- getUserIdByEmailOrUserName emailOrName
     authenticate userId password
@@ -53,7 +53,7 @@ logIn emailOrName password = do
     setAuthToken userId (Just newToken)
     return newToken
 
-updatePassword :: (MonadAuthAction m, MonadIO m) => Text -> PlainPass -> PlainPass -> m ()
+updatePassword :: Text -> PlainPass -> PlainPass -> AuthAction ()
 updatePassword userEmailOrName (PlainPass oldPass) (PlainPass newPass) = do
     userId <- getUserIdByEmailOrUserName userEmailOrName
     authenticate userId (PlainPass oldPass)

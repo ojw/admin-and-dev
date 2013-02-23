@@ -1,5 +1,3 @@
-
-
 module Framework.Location.Api where
 
 import Data.Text
@@ -10,8 +8,8 @@ import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location
-import Framework.Location.Internal.Classes.View
 import Framework.Location.Internal.Views.LocationView
+import Framework.Common.Classes ( view )
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi
@@ -22,7 +20,7 @@ data LocationApi
     | Create LocationId -- will probably patern match on LocationId to determine type of location, ignore id
     | Delete LocationId
 
-join :: (MonadLocationAction m) => LocationId -> m LocationView
+join :: LocationId -> LocationAction LocationView
 join locationId = do
     userId <- currentUserId
     oldLocationId <- getUserLocation userId
@@ -31,7 +29,7 @@ join locationId = do
     onJoin locationId 
     view locationId
 
-tryJoin :: (MonadLocationAction m) => LocationId -> m LocationView
+tryJoin :: LocationId -> LocationAction LocationView
 tryJoin locationId = do
     userId <- currentUserId
     oldLocationId <- getUserLocation userId
@@ -39,14 +37,14 @@ tryJoin locationId = do
     canJoin <- canJoin locationId
     if canJoin && canLeave then join locationId else view oldLocationId
 
-tryLeave :: (MonadLocationAction m) => m LocationView
+tryLeave :: LocationAction LocationView
 tryLeave = do
     userId <- currentUserId
     currentLocationId <- getUserLocation userId
     exit <- exit currentLocationId
     tryJoin exit
 
-leave :: (MonadLocationAction m) => m LocationView
+leave :: LocationAction LocationView
 leave = do
     userId <- currentUserId
     locationId <- getUserLocation userId
