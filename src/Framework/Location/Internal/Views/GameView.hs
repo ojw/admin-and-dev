@@ -10,7 +10,7 @@ import Framework.Location.Internal.Types.Chat       ( ChatHolder )
 import Framework.Location.Internal.Types.Lobby      ( LobbyId )
 import Framework.Location.Internal.Types.Game       ( GameId, Game(..) )
 import Framework.Location.Internal.Types.Location
-import Framework.Location.Internal.Classes.View ( View(..) )
+import Framework.Common.Classes ( View(..) )
 
 data GameView = GameView
     { gameId        :: GameId
@@ -19,7 +19,7 @@ data GameView = GameView
     , members       :: [UserName]
     } deriving (Ord, Eq, Read, Show)
 
-instance View Game GameView where
+instance View Game GameView LocationAction where
     view game@Game{..} = do
         memberIds <- getUsers $ InGame _gameId
         memberNames <- catMaybes <$> mapM lookupUserName memberIds

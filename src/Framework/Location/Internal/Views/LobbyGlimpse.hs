@@ -14,7 +14,7 @@ import Framework.Location.Internal.Types.Chat   ( ChatHolder )
 import Framework.Location.Internal.Types.Matchmaker
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Views.MatchmakerGlimpse
-import Framework.Location.Internal.Classes.View ( View(..) )
+import Framework.Common.Classes ( View(..) )
 
 data LobbyGlimpse = LobbyGlimpse
     { name              :: Text
@@ -24,7 +24,7 @@ data LobbyGlimpse = LobbyGlimpse
     , matchmakerCount   :: Int
     } deriving (Ord, Eq, Read, Show) 
 
-instance View Lobby LobbyGlimpse where
+instance View Lobby LobbyGlimpse LocationAction where
     view lobby@Lobby{..} = do
         memberCount <- fmap length $ getUsers $ InLobby _lobbyId
         matchmakerIx <- _matchmakers <$> gets _matchmakerState

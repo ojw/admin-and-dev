@@ -11,7 +11,7 @@ import Framework.Location.Internal.Types.Chat       ( ChatHolder )
 import Framework.Location.Internal.Types.Lobby      ( LobbyId )
 import Framework.Location.Internal.Types.Matchmaker ( MatchmakerId, Matchmaker(..) )
 import Framework.Location.Internal.Types.Location
-import Framework.Location.Internal.Classes.View ( View(..) )
+import Framework.Common.Classes
 
 data MatchmakerView = MatchmakerView
     { matchmakerId  :: MatchmakerId
@@ -23,7 +23,7 @@ data MatchmakerView = MatchmakerView
     } deriving (Ord, Eq, Read, Show)
 
 -- Probably should have used case instead of maybe... this looks a li'l silly.
-instance View Matchmaker MatchmakerView where
+instance View Matchmaker MatchmakerView LocationAction where
     view matchmaker@Matchmaker{..} = do
         mOwnerName <- lookupUserName _owner
         memberIds <- getUsers $ InMatchmaker _matchmakerId
