@@ -10,7 +10,7 @@ import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location
 import Framework.Location.Internal.Views.LocationView
-import Framework.Common.Classes ( view, delete' )
+import Framework.Common.Classes as Classes ( view, create, delete', add' )
 import Data.Text ( Text, pack )
 
 -- removed UserId since these will run with MonadReader Profile m
@@ -19,7 +19,7 @@ data LocationApi
     | Leave 
     | Look LocationId -- will include data previously requested with ReceiveChat
     | Chat Text LocationId
-    | Create LocationId -- will probably patern match on LocationId to determine type of location, ignore id
+    | Create LocationOptions -- will probably patern match on LocationId to determine type of location, ignore id
     | Delete LocationId
 
 join :: LocationId -> LocationAction LocationView
@@ -52,10 +52,15 @@ leave = do
     locationId <- getUserLocation userId
     join locationId
 
+create :: LocationOptions -> LocationAction LocationView
+create locationOptions = do
+    add' $ Classes.create locationOptions
+    return $ LVMessage $ pack "Added."
+
 delete :: LocationId -> LocationAction LocationView
 delete locationId = do
     delete' locationId
-    return $ LVMessage $ pack "(Unimplemented.)"
+    return $ LVMessage $ pack "Deleted."
 
 runLocationApi :: LocationApi -> LocationAction LocationView
 runLocationApi (Join locationId) = tryJoin locationId

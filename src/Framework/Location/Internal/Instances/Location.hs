@@ -109,13 +109,13 @@ instance IndexedContainer LocationId Location LocationState where
             gameState' = delete gameId gameState
             locationState' = locationState { _gameState = gameState' }
 
-data LocationOption = LOLobby LobbyOptions | LOMatchmaker MatchmakerOptions | LOGame GameOptions
+data LocationOptions = LOLobby LobbyOptions | LOMatchmaker MatchmakerOptions | LOGame GameOptions
 
 -- Create class doesn't work as well for Locations in general.
 -- Blank has to chose which type to be, so I defaulted to Lobby.
 -- Update only makes sense if the options and object types match up.
 -- I think this is guaranteed by functional dependencies, but I added a pattern match that does nothing in case a mismatched pair is passed to update.
-instance Create LocationOption Location where
+instance Create LocationOptions Location where
     blank = LocLobby (blank :: Lobby)
     update (LOLobby lobbyOptions) (LocLobby lobby) = LocLobby $ update lobbyOptions lobby
     update (LOMatchmaker matchmakerOptions) (LocMatchmaker matchmaker) = LocMatchmaker $ update matchmakerOptions matchmaker
