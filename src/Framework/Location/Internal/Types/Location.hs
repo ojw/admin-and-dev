@@ -28,16 +28,16 @@ import Framework.Location.Internal.Types.Chat hiding ( addChat )
 data LocationId = InLobby LobbyId | InMatchmaker MatchmakerId | WatchingGame GameId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-$(deriveSafeCopy 0 'base ''LocationId)
+deriveSafeCopy 0 'base ''LocationId
 
 data UserLocation = UserLocation
     { _userId        :: UserId
     , _locationId    :: LocationId
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-$(makeLens ''UserLocation)
-$(deriveSafeCopy 0 'base ''UserLocation)
-$(inferIxSet "UserLocations" ''UserLocation 'noCalcs [''UserId, ''LocationId])
+makeLens ''UserLocation
+deriveSafeCopy 0 'base ''UserLocation
+inferIxSet "UserLocations" ''UserLocation 'noCalcs [''UserId, ''LocationId]
 
 data LocationState = LocationState
     { _userLocations    :: UserLocations
@@ -47,7 +47,7 @@ data LocationState = LocationState
     , _gameState        :: GameState
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-$(makeLens ''LocationState)
+makeLens ''LocationState
 
 data LocationError = LocationDoesNotExist | OtherLocationError
 
