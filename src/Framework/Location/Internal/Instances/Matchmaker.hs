@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RecordWildCards #-}
 
 module Framework.Location.Internal.Instances.Matchmaker where
 
@@ -8,10 +8,11 @@ import Data.Lens
 
 import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Chat
+import Framework.Location.Internal.Types.Lobby ( LobbyId(..) )
 import Framework.Location.Internal.Types.Matchmaker
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Classes.Location
-import Framework.Common.Classes ( IndexedContainer(..) )
+import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
 import Data.IxSet ( updateIx, deleteIx, getOne, (@=) )
 
 instance Loc Matchmaker where
@@ -42,3 +43,11 @@ instance IndexedContainer MatchmakerId Matchmaker MatchmakerState where
                         Just matchmaker -> updateIx matchmakerId matchmaker matchmakers
                         Nothing -> matchmakers
     delete matchmakerId (MatchmakerState matchmakers n) = (MatchmakerState (deleteIx matchmakerId matchmakers) n)
+
+data MatchmakerOptions = MatchmakerOptions
+    { matchmakerOptionsCapacity :: Maybe (Int, Int)
+    }
+
+instance Create MatchmakerOptions Matchmaker where
+    blank = Matchmaker (MatchmakerId 0) [] (2,2) (UserId 0) (LobbyId 0)
+    update options matchmaker = matchmaker { _capacity = maybe (_capacity matchmaker) id (matchmakerOptionsCapacity options) }

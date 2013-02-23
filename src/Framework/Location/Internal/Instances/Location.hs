@@ -10,10 +10,7 @@ import Control.Monad.Reader hiding ( join )
 import Control.Monad.Error hiding ( join )
 import Data.SafeCopy
 import Data.Data
-import Data.Acid
 import Data.Lens
-import Data.Lens.Template
-import Data.Text                            ( Text )
 
 import Framework.Profile ( UserId )
 import Framework.Profile as Profile
@@ -27,7 +24,7 @@ import Framework.Location.Internal.Types.Matchmaker
 import Framework.Location.Internal.Types.Game
 import Framework.Location.Internal.Classes.Location
 import Framework.Location.Internal.Types.Lobby
-import Framework.Common.Classes ( IndexedContainer(..) )
+import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
 
 instance Loc Location where
     canJoin (LocLobby lobby) = canJoin lobby
@@ -111,3 +108,16 @@ instance IndexedContainer LocationId Location LocationState where
             gameState = _gameState locationState
             gameState' = delete gameId gameState
             locationState' = locationState { _gameState = gameState' }
+
+data LocationOption = LOLobby LobbyOptions | LOMatchmaker MatchmakerOptions | LOGame GameOptions
+
+-- Create class doesn't work as well for Locations in general.
+-- Blank has to chose which type to be, so I defaulted to Lobby.
+-- Update only makes sense if the options and object types match up.
+-- I think this is guaranteed by functional dependencies, but I added a pattern match that does nothing in case a mismatched pair is passed to update.
+instance Create LocationOption Location where
+    blank = LocLobby (blank :: Lobby)
+    update (LOLobby lobbyOptions) (LocLobby lobby) = LocLobby $ update lobbyOptions lobby
+    update (LOMatchmaker matchmakerOptions) (LocMatchmaker matchmaker) = LocMatchmaker $ update matchmakerOptions matchmaker
+    update (LOGame gameOptions) (LocGame game) = LocGame $ update gameOptions game
+    update _ loc = loc
