@@ -3,13 +3,15 @@ module Framework.Location.Api where
 import Data.Text
 import Control.Monad.Reader hiding ( join )
 import Control.Monad.Error ( throwError )
+import Control.Monad.State ( get )
 
 import Framework.Profile as Profile
 import Framework.Location.Internal.Types.Location
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location
 import Framework.Location.Internal.Views.LocationView
-import Framework.Common.Classes ( view )
+import Framework.Common.Classes ( view, delete' )
+import Data.Text ( Text, pack )
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi
@@ -49,6 +51,11 @@ leave = do
     userId <- currentUserId
     locationId <- getUserLocation userId
     join locationId
+
+delete :: LocationId -> LocationAction LocationView
+delete locationId = do
+    delete' locationId
+    return $ LVMessage $ pack "(Unimplemented.)"
 
 runLocationApi :: LocationApi -> LocationAction LocationView
 runLocationApi (Join locationId) = tryJoin locationId

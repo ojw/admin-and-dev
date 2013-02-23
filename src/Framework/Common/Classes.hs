@@ -40,5 +40,5 @@ modify'' index f container = snd $ modify index f container
 delete'' :: IndexedContainer index value container => index -> container -> container
 delete'' = delete
 
-class Create obj options where
-    new     :: options -> obj 
+class Create options object where
+    new     :: options -> object 

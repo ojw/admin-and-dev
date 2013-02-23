@@ -7,13 +7,14 @@ import Framework.Location.Internal.Views.LobbyView
 import Framework.Location.Internal.Views.MatchmakerView
 import Framework.Location.Internal.Views.GameView
 import Framework.Location.Internal.Types.Location
--- import Framework.Location.Internal.Classes.View ( View(..) )
 import Framework.Common.Classes ( View(..) )
+import Data.Text ( Text )
 
 data LocationView
     = LVLobbyView LobbyView
     | LVMatchmakerView MatchmakerView
     | LVGameView GameView
+    | LVMessage Text
 
 instance View Location LocationView LocationAction where
     view (LocLobby lobby) = view lobby >>= return . LVLobbyView
