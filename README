@@ -1,3 +1,11 @@
-The Admin&Dev website.
+A server for multiplayer, turn-based games written in Haskell.
 
-From Admin and Dev.
+Features
+
+- uses acid-state for backend
+- can have a variety of frontends to convert various formats into the API datatype
+- simple interface for serving games
+
+TODO
+
+- most of the above

@@ -21,7 +21,6 @@ import Happstack.Server             ( Response, ServerPartT, FilterMonad
                                     , mapServerPartT 
                                     ) 
 import Server.Auth.Acid            ( AuthState, ProfileState )
-import Server.Game.Acid.Types.Room  ( RoomState )
 import Server.Location.Acid
 import Util.HasAcidState
 import Server.Game.Acid.GameAcid
