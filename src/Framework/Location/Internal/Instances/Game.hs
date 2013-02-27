@@ -23,21 +23,3 @@ instance Loc Game where
     onLeave _ = return ()
     exit = return . InLobby . _lobbyId
     chat c game = updateGame (_gameId game) ((chats ^%= addChat c) game) >> return ()
-
-instance IndexedContainer GameId Game GameState where
-    add game (GameState games nextGameId) = (nextGameId, (GameState games' (succ nextGameId))) 
-        where
-            games' = updateIx nextGameId (game { _gameId = nextGameId }) games
-    modify gameId f (GameState games n) = (mGame, (GameState games' n)) 
-        where
-            mGame = f <$> (getOne $ games @= gameId)
-            games' = case mGame of
-                        Just game -> updateIx gameId game games
-                        Nothing -> games
-    delete gameId (GameState games n) = (GameState (deleteIx gameId games) n)
-
-data GameOptions = GameOptions
-
-instance Create GameOptions Game where  
-    blank = Game (GameId 0) (MatchmakerId 0) (LobbyId 0) []
-    update options = id

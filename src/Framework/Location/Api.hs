@@ -6,7 +6,7 @@ import Control.Monad.Error ( throwError )
 import Control.Monad.State ( get )
 
 import Framework.Profile as Profile
-import Framework.Location.Internal.Types.Location
+import Framework.Location.Internal.Types.Location as TLoc
 import Framework.Location.Internal.Instances.Location
 import Framework.Location.Internal.Classes.Location hiding ( chat )
 import Framework.Location.Internal.Views.LocationView
@@ -62,12 +62,12 @@ chat text locationId = do
 
 create :: LocationOptions -> LocationAction LocationView
 create locationOptions = do
-    add' $ Classes.create locationOptions
+    add $ Classes.create locationOptions
     return $ LVMessage $ pack "Added."
 
 delete :: LocationId -> LocationAction LocationView
 delete locationId = do
-    delete' locationId
+    TLoc.delete locationId
     return $ LVMessage $ pack "Deleted."
 
 runLocationApi :: LocationApi -> LocationAction LocationView
@@ -75,3 +75,5 @@ runLocationApi (Join locationId) = tryJoin locationId
 runLocationApi Leave = tryLeave
 runLocationApi (Look locationId) = view locationId
 runLocationApi (Chat text locationId) = chat text locationId
+runLocationApi (Delete locationId) = Framework.Location.Api.delete locationId
+runLocationApi (Create locationOptions) = Framework.Location.Api.create locationOptions

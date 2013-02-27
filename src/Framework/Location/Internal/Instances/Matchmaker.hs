@@ -30,24 +30,4 @@ instance Loc Matchmaker where
             mapM_ (setLocation exit) users
         else return ()
     exit = return . InLobby . _lobbyId
-    chat c matchmaker = updateMatchmaker (_matchmakerId matchmaker) ((chats ^%= addChat c) matchmaker) >> return ()
-
-instance IndexedContainer MatchmakerId Matchmaker MatchmakerState where
-    add matchmaker (MatchmakerState matchmakers nextMatchmakerId) = (nextMatchmakerId, (MatchmakerState matchmakers' (succ nextMatchmakerId))) 
-        where
-            matchmakers' = updateIx nextMatchmakerId (matchmaker { _matchmakerId = nextMatchmakerId }) matchmakers
-    modify matchmakerId f (MatchmakerState matchmakers n) = (mMatchmaker, (MatchmakerState matchmakers' n)) 
-        where
-            mMatchmaker = f <$> (getOne $ matchmakers @= matchmakerId)
-            matchmakers' = case mMatchmaker of
-                        Just matchmaker -> updateIx matchmakerId matchmaker matchmakers
-                        Nothing -> matchmakers
-    delete matchmakerId (MatchmakerState matchmakers n) = (MatchmakerState (deleteIx matchmakerId matchmakers) n)
-
-data MatchmakerOptions = MatchmakerOptions
-    { matchmakerOptionsCapacity :: Maybe (Int, Int)
-    }
-
-instance Create MatchmakerOptions Matchmaker where
-    blank = Matchmaker (MatchmakerId 0) [] (2,2) (UserId 0) (LobbyId 0)
-    update options matchmaker = matchmaker { _capacity = maybe (_capacity matchmaker) id (matchmakerOptionsCapacity options) }
+    chat c matchmaker = updateMatchmaker (_matchmakerId matchmaker) ((chats ^%= addChat c) matchmaker) >> return () 

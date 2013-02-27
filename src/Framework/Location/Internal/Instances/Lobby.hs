@@ -21,27 +21,3 @@ instance Loc Lobby where
     onLeave _ = return ()
     exit _ = InLobby <$> getDefaultLobbyId
     chat c lobby = updateLobby (_lobbyId lobby) ((chats ^%= addChat c) lobby) >> return ()
-
-instance IndexedContainer LobbyId Lobby LobbyState where
-    add lobby (LobbyState lobbies nextLobbyId) = (nextLobbyId, (LobbyState lobbies' (succ nextLobbyId))) 
-        where
-            lobbies' = updateIx nextLobbyId (lobby { _lobbyId = nextLobbyId }) lobbies
-    modify lobbyId f (LobbyState lobbies n) = (mLobby, (LobbyState lobbies' n)) 
-        where
-            mLobby = f <$> (getOne $ lobbies @= lobbyId)
-            lobbies' = case mLobby of
-                        Just lobby -> updateIx lobbyId lobby lobbies
-                        Nothing -> lobbies
-    delete lobbyId (LobbyState lobbies n) = (LobbyState (deleteIx lobbyId lobbies) n)
-
-data LobbyOptions = LobbyOptions
-    { lobbyOptionsName          :: Maybe Text
-    , lobbyOptionsDescription   :: Maybe Text
-    }
-
-instance Create LobbyOptions Lobby where
-    blank = Lobby "" "" (LobbyId 0) []
-    update options lobby = lobby 
-        { _name = maybe (_name lobby) id (lobbyOptionsName options)
-        , _description = maybe (_description lobby) id (lobbyOptionsDescription options)
-        }
