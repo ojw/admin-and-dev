@@ -19,8 +19,8 @@ instance Loc Lobby where
     onJoin _ = return ()
     canLeave _ = return True
     onLeave _ = return ()
-    exit _ = InLobby <$> gets _defaultLobbyId
-    chat c lobby = modLobby (chats ^%= addChat c) (_lobbyId lobby) >> return () 
+    exit _ = InLobby <$> getDefaultLobbyId
+    chat c lobby = updateLobby (_lobbyId lobby) ((chats ^%= addChat c) lobby) >> return ()
 
 instance IndexedContainer LobbyId Lobby LobbyState where
     add lobby (LobbyState lobbies nextLobbyId) = (nextLobbyId, (LobbyState lobbies' (succ nextLobbyId))) 

@@ -20,7 +20,7 @@ import Data.Acid.Local              ( createCheckpointAndClose
                                     , openLocalStateFrom)
 import Data.Data                    ( Data, Typeable )
 
-class HasAcidState m st where
+class (Functor m, Monad m) => HasAcidState m st where
    getAcidState :: m (AcidState st)
 
 query :: forall event m.

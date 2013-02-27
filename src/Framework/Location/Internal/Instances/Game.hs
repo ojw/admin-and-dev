@@ -22,7 +22,7 @@ instance Loc Game where
     canLeave _ = currentUserId >>= fmap not . inGame
     onLeave _ = return ()
     exit = return . InLobby . _lobbyId
-    chat c game = modGame (chats ^%= addChat c) (_gameId game) >> return () 
+    chat c game = updateGame (_gameId game) ((chats ^%= addChat c) game) >> return ()
 
 instance IndexedContainer GameId Game GameState where
     add game (GameState games nextGameId) = (nextGameId, (GameState games' (succ nextGameId))) 

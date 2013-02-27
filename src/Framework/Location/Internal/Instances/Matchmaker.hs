@@ -30,7 +30,7 @@ instance Loc Matchmaker where
             mapM_ (setLocation exit) users
         else return ()
     exit = return . InLobby . _lobbyId
-    chat c matchmaker = modMatchmaker (chats ^%= addChat c) (_matchmakerId matchmaker) >> return ()
+    chat c matchmaker = updateMatchmaker (_matchmakerId matchmaker) ((chats ^%= addChat c) matchmaker) >> return ()
 
 instance IndexedContainer MatchmakerId Matchmaker MatchmakerState where
     add matchmaker (MatchmakerState matchmakers nextMatchmakerId) = (nextMatchmakerId, (MatchmakerState matchmakers' (succ nextMatchmakerId))) 

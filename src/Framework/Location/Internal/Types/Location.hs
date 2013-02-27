@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
-    MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
+    MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, TypeFamilies #-}
 
 module Framework.Location.Internal.Types.Location where
 
@@ -12,7 +12,7 @@ import Control.Monad.Reader hiding ( join )
 import Control.Monad.Error hiding ( join )
 import Data.SafeCopy
 import Data.Data
-import Data.Acid
+import Data.Acid hiding ( query, update )
 import Data.Lens
 import Data.Lens.Template
 import Data.IxSet
@@ -24,6 +24,8 @@ import Framework.Location.Internal.Types.Matchmaker as Matchmaker
 import Framework.Location.Internal.Types.Matchmaker as Matchmaker
 import Framework.Location.Internal.Types.Game as Game
 import Framework.Location.Internal.Types.Chat hiding ( addChat )
+
+import Util.HasAcidState
 
 data LocationId = InLobby LobbyId | InMatchmaker MatchmakerId | WatchingGame GameId | InGame GameId
     deriving (Ord, Eq, Read, Show, Data, Typeable)
@@ -48,13 +50,13 @@ data LocationState = LocationState
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
 makeLens ''LocationState
+deriveSafeCopy 0 'base ''LocationState
+
 
 data LocationError = LocationDoesNotExist | OtherLocationError
 
 instance Error LocationError where
     noMsg = OtherLocationError
-
---type LocationErrorMonad = Either LocationError
 
 data Location
     = LocLobby { unLocLobby :: Lobby }
@@ -62,69 +64,135 @@ data Location
     | LocGame { unLocGame :: Game }
     deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-class (MonadReader (Profile, ProfileState) m, MonadError LocationError m, Functor m, MonadState LocationState m) => MonadLocationAction m
+deriveSafeCopy 0 'base ''Location
 
-newtype LocationAction a = LocationAction { unLocationAction :: (RWST ProfileInfo Text LocationState (ErrorT LocationError Identity) a) }
-    deriving (Monad, MonadError LocationError, Functor, MonadState LocationState, MonadReader ProfileInfo)
+newtype LocationAction a = LocationAction { unLocationAction :: (RWST ProfileInfo Text (AcidState LocationState) (ErrorT LocationError IO) a) }
+    deriving (Monad, MonadError LocationError, Functor, MonadState (AcidState LocationState), MonadReader ProfileInfo, MonadIO)
 
-instance MonadLocationAction LocationAction
+instance HasAcidState LocationAction LocationState where
+    getAcidState = get
 
-
+runLocationAction
+    :: LocationAction a
+    -> ProfileInfo
+    -> AcidState LocationState
+    -> IO (Either LocationError (a, AcidState LocationState, Text))
 runLocationAction (LocationAction locationAction) profileInfo locationState = do
-    runIdentity $ runErrorT $ (runRWST locationAction) profileInfo locationState
+    runErrorT $ (runRWST locationAction) profileInfo locationState
 
-setLocation :: MonadState LocationState m => LocationId -> UserId -> m ()
-setLocation locationId userId = do
+setLocation' :: LocationId -> UserId -> Update LocationState ()
+setLocation' locationId userId = do
     userLocations %= updateIx userId (UserLocation userId locationId)
     return ()
 
-getUserLocation :: MonadState LocationState m => UserId -> m LocationId
-getUserLocation userId = do
-    userLocations <- gets _userLocations
+getUserLocation' :: UserId -> Query LocationState LocationId
+getUserLocation' userId = do
+    userLocations <- asks _userLocations
     case _locationId <$> (getOne $ userLocations @= userId) of
         Nothing -> do 
-            defaultLobbyId <- gets _defaultLobbyId
+            defaultLobbyId <- asks _defaultLobbyId
             return $ InLobby $ defaultLobbyId
         Just locationId -> return locationId
 
-getUsers :: MonadState LocationState m => LocationId -> m [UserId]
-getUsers locationId = do
-    userLocations <- gets _userLocations
+getUsers' :: LocationId -> Query LocationState [UserId]
+getUsers' locationId = do
+    userLocations <- asks _userLocations
     return $ _userId <$> toList (userLocations @= locationId) 
 
-inGame :: MonadState LocationState m => UserId -> m Bool
+getLobbies' :: Query LocationState Lobbies
+getLobbies' = _lobbies <$> asks _lobbyState
+
+getMatchmakers' :: Query LocationState Matchmakers
+getMatchmakers' = _matchmakers <$> asks _matchmakerState
+
+getGames' :: Query LocationState Games
+getGames' = _games <$> asks _gameState
+
+updateLobby' :: LobbyId -> Lobby -> Update LocationState ()
+updateLobby' lobbyId lobby = do
+    lobbyState %= (lobbies ^%= updateIx lobbyId lobby)
+    return ()
+
+updateMatchmaker' :: MatchmakerId -> Matchmaker -> Update LocationState ()
+updateMatchmaker' matchmakerId matchmaker = do
+    matchmakerState %= (matchmakers ^%= updateIx matchmakerId matchmaker)
+    return ()
+
+updateGame' :: GameId -> Game -> Update LocationState ()
+updateGame' gameId game = do
+    gameState %= (games ^%= updateIx gameId game)
+    return ()
+
+getDefaultLobbyId' :: Query LocationState LobbyId
+getDefaultLobbyId' = asks _defaultLobbyId
+
+makeAcidic ''LocationState ['setLocation', 'getUserLocation', 'getUsers', 'getLobbies', 'getMatchmakers', 'getGames', 'updateLobby', 'updateMatchmaker', 'updateGame', 'getDefaultLobbyId']
+
+{-
+-- Wrappers for the Acidic functions.
+-- Might have separate newtype wrappers for pre/post acidic functions.
+-}
+
+setLocation :: LocationId -> UserId -> LocationAction ()
+setLocation locationId userId = update $ SetLocation' locationId userId
+
+getUserLocation :: UserId -> LocationAction LocationId
+getUserLocation userId = query $ GetUserLocation' userId
+
+getUsers :: LocationId -> LocationAction [UserId]
+getUsers locationId = query $ GetUsers' locationId
+
+inGame :: UserId -> LocationAction Bool
 inGame userId = do
     userLocation <- getUserLocation userId
     case userLocation of
         InGame _    -> return True
         _           -> return False
 
-modLobby :: (Functor m, MonadState LocationState m) => (Lobby -> Lobby) -> LobbyId -> m (Maybe Lobby)
-modLobby f lobbyId = do
-    lobbies <- _lobbies <$> gets _lobbyState
-    return $ f <$> (getOne $ lobbies @= lobbyId)
+getLobbies :: LocationAction Lobbies
+getLobbies = query GetLobbies'
 
-getLobby :: (Functor m, MonadState LocationState m) => LobbyId -> m (Maybe Lobby)
-getLobby = modLobby id
+getLobby :: LobbyId -> LocationAction (Maybe Lobby)
+getLobby lobbyId = do
+    lobbies <- getLobbies
+    return $ getOne $ lobbies @= lobbyId
 
-modMatchmaker :: (Functor m, MonadState LocationState m) => (Matchmaker -> Matchmaker) -> MatchmakerId -> m (Maybe Matchmaker)
-modMatchmaker f matchmakerId = do
-    matchmakers <- _matchmakers <$> gets _matchmakerState
-    return $ f <$> (getOne $ matchmakers @= matchmakerId)
+getMatchmakers :: LocationAction Matchmakers
+getMatchmakers = query GetMatchmakers'
 
-getMatchmaker :: (Functor m, MonadState LocationState m) => MatchmakerId -> m (Maybe Matchmaker)
-getMatchmaker = modMatchmaker id
+getMatchmaker :: MatchmakerId -> LocationAction  (Maybe Matchmaker)
+getMatchmaker matchmakerId = do
+    matchmakers <- getMatchmakers
+    return $ getOne $ matchmakers @= matchmakerId
 
-modGame :: (Functor m, MonadState LocationState m) => (Game -> Game) -> GameId -> m (Maybe Game)
-modGame f gameId = do
-    games <- _games <$> gets _gameState
-    return $ f <$> (getOne $ games @= gameId)
+getGames :: LocationAction Games
+getGames = query GetGames'
 
-getGame :: (Functor m, MonadState LocationState m) => GameId -> m (Maybe Game)
-getGame = modGame id
+getGame :: GameId -> LocationAction (Maybe Game)
+getGame gameId = do
+    games <- getGames
+    return $ getOne $ games @= gameId
 
-getLocation :: (Functor m, MonadState LocationState m) => LocationId -> m (Maybe Location)
+getLocation :: LocationId -> LocationAction (Maybe Location)
 getLocation (InLobby lobbyId) = getLobby lobbyId >>= return . fmap LocLobby
 getLocation (InMatchmaker matchmakerId) = getMatchmaker matchmakerId >>= return . fmap LocMatchmaker
 getLocation (InGame gameId) = getGame gameId >>= return . fmap LocGame
 getLocation (WatchingGame gameId) = getGame gameId >>= return . fmap LocGame
+
+updateLobby :: LobbyId -> Lobby -> LocationAction ()
+updateLobby lobbyId lobby = update $ UpdateLobby' lobbyId lobby
+
+updateMatchmaker :: MatchmakerId -> Matchmaker -> LocationAction ()
+updateMatchmaker matchmakerId matchmaker = update $ UpdateMatchmaker' matchmakerId matchmaker
+
+updateGame :: GameId -> Game -> LocationAction ()
+updateGame gameId game = update $ UpdateGame' gameId game
+
+updateLocation :: LocationId -> Location -> LocationAction ()
+updateLocation (InLobby lobbyId) (LocLobby lobby) = updateLobby lobbyId lobby
+updateLocation (InMatchmaker matchmakerId) (LocMatchmaker matchmaker) = updateMatchmaker matchmakerId matchmaker
+updateLocation (InGame gameId) (LocGame game) = updateGame gameId game
+updateLocation (WatchingGame gameId) (LocGame game) = updateGame gameId game
+
+getDefaultLobbyId :: LocationAction LobbyId
+getDefaultLobbyId = query GetDefaultLobbyId'

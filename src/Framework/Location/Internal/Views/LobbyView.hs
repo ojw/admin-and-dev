@@ -29,7 +29,7 @@ instance View Lobby LobbyView LocationAction where
     view lobby@Lobby{..} = do
         memberIds <- getUsers $ InLobby _lobbyId
         members <- catMaybes <$> mapM lookupUserName memberIds
-        matchmakerIx <- _matchmakers <$> gets _matchmakerState
+        matchmakerIx <- getMatchmakers
         let matchmakerList = toList $ matchmakerIx @= _lobbyId
         matchmakerGlimpses <- mapM view matchmakerList
         return $ LobbyView
