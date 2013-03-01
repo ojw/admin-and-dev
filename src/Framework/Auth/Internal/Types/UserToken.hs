@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, TemplateHaskell, GeneralizedNewtypeDeriving #-}
 
-module Framework.Auth.Internal.Types.UserToken where
+module Framework.Auth.Types.UserToken where
 
 import Data.Lens
 import Data.Lens.Template

@@ -15,7 +15,7 @@ import Framework.Profile
 import Framework.Error
 import Framework.View
 import Framework.Acid
-import Framework.Auth.Internal.Types.AuthState
+import Framework.Auth.Types.AuthState
 
 data ExternalApi = ExternalApi
     { token :: Maybe AuthToken

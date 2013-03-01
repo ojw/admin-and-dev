@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
-module Framework.Location.Internal.Instances.Location where
+module Framework.Location.Instances.Location where
 
 import Control.Monad hiding ( join )
 import Data.Functor
@@ -10,21 +10,47 @@ import Control.Monad.Reader hiding ( join )
 import Control.Monad.Error hiding ( join )
 import Data.SafeCopy
 import Data.Data
-import Data.Lens
+import Control.Lens
 
 import Framework.Profile ( UserId )
 import Framework.Profile as Profile
-import Framework.Location.Internal.Instances.Lobby as Lobby
-import Framework.Location.Internal.Instances.Matchmaker as Matchmaker
-import Framework.Location.Internal.Instances.Matchmaker as Matchmaker
-import Framework.Location.Internal.Instances.Game as Game
-import Framework.Location.Internal.Types.Chat hiding ( addChat )
-import Framework.Location.Internal.Types.Location
-import Framework.Location.Internal.Types.Matchmaker
-import Framework.Location.Internal.Types.Game
-import Framework.Location.Internal.Classes.Location
-import Framework.Location.Internal.Types.Lobby
+import Framework.Location.Classes.Location
+import Framework.Location.LocationAction
+import Framework.Location.Types
 import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
+
+instance Loc Lobby where
+    canJoin _ = return True
+    onJoin _ = return ()
+    canLeave _ = return True
+    onLeave _ = return ()
+    exit _ = InLobby <$> getDefaultLobbyId
+    chat c lobby = updateLobby (lobby ^. lobbyId) ((chats %~ addChat c) lobby) >> return ()
+
+instance Loc Matchmaker where
+    canJoin matchmaker = do
+        users <- getUsers $ InMatchmaker $ matchmaker ^. matchmakerId
+        return $ length users < snd (matchmaker ^. capacity)
+    onJoin _ = return ()
+    canLeave _ = return True
+    onLeave matchmaker = do
+        userId <- currentUserId
+        if userId == matchmaker ^. owner
+        then do
+            users <- getUsers $ InMatchmaker $ matchmaker ^. matchmakerId
+            exit <- exit matchmaker            
+            mapM_ (setLocation exit) users
+        else return ()
+    exit = return . InLobby . (view lobbyId)
+    chat c matchmaker = updateMatchmaker (matchmaker ^. matchmakerId) ((chats %~ addChat c) matchmaker) >> return () 
+
+instance Loc Game where
+    canJoin _ = currentUserId >>= fmap not . inGame
+    onJoin _ = return ()
+    canLeave _ = currentUserId >>= fmap not . inGame
+    onLeave _ = return ()
+    exit = return . InLobby . (view lobbyId)
+    chat c game = updateGame (game ^. gameId) ((chats %~ addChat c) game) >> return ()
 
 instance Loc Location where
     canJoin (LocLobby lobby) = canJoin lobby

@@ -1,12 +1,13 @@
 {-# LANGUAGE RecordWildCards, MultiParamTypeClasses #-} 
 
-module Framework.Location.Internal.Views.LocationView where
+module Framework.Location.Instances.View.LocationView where
 
 import Control.Monad.Error
-import Framework.Location.Internal.Views.LobbyView
-import Framework.Location.Internal.Views.MatchmakerView
-import Framework.Location.Internal.Views.GameView
-import Framework.Location.Internal.Types.Location
+import Framework.Location.Instances.View.LobbyView
+import Framework.Location.Instances.View.MatchmakerView
+import Framework.Location.Instances.View.GameView
+import Framework.Location.Types
+import Framework.Location.LocationAction
 import Framework.Common.Classes ( View(..) )
 import Data.Text ( Text )
 

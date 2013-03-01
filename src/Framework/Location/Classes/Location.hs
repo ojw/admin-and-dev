@@ -2,10 +2,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
-module Framework.Location.Internal.Classes.Location where
+module Framework.Location.Classes.Location where
 
-import Framework.Location.Internal.Types.Chat      ( Chat )
-import Framework.Location.Internal.Types.Location  ( LocationId, LocationAction )
+import Framework.Location.LocationAction ( LocationAction )
+import Framework.Location.Types ( Chat, LocationId )
 
 class Loc l where
     canJoin     :: l -> LocationAction Bool

@@ -14,7 +14,7 @@ module Framework.Auth
 where
 
 import Framework.Auth.Api
-import Framework.Auth.Internal.Types.AuthState
-import Framework.Auth.Internal.Types.Error
-import Framework.Auth.Internal.Types.UserToken
-import Framework.Auth.Internal.Types.UserPassword
+import Framework.Auth.Types.AuthState
+import Framework.Auth.Types.Error
+import Framework.Auth.Types.UserToken
+import Framework.Auth.Types.UserPassword

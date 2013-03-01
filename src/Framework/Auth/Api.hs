@@ -9,10 +9,10 @@ import Control.Monad.RWS
 import Data.Text ( Text )
 import Data.Lens
 import Framework.Profile
-import Framework.Auth.Internal.Types.UserPassword
-import Framework.Auth.Internal.Types.UserToken
-import Framework.Auth.Internal.Types.AuthState
-import Framework.Auth.Internal.Types.Error
+import Framework.Auth.Types.UserPassword
+import Framework.Auth.Types.UserToken
+import Framework.Auth.Types.AuthState
+import Framework.Auth.Types.Error
 
 data AuthApi
     = Register UserName Email PlainPass

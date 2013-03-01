@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, OverloadedStrings, GeneralizedNewtypeDeriving #-}
 
-module Framework.Auth.Internal.Types.Error where
+module Framework.Auth.Types.Error where
 
 import Control.Monad.Error
 

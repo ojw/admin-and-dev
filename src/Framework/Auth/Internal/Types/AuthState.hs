@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, DeriveDataTypeable, FlexibleContexts, OverloadedStrings,
     GeneralizedNewtypeDeriving  #-}
 
-module Framework.Auth.Internal.Types.AuthState where
+module Framework.Auth.Types.AuthState where
 
 import Control.Monad.Reader
 import Control.Monad.Error
@@ -20,9 +20,9 @@ import Data.ByteString.Char8 ( ByteString )
 import Crypto.BCrypt
 
 import Framework.Profile
-import Framework.Auth.Internal.Types.UserPassword
-import Framework.Auth.Internal.Types.UserToken
-import Framework.Auth.Internal.Types.Error
+import Framework.Auth.Types.UserPassword
+import Framework.Auth.Types.UserToken
+import Framework.Auth.Types.Error
 
 
 data AuthState = AuthState
@@ -109,7 +109,7 @@ getUserProfile authToken = do
     case getOne $ userTokens @= authToken of
         Nothing -> throwError InvalidAuthToken
         Just userToken -> do
-            mProfile <- lookupProfileByUserId $ Framework.Auth.Internal.Types.UserToken._userId userToken
+            mProfile <- lookupProfileByUserId $ Framework.Auth.Types.UserToken._userId userToken
             maybe (throwError UserDoesNotExist) return mProfile
 -}
 getUserProfile :: ProfileState -> AuthState -> AuthToken -> Maybe Profile
@@ -117,4 +117,4 @@ getUserProfile profileState authState authToken = do
     case getOne $ _userTokens authState @= authToken of
         Nothing -> Nothing
         Just userToken -> do
-            runReader (lookupProfileByUserId (Framework.Auth.Internal.Types.UserToken._userId userToken)) profileState
+            runReader (lookupProfileByUserId (Framework.Auth.Types.UserToken._userId userToken)) profileState

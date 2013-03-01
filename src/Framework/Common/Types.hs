@@ -6,7 +6,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import Framework.Profile
-import Framework.Location.Internal.Types.Location
+import Framework.Location.Types.Location
 
 data FrameworkState = FrameworkState
     { _locationState :: LocationState 

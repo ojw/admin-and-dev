@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, TemplateHaskell, GeneralizedNewtypeDeriving, FlexibleContexts #-}
 
-module Framework.Auth.Internal.Types.UserPassword where
+module Framework.Auth.Types.UserPassword where
 
 import Control.Monad
 import Control.Monad.Error
@@ -13,7 +13,7 @@ import Data.ByteString.Char8 ( ByteString )
 import Framework.Profile ( UserId )
 import Crypto.BCrypt
 
-import Framework.Auth.Internal.Types.Error
+import Framework.Auth.Types.Error
 
 newtype PlainPass = PlainPass { unPlainPass :: ByteString } deriving (Ord, Eq, Read, Show)
 newtype HashedPass = HashedPass { unHashedPass :: ByteString } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
