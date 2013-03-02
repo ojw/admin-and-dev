@@ -7,7 +7,7 @@ import Framework.Profile
 import Framework.Auth
 
 data Acid = Acid
-    { authState :: AuthState
-    , profileState :: ProfileState
+    { authState :: AcidState AuthState
+    , profileState :: AcidState ProfileState
     , locationState :: AcidState LocationState
     } 

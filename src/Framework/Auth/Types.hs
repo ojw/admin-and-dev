@@ -12,6 +12,7 @@ import Data.Text
 import Data.SafeCopy
 import Control.Lens
 import Data.Data
+import Data.Acid
 import Data.IxSet
 import Control.Monad.State
 import System.Entropy
@@ -19,16 +20,16 @@ import Data.Monoid
 import Data.ByteString.Char8 ( ByteString )
 import Crypto.BCrypt
 
+import Util.HasAcidState
 import Framework.Profile
 
 data AuthError
-    = UserNameNotAvailable
-    | EmailNotAvailable
-    | IncorrectUserNameOrPassword
+    = IncorrectUserNameOrPassword
     | UserDoesNotExist
     | PasswordHashFailed
     | DefaultAuthError
     | InvalidAuthToken
+    | AuthProfileError ProfileError
 
 instance Error AuthError where
     noMsg = DefaultAuthError
@@ -41,8 +42,6 @@ data UserPassword = UserPassword
     , _upwPassword :: HashedPass
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-makeFields ''UserPassword
-deriveSafeCopy 0 'base ''UserPassword
 inferIxSet "UserPasswords" ''UserPassword 'noCalcs [''UserId, ''HashedPass]
 
 newtype AuthToken = AuthToken ByteString deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
@@ -52,17 +51,12 @@ data UserToken = UserToken
     , _utAuthToken    :: Maybe AuthToken
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-makeFields ''UserToken
-deriveSafeCopy 0 'base ''UserToken
 inferIxSet "UserTokens" ''UserToken 'noCalcs [''UserId, ''AuthToken]
 
 data AuthState = AuthState
     { _asUserPasswords    :: UserPasswords
     , _asUserTokens       :: UserTokens
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
-
-makeFields ''AuthState
-deriveSafeCopy 0 'base ''AuthState
 
 data AuthView
     = AuthTokenView AuthToken
@@ -73,17 +67,24 @@ data AuthSlice = AuthSlice
     , _asProfileState :: ProfileState
     }
 
+makeFields ''UserPassword
+makeFields ''UserToken
+makeFields ''AuthState
 makeFields ''AuthSlice
 
-class (Functor m, Monad m, MonadReader ProfileState m, MonadState AuthSlice m, MonadError AuthError m) => MonadAuthAction m
+deriveSafeCopy 0 'base ''UserPassword
+deriveSafeCopy 0 'base ''UserToken
+deriveSafeCopy 0 'base ''AuthState
 
-newtype AuthAction a = AuthAction { unAuthAction :: RWST ProfileState Text AuthSlice (ErrorT AuthError IO) a}
-    deriving (Functor, Monad, MonadReader ProfileState, MonadState AuthSlice, MonadError AuthError, MonadIO)
+class (Functor m, Monad m, HasAcidState m ProfileState, MonadState AuthSlice m, MonadError AuthError m) => MonadAuthAction m
+
+newtype AuthAction a = AuthAction { unAuthAction :: RWST (AcidState ProfileState) Text AuthSlice (ErrorT AuthError IO) a}
+    deriving (Functor, Monad, MonadReader (AcidState ProfileState), MonadState AuthSlice, MonadError AuthError, MonadIO)
+
+instance HasAcidState AuthAction ProfileState where
+    getAcidState = ask
 
 instance MonadAuthAction AuthAction 
-
-instance (MonadAuthAction m) => HasUserProfileState m where
-    getUserProfileState = ask
 
 getHashedPass' :: MonadError AuthError m => UserPasswords -> UserId -> m HashedPass
 getHashedPass' userPasswords userId = do
@@ -132,7 +133,7 @@ tryAuthenticate userId (PlainPass plainPass) = do
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
 
-getUserIdByEmailOrUserName :: MonadAuthAction m => Text -> m UserId
+getUserIdByEmailOrUserName :: (MonadIO m, MonadAuthAction m) => Text -> m UserId
 getUserIdByEmailOrUserName text = do
     lookupUserIdByEmailOrUserName text >>= maybe (throwError UserDoesNotExist) return
 

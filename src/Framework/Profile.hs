@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses, TemplateHaskell, FlexibleContexts, 
-    FunctionalDependencies, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances  #-}
+    FunctionalDependencies, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances,
+    UndecidableInstances, TypeFamilies #-}
 
 module Framework.Profile where
 
@@ -10,10 +11,15 @@ import Data.Maybe
 import Data.Monoid
 import Data.Data
 import Data.Text            ( Text )
+import Data.Acid
 import Data.IxSet
 import Control.Lens
 import Data.SafeCopy
 
+import Util.HasAcidState
+
+data ProfileError = UserNameNotAvailable | EmailNotAvailable
+    
 newtype UserId = UserId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 newtype Email = Email Text deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
 
@@ -26,22 +32,21 @@ data Profile = Profile
     , _profileIsAdmin  :: Bool
     } deriving (Ord, Eq, Read, Show, Data, Typeable)
 
-makeFields ''Profile
-$(deriveSafeCopy 0 'base ''Profile)
-$(inferIxSet "Profiles" ''Profile 'noCalcs [''UserId, ''UserName, ''Email, ''Bool])
+inferIxSet "Profiles" ''Profile 'noCalcs [''UserId, ''UserName, ''Email, ''Bool]
 
 data ProfileState = ProfileState
     { _psNextUserId    :: UserId
     , _psProfiles      :: Profiles
-    } deriving (Ord, Eq, Read, Show, Data, Typeable)
+    } deriving (Ord, Eq, Read, Show, Data, Typeable) 
 
+makeFields ''Profile
 makeFields ''ProfileState
-$(deriveSafeCopy 0 'base ''ProfileState)
+deriveSafeCopy 0 'base ''Profile
+deriveSafeCopy 0 'base ''ProfileState
 
-data ProfileView = ProfileView
+data ProfileView = ProfileView Profile
+
 data ProfileApi = ProfileApi
-
-type ProfileInfo = (Profile, ProfileState)
 
 class HasUserProfileState m where
     getUserProfileState :: m ProfileState
@@ -89,15 +94,31 @@ lookupUserIdByEmailOrUserName text = do
 lookupProfileByUserId :: ProfileState -> UserId -> Maybe Profile
 lookupProfileByUserId profileState userId = getOne $ view profiles profileState @= userId    
 
-addNewProfile :: (Functor m, MonadState ProfileState m) => UserName -> Email -> Bool -> m UserId
-addNewProfile userName email admin = do
-    userId <- fmap (view nextUserId) get
-    nextUserId %= succ
-    profiles %= updateIx userId (Profile userId userName email admin)
-    return userId
-
 isUserNameAvailable :: (Functor m, Monad m, HasUserProfileState m) => UserName -> m Bool
 isUserNameAvailable email = (not . isJust) <$> lookupUserIdByUserName email
 
 isEmailAvailable :: (Functor m, Monad m, HasUserProfileState m) => Email -> m Bool
 isEmailAvailable email = (not . isJust) <$> lookupUserIdByEmail email
+
+--------------------------------------------------------------------------
+
+queryProfileState' :: Query ProfileState ProfileState
+queryProfileState' = ask 
+
+addNewProfile' :: UserName -> Email -> Bool -> Update ProfileState UserId
+addNewProfile' userName email admin = do
+    userId <- fmap (view nextUserId) get
+    nextUserId %= succ
+    profiles %= updateIx userId (Profile userId userName email admin)
+    return userId
+
+makeAcidic ''ProfileState ['queryProfileState', 'addNewProfile']
+
+queryProfileState :: (HasAcidState m ProfileState, MonadIO m) => m ProfileState
+queryProfileState = Util.HasAcidState.query QueryProfileState'
+
+addNewProfile :: (HasAcidState m ProfileState, MonadIO m) => UserName -> Email -> Bool -> m UserId
+addNewProfile userName email admin = Util.HasAcidState.update $ AddNewProfile' userName email admin
+
+instance (MonadIO m, HasAcidState m ProfileState) => HasUserProfileState m where
+    getUserProfileState = queryProfileState
