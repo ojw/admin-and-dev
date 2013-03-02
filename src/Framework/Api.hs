@@ -7,6 +7,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.RWS
 import Control.Monad.Error
+import Control.Lens
 import Data.Text
 
 import Framework.Location
@@ -15,7 +16,7 @@ import Framework.Profile
 import Framework.Error
 import Framework.View
 import Framework.Acid
-import Framework.Auth.Types.AuthState
+import Framework.Auth.Types
 
 data ExternalApi = ExternalApi
     { token :: Maybe AuthToken
@@ -61,21 +62,21 @@ runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST 
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- get
-    let authSlice = AuthSlice {_authState = authState, _profileState = profileState}
+    let authSlice = AuthSlice {_asAuthState = authState, _asProfileState = profileState}
         action = (runAuthAction $ runAuthApi authApi) profileState authSlice
     result <- liftIO action
     case result of
         Left e -> throwError $ FWAuthError e
         Right (v, s, w) -> do   
-            put $ Acid (_authState s) (_profileState s) locationState
+            put $ Acid (_asAuthState s) (_asProfileState s) locationState
             tell w
             return $ FWAuthView v
 runApi (FWLocApi locationApi) = do
     acid@Acid{..} <- get
     profile <- getProfile
-    case (runLocationAction $ runLocationApi locationApi) (profile, profileState) locationState of
+    result <- liftIO $ (runLocationAction $ runLocationApi locationApi) profile profileState locationState
+    case result of 
         Left e -> throwError $ FWLocError e
         Right (v, s, w) -> do
-            put $ Acid authState profileState s
             tell w
             return $ FWLocView v

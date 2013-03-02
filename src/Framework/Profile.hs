@@ -43,41 +43,51 @@ data ProfileApi = ProfileApi
 
 type ProfileInfo = (Profile, ProfileState)
 
-currentUserId :: (MonadReader ProfileInfo m) => m UserId
-currentUserId = view (_1 . userId)
+class HasUserProfileState m where
+    getUserProfileState :: m ProfileState
 
-currentUserName :: (MonadReader ProfileInfo m) => m UserName
-currentUserName = view (_1 . userName)
+getNextUserId :: (Monad m, HasUserProfileState m) => m UserId
+getNextUserId = getUserProfileState >>= return . (view nextUserId)
 
-isCurrentUserAdmin :: (MonadReader ProfileInfo m) => m Bool
-isCurrentUserAdmin = view (_1 . isAdmin)
+getUserProfiles :: (Monad m, HasUserProfileState m) => m Profiles
+getUserProfiles = getUserProfileState >>= return . (view profiles)
 
-lookupUserName :: (MonadReader ProfileInfo m) => UserId -> m (Maybe UserName)
+class HasUserProfile m where
+    getCurrentUserProfile :: m Profile
+
+getCurrentUserId :: (Monad m, HasUserProfile m) => m UserId
+getCurrentUserId = getCurrentUserProfile >>= return . (view userId)
+
+getCurrentUserName :: (Monad m, HasUserProfile m) => m UserName
+getCurrentUserName = getCurrentUserProfile >>= return . (view userName)
+
+isCurrentUserAdmin :: (Monad m, HasUserProfile m) => m Bool
+isCurrentUserAdmin = getCurrentUserProfile >>= return . (view isAdmin)
+
+lookupUserName :: (Monad m, HasUserProfileState m) => UserId -> m (Maybe UserName)
 lookupUserName userId = do
-    profiles <- view (_2 . profiles)
+    profiles <- getUserProfiles
     return $ fmap (view userName) $ getOne $ profiles @= userId
 
-lookupUserIdByEmail :: (MonadReader ProfileState m) => Email -> m (Maybe UserId)
+lookupUserIdByEmail :: (Monad m, HasUserProfileState m) => Email -> m (Maybe UserId)
 lookupUserIdByEmail email = do
-    profiles <- view profiles
+    profiles <- getUserProfiles
     return $ fmap (view userId) $ getOne $ profiles @= email
 
-lookupUserIdByUserName :: (MonadReader ProfileState m) => UserName -> m (Maybe UserId)
+lookupUserIdByUserName :: (Monad m, HasUserProfileState m) => UserName -> m (Maybe UserId)
 lookupUserIdByUserName userName = do
-    profiles <- view profiles
+    profiles <- getUserProfiles
     return $ fmap (view userId) $ getOne $ profiles @= userName
 
-lookupUserIdByEmailOrUserName :: (MonadReader ProfileState m) => Text -> m (Maybe UserId)
+lookupUserIdByEmailOrUserName :: (Monad m, HasUserProfileState m) => Text -> m (Maybe UserId)
 lookupUserIdByEmailOrUserName text = do
-    profiles <- view profiles
+    profiles <- getUserProfiles
     byEmail <- lookupUserIdByEmail (Email text)
     byName <- lookupUserIdByUserName text
     return $ mplus byEmail byName
 
-lookupProfileByUserId :: (MonadReader ProfileState m) => UserId -> m (Maybe Profile)
-lookupProfileByUserId userId = do
-    profiles <- view profiles
-    return $ getOne $ profiles @= userId    
+lookupProfileByUserId :: ProfileState -> UserId -> Maybe Profile
+lookupProfileByUserId profileState userId = getOne $ view profiles profileState @= userId    
 
 addNewProfile :: (Functor m, MonadState ProfileState m) => UserName -> Email -> Bool -> m UserId
 addNewProfile userName email admin = do
@@ -86,8 +96,8 @@ addNewProfile userName email admin = do
     profiles %= updateIx userId (Profile userId userName email admin)
     return userId
 
-isUserNameAvailable :: (Functor m, MonadReader ProfileState m) => UserName -> m Bool
+isUserNameAvailable :: (Functor m, Monad m, HasUserProfileState m) => UserName -> m Bool
 isUserNameAvailable email = (not . isJust) <$> lookupUserIdByUserName email
 
-isEmailAvailable :: (Functor m, MonadReader ProfileState m) => Email -> m Bool
+isEmailAvailable :: (Functor m, Monad m, HasUserProfileState m) => Email -> m Bool
 isEmailAvailable email = (not . isJust) <$> lookupUserIdByEmail email

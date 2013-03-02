@@ -37,3 +37,23 @@ instance View Matchmaker MatchmakerView LocationAction where
                 , mvLobbyId = matchmaker ^. lobbyId
                 }
                                                 ) mOwnerName
+
+data MatchmakerGlimpse = MatchmakerGlimpse
+    { mgMatchmakerId  :: MatchmakerId
+    , mgCapacity      :: (Int, Int) -- (min, max)
+    , mgOwner         :: UserName
+    , mgMembers       :: Int
+    } deriving (Ord, Eq, Read, Show)
+
+-- Probably should have used case instead of maybe... this looks a li'l silly.
+instance View Matchmaker MatchmakerGlimpse LocationAction where
+    view matchmaker = do
+        mOwnerName <- lookupUserName (matchmaker ^. owner)
+        members <- fmap length $ getUsers $ InMatchmaker $ matchmaker ^. matchmakerId
+        maybe (throwError OtherLocationError)   (\ownerName -> return $ MatchmakerGlimpse
+                { mgMatchmakerId = matchmaker ^. matchmakerId
+                , mgCapacity = matchmaker ^. capacity
+                , mgOwner = ownerName
+                , mgMembers = members
+                }
+                                                ) mOwnerName

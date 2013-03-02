@@ -23,11 +23,17 @@ data LocationError = LocationDoesNotExist | OtherLocationError
 instance Error LocationError where
     noMsg = OtherLocationError
 
-newtype LocationAction a = LocationAction { unLocationAction :: (RWST ProfileInfo Text (AcidState LocationState) (ErrorT LocationError IO) a) }
-    deriving (Monad, MonadError LocationError, Functor, MonadState (AcidState LocationState), MonadReader ProfileInfo, MonadIO)
+newtype LocationAction a = LocationAction { unLocationAction :: (RWST (Profile, ProfileState, AcidState LocationState) Text () (ErrorT LocationError IO) a) }
+    deriving (Monad, MonadError LocationError, Functor, MonadReader (Profile, ProfileState, AcidState LocationState), MonadIO)
 
 instance HasAcidState LocationAction LocationState where
-    getAcidState = get
+    getAcidState = Lens.view _3 <$> ask
+
+instance HasUserProfileState LocationAction where
+    getUserProfileState = Lens.view _2 <$> ask
+
+instance HasUserProfile LocationAction where
+    getCurrentUserProfile = Lens.view _1 <$> ask
 
 
 add' :: Location -> Update LocationState LocationId
@@ -46,11 +52,12 @@ delete' locationId = do
 
 runLocationAction
     :: LocationAction a
-    -> ProfileInfo
+    -> Profile
+    -> ProfileState
     -> AcidState LocationState
-    -> IO (Either LocationError (a, AcidState LocationState, Text))
-runLocationAction (LocationAction locationAction) profileInfo locationState = do
-    runErrorT $ (runRWST locationAction) profileInfo locationState
+    -> IO (Either LocationError (a, (), Text))
+runLocationAction (LocationAction locationAction) profile profileState acidLocationState = do
+    runErrorT $ (runRWST locationAction) (profile, profileState, acidLocationState) ()
 
 setLocation' :: LocationId -> UserId -> Update LocationState ()
 setLocation' locationId userId = do

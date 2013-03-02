@@ -10,10 +10,10 @@ import Framework.Location.Types
 import Framework.Location.LocationAction
 import Framework.Location.Instances.Location
 import Framework.Location.Instances.Create
-import Framework.Location.Classes.Location hiding ( chat )
+import Framework.Location.Classes hiding ( chat )
 import Framework.Location.Instances.View.LocationView
 import Framework.Common.Classes as Classes ( view, create, delete, delete', add' )
-import qualified Framework.Location.Classes.Location as Location
+import qualified Framework.Location.Classes as Location
 import Data.Text ( Text, pack )
 
 -- removed UserId since these will run with MonadReader Profile m
@@ -27,7 +27,7 @@ data LocationApi
 
 join :: LocationId -> LocationAction LocationView
 join locationId = do
-    userId <- currentUserId
+    userId <- getCurrentUserId
     oldLocationId <- getUserLocation userId
     setLocation locationId userId
     onLeave oldLocationId
@@ -36,7 +36,7 @@ join locationId = do
 
 tryJoin :: LocationId -> LocationAction LocationView
 tryJoin locationId = do
-    userId <- currentUserId
+    userId <- getCurrentUserId
     oldLocationId <- getUserLocation userId
     canLeave <- canLeave oldLocationId
     canJoin <- canJoin locationId
@@ -44,20 +44,20 @@ tryJoin locationId = do
 
 tryLeave :: LocationAction LocationView
 tryLeave = do
-    userId <- currentUserId
+    userId <- getCurrentUserId
     currentLocationId <- getUserLocation userId
     exit <- exit currentLocationId
     tryJoin exit
 
 leave :: LocationAction LocationView
 leave = do
-    userId <- currentUserId
+    userId <- getCurrentUserId
     locationId <- getUserLocation userId
     join locationId
 
 chat :: Text -> LocationId -> LocationAction LocationView
 chat text locationId = do
-    userName <- currentUserName
+    userName <- getCurrentUserName
     Location.chat (userName, text) locationId
     return $ LVMessage $ pack "Chat added."
     view locationId

@@ -7,12 +7,10 @@ import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.RWS
 import Data.Text ( Text )
-import Data.Lens
+import Control.Lens
+import Data.Functor
 import Framework.Profile
-import Framework.Auth.Types.UserPassword
-import Framework.Auth.Types.UserToken
-import Framework.Auth.Types.AuthState
-import Framework.Auth.Types.Error
+import Framework.Auth.Types
 
 data AuthApi
     = Register UserName Email PlainPass
@@ -34,9 +32,9 @@ register :: UserName -> Email -> PlainPass -> AuthAction ()
 register userName email plainPass = do
     userNameIsAvailable <- isUserNameAvailable userName
     emailIsAvialable <- isEmailAvailable email
-    oldProfileState <- gets _profileState
+    oldProfileState <- view profileState <$> get
     let (userId, newProfileState) = runState (addNewProfile userName email False) oldProfileState
-    profileState != newProfileState
+    profileState .= newProfileState
     setPassword userId plainPass
     return ()
 

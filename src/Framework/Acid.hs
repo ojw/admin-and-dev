@@ -1,5 +1,7 @@
 module Framework.Acid where
 
+import Data.Acid
+
 import Framework.Location
 import Framework.Profile
 import Framework.Auth
@@ -7,5 +9,5 @@ import Framework.Auth
 data Acid = Acid
     { authState :: AuthState
     , profileState :: ProfileState
-    , locationState :: LocationState
+    , locationState :: AcidState LocationState
     } 

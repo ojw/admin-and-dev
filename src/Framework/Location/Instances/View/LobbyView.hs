@@ -12,7 +12,7 @@ import Control.Lens hiding ( view )
 import Framework.Profile                        ( UserId, UserName, lookupUserName )
 import Framework.Location.Types
 import Framework.Location.LocationAction
-import Framework.Location.Instances.View.MatchmakerGlimpse
+import Framework.Location.Instances.View.MatchmakerView
 import Framework.Common.Classes ( View(..) )
 
 data LobbyView = LobbyView
@@ -38,4 +38,25 @@ instance View Lobby LobbyView LocationAction where
             , lvChats = lobby ^. chats
             , lvMembers = members
             , lvMatchmakers = matchmakerGlimpses
+            }
+
+data LobbyGlimpse = LobbyGlimpse
+    { lgName              :: Text
+    , lgDescription       :: Text
+    , lgLobbyId           :: LobbyId
+    , lgMemberCount       :: Int
+    , lgMatchmakerCount   :: Int
+    } deriving (Ord, Eq, Read, Show) 
+
+instance View Lobby LobbyGlimpse LocationAction where
+    view lobby = do
+        memberCount <- fmap length $ getUsers $ InLobby $ lobby ^. lobbyId
+        matchmakerIx <- getMatchmakers
+        let matchmakerCount = length $ toList $ matchmakerIx @= (lobby ^. lobbyId)
+        return $ LobbyGlimpse
+            { lgName = lobby ^. name
+            , lgDescription = lobby ^. description
+            , lgLobbyId = lobby ^. lobbyId
+            , lgMemberCount = memberCount
+            , lgMatchmakerCount = matchmakerCount
             }

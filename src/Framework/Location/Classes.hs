@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable, TemplateHaskell, 
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
-module Framework.Location.Classes.Location where
+module Framework.Location.Classes where
 
 import Framework.Location.LocationAction ( LocationAction )
 import Framework.Location.Types ( Chat, LocationId )

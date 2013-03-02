@@ -14,7 +14,7 @@ import Control.Lens
 
 import Framework.Profile ( UserId )
 import Framework.Profile as Profile
-import Framework.Location.Classes.Location
+import Framework.Location.Classes
 import Framework.Location.LocationAction
 import Framework.Location.Types
 import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
@@ -34,7 +34,7 @@ instance Loc Matchmaker where
     onJoin _ = return ()
     canLeave _ = return True
     onLeave matchmaker = do
-        userId <- currentUserId
+        userId <- getCurrentUserId
         if userId == matchmaker ^. owner
         then do
             users <- getUsers $ InMatchmaker $ matchmaker ^. matchmakerId
@@ -45,9 +45,9 @@ instance Loc Matchmaker where
     chat c matchmaker = updateMatchmaker (matchmaker ^. matchmakerId) ((chats %~ addChat c) matchmaker) >> return () 
 
 instance Loc Game where
-    canJoin _ = currentUserId >>= fmap not . inGame
+    canJoin _ = getCurrentUserId >>= fmap not . inGame
     onJoin _ = return ()
-    canLeave _ = currentUserId >>= fmap not . inGame
+    canLeave _ = getCurrentUserId >>= fmap not . inGame
     onLeave _ = return ()
     exit = return . InLobby . (view lobbyId)
     chat c game = updateGame (game ^. gameId) ((chats %~ addChat c) game) >> return ()
