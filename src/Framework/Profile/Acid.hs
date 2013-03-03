@@ -4,7 +4,8 @@
 
 module Framework.Profile.Acid 
 
-( addNewProfile
+( lookupProfileByUserId''
+, addNewProfile
 , lookupUserIdByEmail
 , lookupUserIdByUserName
 , isUserNameAvailable
@@ -24,6 +25,7 @@ import Data.Monoid
 import Data.Data
 import Data.Text            ( Text )
 import Data.Acid
+import Data.Acid.Advanced
 import Data.IxSet
 import Control.Lens
 import Data.SafeCopy
@@ -83,6 +85,9 @@ lookupUserIdByEmailOrUserName text = do
 
 lookupProfileByUserId :: (HasAcidState m ProfileState, MonadIO m) => UserId -> m (Maybe Profile)
 lookupProfileByUserId userId = Util.HasAcidState.query $ LookupProfileByUserId' userId
+
+lookupProfileByUserId'' :: MonadIO m => UserId -> AcidState ProfileState -> m (Maybe Profile)
+lookupProfileByUserId'' userId profileAcid = query' profileAcid $ LookupProfileByUserId' userId
 
 lookupUserName :: (HasAcidState m ProfileState, MonadIO m) => UserId -> m (Maybe UserName)
 lookupUserName userId = Util.HasAcidState.query $ LookupUserName' userId

@@ -19,6 +19,7 @@ import Framework.Error
 import Framework.View
 import Framework.Acid
 import Framework.Auth.Types
+import Framework.Profile.Acid
 
 data ExternalApi = ExternalApi
     { token :: Maybe AuthToken
@@ -36,18 +37,20 @@ fancyRun externalApi = do
             put acid
             tell text
             return $ Right frameworkView
+-}  
 
-runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Acid, Text))
+runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Text))
 runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
 runExternalApi (ExternalApi Nothing _) acid = return $ Left UserNotLoggedIn
 runExternalApi (ExternalApi (Just authToken) api) acid@Acid{..} = do
     mUserId <- query authState $ GetUserIdFromToken' authToken
     case mUserId of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
-        Just userId -> case lookupProfileByUserId profileState userId of
-            Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
-            profile -> runFrameworkAction (runApi api) profile acid
-  -}  
+        Just userId -> do
+            mProfile <- liftIO $ lookupProfileByUserId'' userId profileState
+            case mProfile of
+                Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
+                profile -> runFrameworkAction (runApi api) profile acid
 
 data FrameworkApi
     = FWLocApi LocationApi
@@ -55,14 +58,14 @@ data FrameworkApi
 
 class (Functor m, Monad m, MonadState Acid m) => MonadFrameworkAction m
 
-newtype FrameworkAction a = FrameworkAction { unFrameworkAction :: RWST (Maybe Profile, Acid) Text () (ErrorT FrameworkError IO) a }
+newtype FrameworkAction a = FrameworkAction { unFrameworkAction :: ReaderT (Maybe Profile, Acid) (WriterT Text (ErrorT FrameworkError IO)) a }
     deriving (Monad, Functor, MonadWriter Text, MonadError FrameworkError, MonadIO, MonadReader (Maybe Profile, Acid))
 
 getProfile :: FrameworkAction Profile
 getProfile = view _1 <$> ask >>= maybe (throwError UserNotLoggedIn) return
 
-runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, (), Text))
-runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST action) (profile, acid) ()
+runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Text))
+runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ runWriterT $ (runReaderT action) (profile, acid)
 
 -- This will probably be rewritten to work with smaller acid handles rather than entire object.
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
