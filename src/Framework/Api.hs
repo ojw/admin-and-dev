@@ -23,6 +23,7 @@ import Framework.Profile.Acid
 
 data ExternalApi = ExternalApi
     { token :: Maybe AuthToken
+    , game  :: Maybe Text -- Text identifies the specific game.  A server can serve many games.  Currently the game portion is unimplemented.
     , api   :: FrameworkApi
     }
 
@@ -40,9 +41,9 @@ fancyRun externalApi = do
 -}  
 
 runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Text))
-runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
-runExternalApi (ExternalApi Nothing _) acid = return $ Left UserNotLoggedIn
-runExternalApi (ExternalApi (Just authToken) api) acid@Acid{..} = do
+runExternalApi (ExternalApi Nothing _ api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
+runExternalApi (ExternalApi Nothing _ _) acid = return $ Left UserNotLoggedIn
+runExternalApi (ExternalApi (Just authToken) _ api) acid@Acid{..} = do
     mUserId <- query authState $ GetUserIdFromToken' authToken
     case mUserId of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
