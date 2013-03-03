@@ -67,13 +67,11 @@ runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ (runRWST 
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- get
-    let authSlice = AuthSlice {_asAuthState = authState, _asProfileState = profileState}
-        action = (runAuthAction $ runAuthApi authApi) profileState authSlice
+    let action = (runAuthAction $ runAuthApi authApi) profileState authState
     result <- liftIO action
     case result of
         Left e -> throwError $ FWAuthError e
         Right (v, s, w) -> do   
-            put $ Acid (_asAuthState s) (_asProfileState s) locationState
             tell w
             return $ FWAuthView v
 runApi (FWLocApi locationApi) = do
