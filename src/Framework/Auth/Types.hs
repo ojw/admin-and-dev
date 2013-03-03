@@ -62,24 +62,18 @@ data AuthView
     = AuthTokenView AuthToken
     | AuthViewSuccess Bool
 
-data AuthSlice = AuthSlice
-    { _asAuthState :: AuthState
-    , _asProfileState :: ProfileState
-    }
-
 makeFields ''UserPassword
 makeFields ''UserToken
 makeFields ''AuthState
-makeFields ''AuthSlice
 
 deriveSafeCopy 0 'base ''UserPassword
 deriveSafeCopy 0 'base ''UserToken
 deriveSafeCopy 0 'base ''AuthState
 
-class (Functor m, Monad m, HasAcidState m ProfileState, MonadState AuthSlice m, MonadError AuthError m) => MonadAuthAction m
+class (Functor m, Monad m, HasAcidState m ProfileState, HasAcidState m AuthState, MonadError AuthError m) => MonadAuthAction m
 
-newtype AuthAction a = AuthAction { unAuthAction :: RWST (AcidState ProfileState, AcidState AuthState) Text AuthSlice (ErrorT AuthError IO) a}
-    deriving (Functor, Monad, MonadReader (AcidState ProfileState, AcidState AuthState), MonadState AuthSlice, MonadError AuthError, MonadIO)
+newtype AuthAction a = AuthAction { unAuthAction :: RWST (AcidState ProfileState, AcidState AuthState) Text () (ErrorT AuthError IO) a}
+    deriving (Functor, Monad, MonadReader (AcidState ProfileState, AcidState AuthState), MonadError AuthError, MonadIO)
 
 instance HasAcidState AuthAction ProfileState where
     getAcidState = view _1 <$> ask
@@ -150,13 +144,11 @@ getHashedPass userId = do
 
 tryAuthenticate :: UserId -> PlainPass -> AuthAction Bool
 tryAuthenticate userId (PlainPass plainPass) = do
-    userPasswords <- view (authState . userPasswords) <$> get
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
 
 authenticate :: UserId -> PlainPass -> AuthAction ()
 authenticate userId (PlainPass plainPass) = do
-    userPasswords <- view (authState . userPasswords) <$> get
     hashedPass <- getHashedPass userId
     if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
 
