@@ -23,14 +23,14 @@ data LocationError = LocationDoesNotExist | OtherLocationError
 instance Error LocationError where
     noMsg = OtherLocationError
 
-newtype LocationAction a = LocationAction { unLocationAction :: (RWST (Profile, ProfileState, AcidState LocationState) Text () (ErrorT LocationError IO) a) }
-    deriving (Monad, MonadError LocationError, Functor, MonadReader (Profile, ProfileState, AcidState LocationState), MonadIO)
+newtype LocationAction a = LocationAction { unLocationAction :: (RWST (Profile, AcidState ProfileState, AcidState LocationState) Text () (ErrorT LocationError IO) a) }
+    deriving (Monad, MonadError LocationError, Functor, MonadReader (Profile, AcidState ProfileState, AcidState LocationState), MonadIO)
+
+instance HasAcidState LocationAction ProfileState where
+    getAcidState = Lens.view _2 <$> ask
 
 instance HasAcidState LocationAction LocationState where
     getAcidState = Lens.view _3 <$> ask
-
-instance HasUserProfileState LocationAction where
-    getUserProfileState = Lens.view _2 <$> ask
 
 instance HasUserProfile LocationAction where
     getCurrentUserProfile = Lens.view _1 <$> ask
@@ -53,7 +53,7 @@ delete' locationId = do
 runLocationAction
     :: LocationAction a
     -> Profile
-    -> ProfileState
+    -> AcidState ProfileState
     -> AcidState LocationState
     -> IO (Either LocationError (a, (), Text))
 runLocationAction (LocationAction locationAction) profile profileState acidLocationState = do

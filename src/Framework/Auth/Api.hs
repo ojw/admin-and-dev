@@ -8,6 +8,7 @@ import Control.Monad.Error
 import Control.Monad.RWS
 import Data.Text ( Text )
 import Control.Lens
+import Data.Acid
 import Data.Functor
 import Framework.Profile
 import Framework.Auth.Types
@@ -18,9 +19,9 @@ data AuthApi
     | UpdatePassword Text PlainPass PlainPass
     | LogOut Text
 
-runAuthAction :: AuthAction a -> ProfileState -> AuthSlice -> IO (Either AuthError (a, AuthSlice, Text))
-runAuthAction (AuthAction action) profileState authSlice = do
-    runErrorT $ (runRWST action) profileState authSlice
+runAuthAction :: AuthAction a -> AcidState ProfileState -> AcidState AuthState -> AuthSlice -> IO (Either AuthError (a, AuthSlice, Text))
+runAuthAction (AuthAction action) profileAcid authAcid authSlice = do
+    runErrorT $ (runRWST action) (profileAcid, authAcid) authSlice
 
 runAuthApi :: AuthApi -> AuthAction AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
@@ -31,11 +32,11 @@ runAuthApi (LogOut text) = logOut text >> return (AuthViewSuccess True)
 register :: UserName -> Email -> PlainPass -> AuthAction ()
 register userName email plainPass = do
     userNameIsAvailable <- isUserNameAvailable userName
-    emailIsAvialable <- isEmailAvailable email
-    oldProfileState <- view profileState <$> get
-    let (userId, newProfileState) = runState (addNewProfile userName email False) oldProfileState
-    profileState .= newProfileState
-    setPassword userId plainPass
+    emailIsAvailable <- isEmailAvailable email
+    when (userNameIsAvailable && emailIsAvailable) $ do 
+        userId <- addNewProfile userName email False
+        setPassword userId plainPass
+        return ()
     return ()
 
 logOut :: Text -> AuthAction ()

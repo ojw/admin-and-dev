@@ -23,6 +23,7 @@ data ExternalApi = ExternalApi
     , api   :: FrameworkApi
     }
 
+{-
 fancyRun :: (MonadIO m, MonadState Acid m, MonadWriter Text m) => ExternalApi -> m (Either FrameworkError FrameworkView)
 fancyRun externalApi = do
     acid <- get
@@ -38,10 +39,14 @@ runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkVie
 runExternalApi (ExternalApi Nothing api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
 runExternalApi (ExternalApi Nothing _) acid = return $ Left UserNotLoggedIn
 runExternalApi (ExternalApi (Just authToken) api) acid@Acid{..} = do
+    mUserId <- query' authState $ GetUserIdFromToken' authToken
+    case mUserId of
+        Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
+        Just userId -> case lookupProfileByUserId profileState userId
     case getUserProfile profileState authState authToken of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
         profile -> runFrameworkAction (runApi api) profile acid
-    
+  -}  
 
 data FrameworkApi
     = FWLocApi LocationApi

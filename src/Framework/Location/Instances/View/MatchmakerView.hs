@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards, MultiParamTypeClasses, OverlappingInstances #-}
 
 module Framework.Location.Instances.View.MatchmakerView where
 
@@ -8,7 +8,7 @@ import Data.Functor                                 ( (<$>) )
 import Data.Text                                    ( Text )
 import Control.Lens
 
-import Framework.Profile                            ( UserName, lookupUserName )
+import Framework.Profile
 import Framework.Location.Types
 import Framework.Location.LocationAction
 import Framework.Common.Classes

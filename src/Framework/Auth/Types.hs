@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell, DeriveDataTypeable, FlexibleContexts, OverloadedStrings,
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances,
-    UndecidableInstances  #-}
+    UndecidableInstances, TypeFamilies, ScopedTypeVariables #-}
 
 module Framework.Auth.Types where
 
@@ -78,39 +78,36 @@ deriveSafeCopy 0 'base ''AuthState
 
 class (Functor m, Monad m, HasAcidState m ProfileState, MonadState AuthSlice m, MonadError AuthError m) => MonadAuthAction m
 
-newtype AuthAction a = AuthAction { unAuthAction :: RWST (AcidState ProfileState) Text AuthSlice (ErrorT AuthError IO) a}
-    deriving (Functor, Monad, MonadReader (AcidState ProfileState), MonadState AuthSlice, MonadError AuthError, MonadIO)
+newtype AuthAction a = AuthAction { unAuthAction :: RWST (AcidState ProfileState, AcidState AuthState) Text AuthSlice (ErrorT AuthError IO) a}
+    deriving (Functor, Monad, MonadReader (AcidState ProfileState, AcidState AuthState), MonadState AuthSlice, MonadError AuthError, MonadIO)
 
 instance HasAcidState AuthAction ProfileState where
-    getAcidState = ask
+    getAcidState = view _1 <$> ask
+
+instance HasAcidState AuthAction AuthState where
+    getAcidState = view _2 <$> ask
 
 instance MonadAuthAction AuthAction 
 
-getHashedPass' :: MonadError AuthError m => UserPasswords -> UserId -> m HashedPass
-getHashedPass' userPasswords userId = do
-    case fmap (view password) $ getOne $ userPasswords @= userId of
-        Nothing -> throwError UserDoesNotExist
-        Just hashedPass -> return hashedPass
+getHashedPass'' :: UserPasswords -> UserId -> Maybe HashedPass
+getHashedPass'' userPasswords userId = fmap (view password) $ getOne $ userPasswords @= userId
 
-setPassword' :: (MonadIO m, MonadError AuthError m) => UserPasswords -> UserId -> PlainPass -> m UserPasswords
-setPassword' userPasswords userId (PlainPass plainPass) = do
-    mHashedPass <- liftIO $ hashPasswordUsingPolicy slowerBcryptHashingPolicy plainPass
-    case mHashedPass of
-        Nothing -> throwError PasswordHashFailed
-        Just hashedPass -> do
-            return $ updateIx userId (UserPassword userId (HashedPass hashedPass)) userPasswords
+getHashedPass' :: UserId -> Query AuthState (Maybe HashedPass)
+getHashedPass' userId = do
+    userPasswords <- fmap (view userPasswords) ask
+    return $ getHashedPass'' userPasswords userId
 
-deleteAuthToken :: MonadAuthAction m => UserId -> m ()
-deleteAuthToken userId = setAuthToken userId Nothing
+setPassword' :: UserId -> HashedPass -> Update AuthState ()
+setPassword' userId hashedPass = userPasswords %= updateIx userId (UserPassword userId hashedPass)
 
-setAuthToken :: MonadAuthAction m => UserId -> Maybe AuthToken -> m ()
-setAuthToken userId authToken = do
-    authState %= (userTokens %~ updateIx userId (UserToken userId authToken))
+setAuthToken' :: UserId -> Maybe AuthToken -> Update AuthState ()
+setAuthToken' userId authToken = do
+    userTokens %= updateIx userId (UserToken userId authToken)
     return () 
 
-getAuthToken :: MonadAuthAction m => UserId -> m (Maybe AuthToken)
-getAuthToken userId = do
-    userTokens <- view (authState . userTokens) <$> get
+getAuthToken' :: UserId -> Query AuthState (Maybe AuthToken)
+getAuthToken' userId = do
+    userTokens <- view  userTokens <$> ask
     let mUserToken = getOne $ userTokens @= userId
     case mUserToken of
         Nothing -> return Nothing
@@ -121,49 +118,58 @@ generateAuthToken = do
     randomPart <- liftIO $ getEntropy 64
     return $ AuthToken $ mappend "FOO" randomPart 
 
-authenticate :: MonadAuthAction m => UserId -> PlainPass -> m ()
-authenticate userId (PlainPass plainPass) = do
-    userPasswords <- view (authState . userPasswords) <$> get
-    hashedPass <- getHashedPass userId
-    if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
+getUserIdByEmailOrUserName :: (MonadIO m, MonadAuthAction m) => Text -> m UserId
+getUserIdByEmailOrUserName text = do
+    lookupUserIdByEmailOrUserName text >>= maybe (throwError UserDoesNotExist) return
 
-tryAuthenticate :: MonadAuthAction m => UserId -> PlainPass -> m Bool
+getUserIdFromToken' :: AuthToken -> Query AuthState (Maybe UserId)
+getUserIdFromToken' authToken = do
+    authState <- ask
+    return $ fmap (view userId) $ getOne $ view userTokens authState @= authToken
+
+makeAcidic ''AuthState ['getHashedPass', 'setPassword', 'setAuthToken', 'getAuthToken', 'getUserIdFromToken']
+
+getUserIdFromToken :: (HasAcidState m AuthState, MonadIO m) => AuthToken -> m (Maybe UserId)
+getUserIdFromToken authToken = Util.HasAcidState.query $ GetUserIdFromToken' authToken
+
+getAuthToken :: UserId -> AuthAction (Maybe AuthToken)
+getAuthToken userId = Util.HasAcidState.query $ GetAuthToken' userId
+
+setPassword :: UserId -> PlainPass -> AuthAction ()
+setPassword userId (PlainPass plainPass) = do
+    mHashedPass <- liftIO $ hashPasswordUsingPolicy slowerBcryptHashingPolicy plainPass
+    case mHashedPass of
+        Nothing -> throwError PasswordHashFailed
+        Just hashedPass -> do
+            Util.HasAcidState.update $ SetPassword' userId (HashedPass hashedPass)
+
+getHashedPass :: UserId -> AuthAction HashedPass
+getHashedPass userId = do
+    mHashedPass <- Util.HasAcidState.query $ GetHashedPass' userId
+    maybe (throwError UserDoesNotExist) return mHashedPass 
+
+tryAuthenticate :: UserId -> PlainPass -> AuthAction Bool
 tryAuthenticate userId (PlainPass plainPass) = do
     userPasswords <- view (authState . userPasswords) <$> get
     hashedPass <- getHashedPass userId
     return $ validatePassword (unHashedPass hashedPass) plainPass
 
-getUserIdByEmailOrUserName :: (MonadIO m, MonadAuthAction m) => Text -> m UserId
-getUserIdByEmailOrUserName text = do
-    lookupUserIdByEmailOrUserName text >>= maybe (throwError UserDoesNotExist) return
-
-getHashedPass :: MonadAuthAction m =>  UserId -> m HashedPass
-getHashedPass userId = do
+authenticate :: UserId -> PlainPass -> AuthAction ()
+authenticate userId (PlainPass plainPass) = do
     userPasswords <- view (authState . userPasswords) <$> get
-    getHashedPass' userPasswords userId
-    
+    hashedPass <- getHashedPass userId
+    if validatePassword (unHashedPass hashedPass) plainPass then return () else throwError IncorrectUserNameOrPassword
 
-setPassword :: (MonadIO m, MonadAuthAction m) => UserId -> PlainPass -> m ()
-setPassword userId (PlainPass plainPass) = do
-    oldUserPasswords <- view (authState . userPasswords) <$> get
-    newUserPasswords <- setPassword' oldUserPasswords userId (PlainPass plainPass)
-    authState %= (userPasswords .~ newUserPasswords)
-    return ()
+deleteAuthToken :: UserId -> AuthAction ()
+deleteAuthToken userId = Util.HasAcidState.update $ SetAuthToken' userId Nothing
 
--- Will be called by the Framework to set up Location, Game, and Profile actions.
-{-
-getUserProfile :: MonadAuthAction m => AuthToken -> m Profile
+setAuthToken :: UserId -> Maybe AuthToken -> AuthAction ()
+setAuthToken userId authToken = Util.HasAcidState.update $ SetAuthToken' userId authToken
+
+getUserProfile :: (HasAcidState m ProfileState, HasAcidState m AuthState, MonadIO m) => AuthToken -> m (Maybe Profile)
 getUserProfile authToken = do
-    userTokens <- _userTokens <$> gets _authState
-    case getOne $ userTokens @= authToken of
-        Nothing -> throwError InvalidAuthToken
-        Just userToken -> do
-            mProfile <- lookupProfileByUserId $ Framework.Auth.Types.UserToken._userId userToken
-            maybe (throwError UserDoesNotExist) return mProfile
--}
+    mUserId <- getUserIdFromToken authToken
+    case mUserId of
+        Nothing -> return Nothing
+        Just userId -> lookupProfileByUserId userId
 
-getUserProfile :: ProfileState -> AuthState -> AuthToken -> Maybe Profile
-getUserProfile profileState authState authToken = do
-    case getOne $ view userTokens authState @= authToken of
-        Nothing -> Nothing
-        Just userToken -> lookupProfileByUserId profileState (view userId userToken)
