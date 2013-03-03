@@ -19,9 +19,9 @@ data AuthApi
     | UpdatePassword Text PlainPass PlainPass
     | LogOut Text
 
-runAuthAction :: AuthAction a -> AcidState ProfileState -> AcidState AuthState -> AuthSlice -> IO (Either AuthError (a, AuthSlice, Text))
-runAuthAction (AuthAction action) profileAcid authAcid authSlice = do
-    runErrorT $ (runRWST action) (profileAcid, authAcid) authSlice
+runAuthAction :: AuthAction a -> AcidState ProfileState -> AcidState AuthState -> IO (Either AuthError (a, (), Text))
+runAuthAction (AuthAction action) profileAcid authAcid = do
+    runErrorT $ (runRWST action) (profileAcid, authAcid) ()
 
 runAuthApi :: AuthApi -> AuthAction AuthView
 runAuthApi (Register userName email plainPass) = register userName email plainPass >> return (AuthViewSuccess True)
