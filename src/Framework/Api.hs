@@ -23,32 +23,18 @@ import Framework.Profile.Acid
 
 data ExternalApi = ExternalApi
     { token :: Maybe AuthToken
-    , game  :: Maybe Text -- Text identifies the specific game.  A server can serve many games.  Currently the game portion is unimplemented.
     , api   :: FrameworkApi
     }
 
-{-
-fancyRun :: (MonadIO m, MonadState Acid m, MonadWriter Text m) => ExternalApi -> m (Either FrameworkError FrameworkView)
-fancyRun externalApi = do
-    acid <- get
-    result <- liftIO $ runExternalApi externalApi acid
-    case result of
-        Left frameworkError -> return $ Left frameworkError
-        Right (frameworkView, acid, text) -> do
-            put acid
-            tell text
-            return $ Right frameworkView
--}  
-
 runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Text))
-runExternalApi (ExternalApi Nothing _ api@(FWAuthApi authApi)) acid = runFrameworkAction (runApi api) Nothing acid
-runExternalApi (ExternalApi Nothing _ _) acid = return $ Left UserNotLoggedIn
-runExternalApi (ExternalApi (Just authToken) _ api) acid@Acid{..} = do
-    mUserId <- query authState $ GetUserIdFromToken' authToken
+runExternalApi (ExternalApi Nothing             api@(FWAuthApi _)) acid = runFrameworkAction (runApi api) Nothing acid
+runExternalApi (ExternalApi Nothing             _)                 acid = return $ Left UserNotLoggedIn
+runExternalApi (ExternalApi (Just authToken)    api)               acid = do
+    mUserId <- query (authState acid) $ GetUserIdFromToken' authToken
     case mUserId of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
         Just userId -> do
-            mProfile <- liftIO $ lookupProfileByUserId'' userId profileState
+            mProfile <- liftIO $ lookupProfileByUserId'' userId (profileState acid)
             case mProfile of
                 Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
                 profile -> runFrameworkAction (runApi api) profile acid
@@ -68,7 +54,6 @@ getProfile = view _1 <$> ask >>= maybe (throwError UserNotLoggedIn) return
 runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Text))
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ runWriterT $ (runReaderT action) (profile, acid)
 
--- This will probably be rewritten to work with smaller acid handles rather than entire object.
 runApi :: FrameworkApi -> FrameworkAction FrameworkView
 runApi (FWAuthApi authApi) = do
     acid@Acid{..} <- view _2 <$> ask
