@@ -95,14 +95,3 @@ makeFields ''MatchmakerState
 makeFields ''GameState
 makeFields ''UserLocation
 makeFields ''LocationState
-
-deriveSafeCopy 0 'base ''Lobby
-deriveSafeCopy 0 'base ''LobbyState
-deriveSafeCopy 0 'base ''Matchmaker
-deriveSafeCopy 0 'base ''MatchmakerState
-deriveSafeCopy 0 'base ''Game
-deriveSafeCopy 0 'base ''GameState
-deriveSafeCopy 0 'base ''LocationId
-deriveSafeCopy 0 'base ''UserLocation
-deriveSafeCopy 0 'base ''Location
-deriveSafeCopy 0 'base ''LocationState
