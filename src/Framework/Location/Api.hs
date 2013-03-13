@@ -6,15 +6,16 @@ import Control.Monad.Error ( throwError )
 import Control.Monad.State ( get )
 
 import Framework.Profile as Profile
-import Framework.Location.Types
-import Framework.Location.LocationAction
+import Common.Location.Types
+import DB.Location.LocationAction
+import Common.Location.Instances.Create
 import Framework.Location.Instances.Location
-import Framework.Location.Instances.Create
 import Framework.Location.Classes hiding ( chat )
 import Framework.Location.Instances.View.LocationView
-import Framework.Common.Classes as Classes ( view, create, delete, delete', add' )
+import Common.Classes as Classes ( view, create, delete, delete', add' )
 import qualified Framework.Location.Classes as Location
 import Data.Text ( Text, pack )
+import Common.Location.View
 
 -- removed UserId since these will run with MonadReader Profile m
 data LocationApi
@@ -69,7 +70,7 @@ create locationOptions = do
 
 delete :: LocationId -> LocationAction LocationView
 delete locationId = do
-    Framework.Location.LocationAction.delete locationId
+    DB.Location.LocationAction.delete locationId
     return $ LVMessage $ pack "Deleted."
 
 runLocationApi :: LocationApi -> LocationAction LocationView

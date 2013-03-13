@@ -10,19 +10,11 @@ import Data.Functor                             ( (<$>) )
 import Control.Lens hiding ( view )
 
 import Framework.Profile                        ( UserId, UserName, lookupUserName )
-import Framework.Location.Types
-import Framework.Location.LocationAction
+import Common.Location.Types
+import Common.Location.View
+import DB.Location.LocationAction
 import Framework.Location.Instances.View.MatchmakerView
-import Framework.Common.Classes ( View(..) )
-
-data LobbyView = LobbyView
-    { lvName          :: Text
-    , lvDescription   :: Text
-    , lvLobbyId       :: LobbyId
-    , lvChats         :: ChatHolder
-    , lvMembers       :: [UserName]
-    , lvMatchmakers   :: [MatchmakerGlimpse]
-    } deriving (Ord, Eq, Read, Show) 
+import Common.Classes ( View(..) )
 
 instance View Lobby LobbyView LocationAction where
     view lobby = do
@@ -39,14 +31,6 @@ instance View Lobby LobbyView LocationAction where
             , lvMembers = members
             , lvMatchmakers = matchmakerGlimpses
             }
-
-data LobbyGlimpse = LobbyGlimpse
-    { lgName              :: Text
-    , lgDescription       :: Text
-    , lgLobbyId           :: LobbyId
-    , lgMemberCount       :: Int
-    , lgMatchmakerCount   :: Int
-    } deriving (Ord, Eq, Read, Show) 
 
 instance View Lobby LobbyGlimpse LocationAction where
     view lobby = do

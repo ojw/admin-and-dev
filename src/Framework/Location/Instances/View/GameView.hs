@@ -7,17 +7,11 @@ import Data.Functor                                 ( (<$>) )
 import Data.Text                                    ( Text )
 import Control.Lens
 
-import Framework.Location.LocationAction
+import DB.Location.LocationAction
 import Framework.Profile                            ( UserName, lookupUserName )
-import Framework.Location.Types
-import Framework.Common.Classes ( View(..) )
-
-data GameView = GameView
-    { gvGameId        :: GameId
-    , gvLobbyId       :: LobbyId
-    , gvChats         :: ChatHolder
-    , gvMembers       :: [UserName]
-    } deriving (Ord, Eq, Read, Show)
+import Common.Location.Types
+import Common.Location.View
+import Common.Classes ( View(..) )
 
 instance View Game GameView LocationAction where
     view game = do

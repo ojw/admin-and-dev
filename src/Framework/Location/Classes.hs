@@ -4,8 +4,8 @@
 
 module Framework.Location.Classes where
 
-import Framework.Location.LocationAction ( LocationAction )
-import Framework.Location.Types ( Chat, LocationId )
+import DB.Location.LocationAction ( LocationAction )
+import Common.Location.Types ( Chat, LocationId )
 
 class Loc l where
     canJoin     :: l -> LocationAction Bool

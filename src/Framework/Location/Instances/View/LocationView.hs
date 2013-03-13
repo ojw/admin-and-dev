@@ -6,16 +6,11 @@ import Control.Monad.Error
 import Framework.Location.Instances.View.LobbyView
 import Framework.Location.Instances.View.MatchmakerView
 import Framework.Location.Instances.View.GameView
-import Framework.Location.Types
-import Framework.Location.LocationAction
-import Framework.Common.Classes ( View(..) )
+import Common.Location.Types
+import DB.Location.LocationAction
+import Common.Classes ( View(..) )
+import Common.Location.View
 import Data.Text ( Text )
-
-data LocationView
-    = LVLobbyView LobbyView
-    | LVMatchmakerView MatchmakerView
-    | LVGameView GameView
-    | LVMessage Text
 
 instance View Location LocationView LocationAction where
     view (LocLobby lobby) = view lobby >>= return . LVLobbyView

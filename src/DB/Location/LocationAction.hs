@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, MultiParamTypeClasses, GeneralizedNewtypeDeriving, TypeFamilies,
     DeriveDataTypeable #-}
 
-module Framework.Location.LocationAction where
+module DB.Location.LocationAction where
 
 import Control.Monad.Error
 import Control.Monad.RWS
@@ -13,10 +13,10 @@ import Data.Functor
 
 import Framework.Profile
 import Util.HasAcidState as Acid
-import Framework.Location.Types
-import Framework.Location.Instances.IndexedContainer
-import Framework.Location.Instances.Create
-import Framework.Common.Classes
+import Common.Location.Types
+import Common.Location.Instances.IndexedContainer
+import Common.Location.Instances.Create
+import Common.Classes
 
 data LocationError = LocationDoesNotExist | OtherLocationError
 
@@ -76,7 +76,7 @@ getUserLocation' userId = do
 getUsers' :: LocationId -> Query LocationState [UserId]
 getUsers' locationId = do
     ul <- Lens.view userLocations -- fmap (Lens.view userLocations) ask
-    return $ Lens.view Framework.Location.Types.userId <$> toList (ul @= locationId) 
+    return $ Lens.view Common.Location.Types.userId <$> toList (ul @= locationId) 
 
 getLobbies' :: Query LocationState Lobbies
 getLobbies' = Lens.view (lobbyState . lobbies)

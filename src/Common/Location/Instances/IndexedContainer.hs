@@ -1,14 +1,14 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RecordWildCards, OverloadedStrings #-}
 
-module Framework.Location.Instances.IndexedContainer where
+module Common.Location.Instances.IndexedContainer where
 
 import Data.Functor
 import Control.Lens
 import Data.IxSet ( updateIx, deleteIx, getOne, (@=) )
 
-import Framework.Location.Types
+import Common.Location.Types
 import Framework.Profile ( UserId(..) )
-import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
+import Common.Classes ( IndexedContainer(..), Create(..) )
 
 instance IndexedContainer LobbyId Lobby LobbyState where
     add lobby (LobbyState lobbies nextLobbyId) = (nextLobbyId, (LobbyState lobbies' (succ nextLobbyId))) 

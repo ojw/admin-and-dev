@@ -9,18 +9,10 @@ import Data.Text                                    ( Text )
 import Control.Lens
 
 import Framework.Profile
-import Framework.Location.Types
-import Framework.Location.LocationAction
-import Framework.Common.Classes
-
-data MatchmakerView = MatchmakerView
-    { mvMatchmakerId  :: MatchmakerId
-    , mvChats         :: ChatHolder
-    , mvCapacity      :: (Int, Int) -- (min, max)
-    , mvOwner         :: UserName
-    , mvMembers       :: [UserName]
-    , mvLobbyId       :: LobbyId
-    } deriving (Ord, Eq, Read, Show)
+import Common.Location.Types
+import DB.Location.LocationAction
+import Common.Classes
+import Common.Location.View
 
 -- Probably should have used case instead of maybe... this looks a li'l silly.
 instance View Matchmaker MatchmakerView LocationAction where
@@ -37,13 +29,6 @@ instance View Matchmaker MatchmakerView LocationAction where
                 , mvLobbyId = matchmaker ^. lobbyId
                 }
                                                 ) mOwnerName
-
-data MatchmakerGlimpse = MatchmakerGlimpse
-    { mgMatchmakerId  :: MatchmakerId
-    , mgCapacity      :: (Int, Int) -- (min, max)
-    , mgOwner         :: UserName
-    , mgMembers       :: Int
-    } deriving (Ord, Eq, Read, Show)
 
 -- Probably should have used case instead of maybe... this looks a li'l silly.
 instance View Matchmaker MatchmakerGlimpse LocationAction where

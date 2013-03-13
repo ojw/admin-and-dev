@@ -15,9 +15,9 @@ import Control.Lens
 import Framework.Profile ( UserId )
 import Framework.Profile as Profile
 import Framework.Location.Classes
-import Framework.Location.LocationAction
-import Framework.Location.Types
-import Framework.Common.Classes ( IndexedContainer(..), Create(..) )
+import DB.Location.LocationAction
+import Common.Location.Types
+import Common.Classes ( IndexedContainer(..), Create(..) )
 
 instance Loc Lobby where
     canJoin _ = return True

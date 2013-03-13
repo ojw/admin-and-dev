@@ -11,7 +11,8 @@ import Control.Lens
 import Data.Acid
 import Data.Functor
 import Framework.Profile
-import Framework.Auth.Types
+import Common.Auth.Types
+import DB.Auth.AuthAction
 
 data AuthApi
     = Register UserName Email PlainPass

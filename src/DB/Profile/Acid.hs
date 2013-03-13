@@ -2,7 +2,7 @@
     FunctionalDependencies, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances,
     UndecidableInstances, TypeFamilies #-}
 
-module Framework.Profile.Acid 
+module DB.Profile.Acid 
 
 ( lookupProfileByUserId''
 , addNewProfile
@@ -31,7 +31,7 @@ import Control.Lens
 import Data.SafeCopy
 
 import Util.HasAcidState
-import Framework.Profile.Types
+import Common.Profile.Types
 
 addNewProfile' :: UserName -> Email -> Bool -> Update ProfileState UserId
 addNewProfile' userName email admin = do

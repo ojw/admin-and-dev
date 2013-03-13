@@ -2,7 +2,7 @@
     GeneralizedNewtypeDeriving, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances,
     UndecidableInstances, TypeFamilies, ScopedTypeVariables #-}
 
-module Framework.Auth.Types where
+module DB.Auth.AuthAction where
 
 import Control.Monad.Reader
 import Control.Monad.Error
@@ -22,49 +22,10 @@ import Crypto.BCrypt
 
 import Util.HasAcidState
 import Framework.Profile
-
-data AuthError
-    = IncorrectUserNameOrPassword
-    | UserDoesNotExist
-    | PasswordHashFailed
-    | DefaultAuthError
-    | InvalidAuthToken
-    | AuthProfileError ProfileError
+import Common.Auth.Types
 
 instance Error AuthError where
     noMsg = DefaultAuthError
-
-newtype PlainPass = PlainPass { unPlainPass :: ByteString } deriving (Ord, Eq, Read, Show)
-newtype HashedPass = HashedPass { unHashedPass :: ByteString } deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
-
-data UserPassword = UserPassword
-    { _upwUserId   :: UserId
-    , _upwPassword :: HashedPass
-    } deriving (Ord, Eq, Read, Show, Data, Typeable)
-
-inferIxSet "UserPasswords" ''UserPassword 'noCalcs [''UserId, ''HashedPass]
-
-newtype AuthToken = AuthToken ByteString deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy)
-
-data UserToken = UserToken
-    { _utUserId       :: UserId
-    , _utAuthToken    :: Maybe AuthToken
-    } deriving (Ord, Eq, Read, Show, Data, Typeable)
-
-inferIxSet "UserTokens" ''UserToken 'noCalcs [''UserId, ''AuthToken]
-
-data AuthState = AuthState
-    { _asUserPasswords    :: UserPasswords
-    , _asUserTokens       :: UserTokens
-    } deriving (Ord, Eq, Read, Show, Data, Typeable)
-
-data AuthView
-    = AuthTokenView AuthToken
-    | AuthViewSuccess Bool
-
-makeFields ''UserPassword
-makeFields ''UserToken
-makeFields ''AuthState
 
 deriveSafeCopy 0 'base ''UserPassword
 deriveSafeCopy 0 'base ''UserToken
@@ -82,9 +43,6 @@ instance HasAcidState AuthAction AuthState where
     getAcidState = view _2 <$> ask
 
 instance MonadAuthAction AuthAction 
-
-getHashedPass'' :: UserPasswords -> UserId -> Maybe HashedPass
-getHashedPass'' userPasswords userId = fmap (view password) $ getOne $ userPasswords @= userId
 
 getHashedPass' :: UserId -> Query AuthState (Maybe HashedPass)
 getHashedPass' userId = do
@@ -106,11 +64,6 @@ getAuthToken' userId = do
     case mUserToken of
         Nothing -> return Nothing
         Just userToken -> return $ view authToken userToken
-
-generateAuthToken :: MonadIO m => m AuthToken
-generateAuthToken = do
-    randomPart <- liftIO $ getEntropy 64
-    return $ AuthToken $ mappend "FOO" randomPart 
 
 getUserIdByEmailOrUserName :: (MonadIO m, MonadAuthAction m) => Text -> m UserId
 getUserIdByEmailOrUserName text = do
@@ -163,5 +116,4 @@ getUserProfile authToken = do
     mUserId <- getUserIdFromToken authToken
     case mUserId of
         Nothing -> return Nothing
-        Just userId -> lookupProfileByUserId userId
-
+        Just userId -> lookupProfileByUserId userId 

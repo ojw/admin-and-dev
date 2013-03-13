@@ -2,7 +2,7 @@
     MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, TypeFamilies,
     OverloadedStrings, FunctionalDependencies #-}
 
-module Framework.Location.Types where
+module Common.Location.Types where
 
 import Data.SafeCopy
 import Data.Data
@@ -14,6 +14,9 @@ import Framework.Profile ( UserId, UserName )
 
 type Chat = (UserName, Text)
 type ChatHolder = [Chat]
+
+addChat :: Chat -> ChatHolder -> ChatHolder
+addChat = (:) 
 
 newtype LobbyId = LobbyId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
 newtype MatchmakerId = MatchmakerId Int deriving (Ord, Eq, Read, Show, Data, Typeable, SafeCopy, Enum)
@@ -103,6 +106,3 @@ deriveSafeCopy 0 'base ''LocationId
 deriveSafeCopy 0 'base ''UserLocation
 deriveSafeCopy 0 'base ''Location
 deriveSafeCopy 0 'base ''LocationState
-
-addChat :: Chat -> ChatHolder -> ChatHolder
-addChat = (:) 

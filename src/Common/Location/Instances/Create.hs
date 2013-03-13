@@ -1,14 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
 
-module Framework.Location.Instances.Create where
+module Common.Location.Instances.Create where
 
 import Data.Text
 import Control.Lens
 import Data.Maybe ( fromMaybe )
 
 import Framework.Profile
-import Framework.Common.Classes
-import Framework.Location.Types
+import Common.Classes
+import Common.Location.Types
 
 data LobbyOptions = LobbyOptions
     { lobbyOptionsName          :: Maybe Text

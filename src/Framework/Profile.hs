@@ -1,10 +1,10 @@
 module Framework.Profile 
 
-( module Framework.Profile.Types
-, module Framework.Profile.Acid
+( module Common.Profile.Types
+, module DB.Profile.Acid
 )
 
 where
 
-import Framework.Profile.Types
-import Framework.Profile.Acid
+import Common.Profile.Types
+import DB.Profile.Acid

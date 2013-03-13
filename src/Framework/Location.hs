@@ -11,6 +11,7 @@ module Framework.Location
 where
 
 import Framework.Location.Api as Api
-import Framework.Location.Types
-import Framework.Location.LocationAction
+import Common.Location.Types
+import DB.Location.LocationAction
 import Framework.Location.Instances.View.LocationView
+import Common.Location.View

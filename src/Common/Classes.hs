@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
-module Framework.Common.Classes where
+module Common.Classes where
 
 import Control.Monad.State ( MonadState, get, put )
 

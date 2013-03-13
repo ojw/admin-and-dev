@@ -2,7 +2,7 @@
     FunctionalDependencies, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances,
     UndecidableInstances, TypeFamilies #-}
 
-module Framework.Profile.Types where
+module Common.Profile.Types where
 
 import Control.Monad.Reader
 import Control.Monad.State
