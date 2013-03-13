@@ -51,22 +51,16 @@ tryLeave = do
     tryJoin exit
 
 leave :: LocationAction LocationView
-leave = do
-    userId <- getCurrentUserId
-    locationId <- getUserLocation userId
-    join locationId
+leave = getCurrentUserId >>= getUserLocation >>= join
 
 chat :: Text -> LocationId -> LocationAction LocationView
 chat text locationId = do
     userName <- getCurrentUserName
     Location.chat (userName, text) locationId
-    return $ LVMessage $ pack "Chat added."
     view locationId
 
 create :: LocationOptions -> LocationAction LocationView
-create locationOptions = do
-    add $ Classes.create locationOptions
-    return $ LVMessage $ pack "Added."
+create locationOptions = add (Classes.create locationOptions) >>= view
 
 delete :: LocationId -> LocationAction LocationView
 delete locationId = do
