@@ -17,7 +17,7 @@ import Framework.Auth
 import Framework.Profile
 import Framework.Error
 import Framework.View
-import Framework.Acid
+import DB.Acid
 import Common.Auth.Types
 import DB.Profile.Acid
 

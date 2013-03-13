@@ -1,4 +1,4 @@
-module Framework.Acid where
+module DB.Acid where
 
 import Data.Acid
 
