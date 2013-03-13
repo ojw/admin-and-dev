@@ -3,7 +3,7 @@
   , TemplateHaskell, TypeFamilies, FlexibleInstances, RecordWildCards
   , TypeOperators, StandaloneDeriving #-}
 
-module DB.Simple where
+module DB.SimpleDB where
 
 import Data.Maybe                   ( fromMaybe )
 import Data.Acid                    ( AcidState )

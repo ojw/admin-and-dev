@@ -6,7 +6,7 @@ module Common.Auth.Types where
 
 import Control.Monad.Error
 import Data.Functor
-import Data.Text
+import Data.Text hiding ( empty )
 import Data.SafeCopy
 import Control.Lens
 import Data.Data
@@ -67,3 +67,6 @@ generateAuthToken :: MonadIO m => m AuthToken
 generateAuthToken = do
     randomPart <- liftIO $ getEntropy 64
     return $ AuthToken $ mappend "FOO" randomPart 
+
+initialAuthState :: AuthState
+initialAuthState = AuthState empty empty

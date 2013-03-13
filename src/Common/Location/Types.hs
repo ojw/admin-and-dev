@@ -8,7 +8,7 @@ import Data.SafeCopy
 import Data.Data
 import Control.Lens
 import Data.IxSet
-import Data.Text
+import Data.Text hiding ( empty )
 
 import Framework.Profile ( UserId, UserName )
 

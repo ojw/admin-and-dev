@@ -1,10 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, Rank2Types #-}
 
 module Common.Location.Instances.Create where
 
-import Data.Text
+import Data.Text hiding ( empty )
 import Control.Lens
 import Data.Maybe ( fromMaybe )
+import Data.IxSet
 
 import Framework.Profile
 import Common.Classes
@@ -15,10 +16,13 @@ data LobbyOptions = LobbyOptions
     , lobbyOptionsDescription   :: Maybe Text
     }
 
+(??~) :: Lens s s a a -> (Maybe a) -> s -> s
+(??~) lens maybeA s = s & lens .~ fromMaybe (Control.Lens.view lens s) maybeA
+
 instance Create LobbyOptions Lobby where
     blank = Lobby "" "" (LobbyId 0) []
-    update options lobby = lobby & name .~ fromMaybe (lobby ^. name) (lobbyOptionsName options)
-                                 & description .~ fromMaybe (lobby ^. description) (lobbyOptionsDescription options)
+    update options lobby = lobby & name ??~ lobbyOptionsName options
+                                 & description ??~ lobbyOptionsDescription options
 
 data MatchmakerOptions = MatchmakerOptions
     { matchmakerOptionsCapacity :: Maybe (Int, Int)
@@ -26,13 +30,13 @@ data MatchmakerOptions = MatchmakerOptions
 
 instance Create MatchmakerOptions Matchmaker where
     blank = Matchmaker (MatchmakerId 0) [] (2,2) (UserId 0) (LobbyId 0)
-    update options matchmaker = matchmaker & capacity .~ fromMaybe (matchmaker ^. capacity) (matchmakerOptionsCapacity options)
+    update options matchmaker = matchmaker & capacity ??~ matchmakerOptionsCapacity options
 
 data GameOptions = GameOptions
 
 instance Create GameOptions Game where  
     blank = Game (GameId 0) (MatchmakerId 0) (LobbyId 0) []
-    update options game = game
+    update options = id
 
 data LocationOptions = LOLobby LobbyOptions | LOMatchmaker MatchmakerOptions | LOGame GameOptions
 
@@ -46,3 +50,16 @@ instance Create LocationOptions Location where
     update (LOMatchmaker matchmakerOptions) (LocMatchmaker matchmaker) = LocMatchmaker $ update matchmakerOptions matchmaker
     update (LOGame gameOptions) (LocGame game) = LocGame $ update gameOptions game
     update _ loc = loc
+
+
+initialMatchmakerState :: MatchmakerState
+initialMatchmakerState = MatchmakerState empty (MatchmakerId 1)
+
+initialLobbyState :: LobbyState
+initialLobbyState = LobbyState (updateIx (LobbyId 0) (update (LobbyOptions (Just "Default Lobby") (Just "The default lobby.")) blank) empty) (LobbyId 1)
+
+initialGameState :: GameState
+initialGameState = GameState empty (GameId 1)
+
+initialLocationState :: LocationState
+initialLocationState = LocationState empty (LobbyId 0) initialLobbyState initialMatchmakerState initialGameState
