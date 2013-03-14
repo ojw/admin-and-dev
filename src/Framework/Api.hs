@@ -11,6 +11,7 @@ import Control.Lens
 import Data.Text
 import Data.Acid
 import Data.Functor
+import Data.ByteString.Lazy
 
 import Framework.Location
 import Framework.Auth
@@ -21,15 +22,37 @@ import DB.Acid
 import Common.Auth.Types
 import DB.Profile.Acid
 
-data ExternalApi = ExternalApi
+data FrameworkApi = FrameworkApi
     { token :: Maybe AuthToken
-    , api   :: FrameworkApi
+    , api   :: InternalApi
     }
 
-runExternalApi :: ExternalApi -> Acid -> IO (Either FrameworkError (FrameworkView, Text))
-runExternalApi (ExternalApi Nothing             api@(FWAuthApi _)) acid = runFrameworkAction (runApi api) Nothing acid
-runExternalApi (ExternalApi Nothing             _)                 acid = return $ Left UserNotLoggedIn
-runExternalApi (ExternalApi (Just authToken)    api)               acid = do
+data Frontend = Frontend
+    { apiDecoder  :: ByteString -> FrameworkApi 
+    , viewEncoder :: FrameworkView -> ByteString
+    }
+
+type ApiCallOutcome = Either FrameworkError (FrameworkView, Text)
+type ApiRunner = FrameworkApi -> IO ApiCallOutcome
+type LoggingPolicy = ApiCallOutcome -> IO FrameworkView
+type FrameworkServer = FrameworkApi -> IO FrameworkView
+type ApiServer = ByteString -> IO ByteString
+
+composeServer :: FrameworkServer -> Frontend -> ApiServer
+composeServer frameworkServer frontend = \byteString -> 
+    (viewEncoder frontend) <$> frameworkServer (apiDecoder frontend $ byteString)
+
+stupidRun :: Acid -> FrameworkServer
+stupidRun acid externalApi = runFrameworkApi acid externalApi >>= stupidLoggingPolicy
+
+stupidLoggingPolicy :: LoggingPolicy
+stupidLoggingPolicy (Left frameworkError) = return $ FWError frameworkError
+stupidLoggingPolicy (Right (frameworkView, _)) = return frameworkView
+
+runFrameworkApi :: Acid -> ApiRunner
+runFrameworkApi acid (FrameworkApi Nothing             api@(FWAuthApi _)) = runFrameworkAction (interpretApi api) Nothing acid
+runFrameworkApi acid (FrameworkApi Nothing             _)  = return $ Left UserNotLoggedIn
+runFrameworkApi acid (FrameworkApi (Just authToken)    api) = do
     mUserId <- query (authState acid) $ GetUserIdFromToken' authToken
     case mUserId of
         Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
@@ -37,9 +60,9 @@ runExternalApi (ExternalApi (Just authToken)    api)               acid = do
             mProfile <- liftIO $ lookupProfileByUserId'' userId (profileState acid)
             case mProfile of
                 Nothing -> runFrameworkAction (throwError UserNotLoggedIn) Nothing acid
-                profile -> runFrameworkAction (runApi api) profile acid
+                profile -> runFrameworkAction (interpretApi api) profile acid
 
-data FrameworkApi
+data InternalApi
     = FWLocApi LocationApi
     | FWAuthApi AuthApi
 
@@ -54,8 +77,8 @@ getProfile = view _1 <$> ask >>= maybe (throwError UserNotLoggedIn) return
 runFrameworkAction :: FrameworkAction a -> Maybe Profile -> Acid -> IO (Either FrameworkError (a, Text))
 runFrameworkAction (FrameworkAction action) profile acid = runErrorT $ runWriterT $ (runReaderT action) (profile, acid)
 
-runApi :: FrameworkApi -> FrameworkAction FrameworkView
-runApi (FWAuthApi authApi) = do
+interpretApi :: InternalApi -> FrameworkAction FrameworkView
+interpretApi (FWAuthApi authApi) = do
     acid@Acid{..} <- view _2 <$> ask
     let action = (runAuthAction $ runAuthApi authApi) profileState authState
     result <- liftIO action
@@ -64,7 +87,7 @@ runApi (FWAuthApi authApi) = do
         Right (v, s, w) -> do   
             tell w
             return $ FWAuthView v
-runApi (FWLocApi locationApi) = do
+interpretApi (FWLocApi locationApi) = do
     acid@Acid{..} <- view _2 <$> ask
     profile <- getProfile
     result <- liftIO $ (runLocationAction $ runLocationApi locationApi) profile profileState locationState

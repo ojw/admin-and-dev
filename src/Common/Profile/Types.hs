@@ -39,6 +39,9 @@ data ProfileState = ProfileState
     , _psProfiles      :: Profiles
     } deriving (Ord, Eq, Read, Show, Data, Typeable) 
 
+initialProfileState :: ProfileState
+initialProfileState = ProfileState (UserId 1) empty
+
 makeFields ''Profile
 makeFields ''ProfileState
 deriveSafeCopy 0 'base ''Profile

@@ -17,6 +17,10 @@ import Control.Exception            ( bracket )
 import Util.HasAcidState
 import DB.Acid
 
+import Common.Location.Instances.Create
+import Common.Auth.Types
+import Common.Profile.Types
+
 withAcid :: Maybe FilePath -- ^ state directory
          -> (Acid -> IO a) -- ^ action
          -> IO a
