@@ -9,6 +9,7 @@ import Data.Maybe                   ( fromMaybe )
 import Data.Acid                    ( AcidState )
 import Data.Acid.Local              ( createCheckpointAndClose 
                                     , openLocalStateFrom)
+import Data.Acid.Remote
 import Data.SafeCopy
 import Data.Data
 import System.FilePath              ( (</>) )
@@ -16,6 +17,7 @@ import Control.Exception            ( bracket )
 
 import Util.HasAcidState
 import DB.Acid
+import DB.Config
 
 import Common.Location.Instances.Create
 import Common.Auth.Types
@@ -30,3 +32,13 @@ withAcid mBasePath f =
     bracket (openLocalStateFrom (basePath </> "profile")    initialProfileState)    (createCheckpointAndClose) $ \profile ->
     bracket (openLocalStateFrom (basePath </> "location")   initialLocationState)   (createCheckpointAndClose) $ \location ->
         f (Acid auth profile location )
+
+withRemoteAcid :: Maybe DBConfig
+               -> (Acid -> IO a)
+               -> IO a
+withRemoteAcid mDBConfig f =
+    let dbConfig = fromMaybe defaultDBConfig mDBConfig in
+    bracket (uncurry openRemoteState (authLocation dbConfig))       (createCheckpointAndClose) $ \auth ->
+    bracket (uncurry openRemoteState (profileLocation dbConfig))    (createCheckpointAndClose) $ \profile ->
+    bracket (uncurry openRemoteState (locationLocation dbConfig))   (createCheckpointAndClose) $ \location ->
+        f (Acid auth profile location)
