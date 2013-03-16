@@ -22,16 +22,18 @@ import Common.Profile.Types
 
 import DB.Acid
 
+type DBLocation = (HostName, PortID, FilePath)
+
 data DBConfig = DBConfig
-    { authLocation :: (HostName, PortID, FilePath)
-    , profileLocation :: (HostName, PortID, FilePath)
-    , locationLocation :: (HostName, PortID, FilePath)
+    { authLocation :: DBLocation
+    , profileLocation :: DBLocation
+    , locationLocation :: DBLocation
     }
 
 defaultDBConfig = DBConfig
-    { authLocation      = ("localhost", UnixSocket "61234", "/authState")
-    , profileLocation   = ("localhost", UnixSocket "61235", "/profileState")
-    , locationLocation  = ("localhost", UnixSocket "61236", "/locationState")
+    { authLocation      = ("localhost", UnixSocket "AuthDBSocket", "/AuthState")
+    , profileLocation   = ("localhost", UnixSocket "ProfileDBSocket", "/ProfileState")
+    , locationLocation  = ("localhost", UnixSocket "LocationDBSocket", "/LocationState")
     }
 
 withAcid :: Maybe FilePath -- ^ state directory
@@ -54,22 +56,8 @@ withRemoteAcid mDBConfig f =
     bracket (openRemoteState (view _1 $ locationLocation dbConfig) (view _2 $ authLocation dbConfig))   closeAcidState $ \location ->
         f (Acid auth profile location)
 
--- I'm not not in over my head writing the database server
--- Should this return? Never return?  Currently it returns.
-startDBServers :: Maybe DBConfig -> Maybe Acid -> IO ()
-startDBServers mDBConfig mAcid = do
-    case mAcid of
-        Nothing -> withAcid Nothing action
-        Just acid -> action acid 
-    where action = \acid -> do
-            let dbConfig = fromMaybe defaultDBConfig mDBConfig
-            forkIO $ acidServer (authState acid) (view _2 $ authLocation dbConfig)
-            forkIO $ acidServer (profileState acid) (view _2 $ profileLocation dbConfig)
-            forkIO $ acidServer (locationState acid) (view _2 $ locationLocation dbConfig)
-            return ()
-
-startDBServers' :: Maybe DBConfig -> IO ()
-startDBServers' mDBConfig = do
+startDBServers :: Maybe DBConfig -> IO ()
+startDBServers mDBConfig = do
     let dbConfig = fromMaybe defaultDBConfig mDBConfig
     forkIO $ bracket (openLocalState initialAuthState) closeAcidState (\auth -> acidServer auth (view _2 $ authLocation dbConfig))
     forkIO $ bracket (openLocalState initialProfileState) closeAcidState (\profile -> acidServer profile (view _2 $ profileLocation dbConfig))
