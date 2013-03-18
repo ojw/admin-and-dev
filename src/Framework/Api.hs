@@ -28,7 +28,7 @@ data FrameworkApi = FrameworkApi
     }
 
 data Frontend = Frontend
-    { apiDecoder  :: ByteString -> FrameworkApi 
+    { apiDecoder  :: ByteString -> Maybe FrameworkApi 
     , viewEncoder :: FrameworkView -> ByteString
     }
 
@@ -40,7 +40,9 @@ type ApiServer = ByteString -> IO ByteString
 
 composeServer :: FrameworkServer -> Frontend -> ApiServer
 composeServer frameworkServer frontend = \byteString -> 
-    (viewEncoder frontend) <$> frameworkServer (apiDecoder frontend $ byteString)
+    case apiDecoder frontend $ byteString of
+        Nothing -> return $ viewEncoder frontend $ FWError InvalidApiCall
+        Just api -> (viewEncoder frontend) <$> frameworkServer api
 
 stupidRun :: Acid -> FrameworkServer
 stupidRun acid externalApi = runFrameworkApi acid externalApi >>= stupidLoggingPolicy
