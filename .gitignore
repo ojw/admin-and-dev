@@ -5,3 +5,4 @@ dist
 tags
 TAGS
 state/
+cabal-dev/
