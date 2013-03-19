@@ -6,8 +6,10 @@ import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.Prim
 import Data.Text as Text
-import Data.ByteString.Lazy as ByteString
-import Data.ByteString.Lazy.Char8 as Char8
+import Data.ByteString as ByteString
+import Data.ByteString.Char8 as Char8
+--import Data.ByteString.Lazy as Lazy
+import Data.ByteString.Lazy.Char8 as Lazy8
 
 import Framework.Location.Api
 import Framework.Auth.Api
@@ -64,14 +66,14 @@ internalApi =
 frameworkApi :: Parser FrameworkApi
 frameworkApi = FrameworkApi <$> optionMaybe (string "token" *> authToken) <*> (string "api" *> internalApi)
 
-decodeApi :: ByteString -> Maybe FrameworkApi
+decodeApi :: Lazy8.ByteString -> Maybe FrameworkApi
 decodeApi byteString = 
     case parse frameworkApi "" byteString of 
         Left error -> Nothing
         Right api -> Just api
 
-encodeView :: FrameworkView -> ByteString
-encodeView view = Char8.pack "view"
+encodeView :: FrameworkView -> Lazy8.ByteString
+encodeView view = Lazy8.pack "view"
 
 simpleFrontEnd = Frontend
     { apiDecoder = decodeApi
