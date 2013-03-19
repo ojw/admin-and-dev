@@ -2,3 +2,7 @@
 .state*
 favicon.ico
 dist
+tags
+TAGS
+state/
+cabal-dev/

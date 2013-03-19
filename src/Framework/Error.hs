@@ -10,6 +10,7 @@ data FrameworkError
     | FWAuthError AuthError
     | DefaultError
     | UserNotLoggedIn
+    | InvalidApiCall
 
 instance Error FrameworkError where
     noMsg = DefaultError
