@@ -13,8 +13,8 @@ import Data.Data
 import Data.Text            ( Text )
 import Data.Acid
 import Data.IxSet
-import Control.Lens
-import Data.SafeCopy
+import Control.Lens hiding ( Indexable )
+import Data.SafeCopy hiding ( Profile )
 
 import Util.HasAcidState
 

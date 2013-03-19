@@ -1,4 +1,4 @@
-module Example.SimpleFontend where
+module Example.SimpleFrontend where
 
 import Control.Applicative hiding ((<|>), many)
 import Text.Parsec.ByteString.Lazy

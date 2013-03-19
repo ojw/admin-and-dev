@@ -36,11 +36,11 @@ instance Loc Matchmaker where
     onLeave matchmaker = do
         userId <- getCurrentUserId
         if userId == matchmaker ^. owner
-        then do
+         then do
             users <- getUsers $ InMatchmaker $ matchmaker ^. matchmakerId
             exit <- exit matchmaker            
             mapM_ (setLocation exit) users
-        else return ()
+         else return ()
     exit = return . InLobby . (view lobbyId)
     chat c matchmaker = updateMatchmaker (matchmaker ^. matchmakerId) ((chats %~ addChat c) matchmaker) >> return () 
 

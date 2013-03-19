@@ -7,7 +7,7 @@ import Control.Monad.Error
 import Control.Monad.RWS
 import Data.Text
 import Data.Acid hiding ( query, update )
-import Data.SafeCopy
+import Data.SafeCopy hiding ( Profile )
 import Data.IxSet hiding ( delete )
 import Control.Lens as Lens
 import Data.Functor

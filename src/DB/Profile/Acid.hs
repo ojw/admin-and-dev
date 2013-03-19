@@ -28,7 +28,7 @@ import Data.Acid
 import Data.Acid.Advanced
 import Data.IxSet
 import Control.Lens
-import Data.SafeCopy
+import Data.SafeCopy hiding ( Profile )
 
 import Util.HasAcidState
 import Common.Profile.Types

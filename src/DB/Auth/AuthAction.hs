@@ -9,7 +9,7 @@ import Control.Monad.Error
 import Control.Monad.RWS
 import Data.Functor
 import Data.Text
-import Data.SafeCopy
+import Data.SafeCopy hiding ( Profile )
 import Control.Lens
 import Data.Data
 import Data.Acid
